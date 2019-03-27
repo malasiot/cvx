@@ -96,7 +96,7 @@ void applyGaborFilterBank(const cv::Mat &src, vector<cv::Mat> &kernels, vector<c
         cv::pow(res_imag, 2, res_imag);
         cv::add(res_imag, res_real, res_norm);
         cv::pow(res_norm, 0.5, res_norm);
-        cv::normalize(res_norm, res_norm, 0, 1, CV_MINMAX, CV_32F);
+        cv::normalize(res_norm, res_norm, 0, 1, cv::NORM_MINMAX, CV_32F);
         responses[i/2] = res_norm ;
     }
 

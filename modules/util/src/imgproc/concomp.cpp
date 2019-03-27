@@ -267,7 +267,7 @@ vector<cv::Point> RegionIterator::contour() const {
     cv::Mat bmp = mask() ;
 
     vector<vector<cv::Point> > contours ;
-    cv::findContours(bmp, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE) ;
+    cv::findContours(bmp, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE) ;
 
     return contours[0] ;
 }
