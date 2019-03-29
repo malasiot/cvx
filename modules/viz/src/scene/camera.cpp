@@ -76,7 +76,7 @@ Ray::Ray(const Vector3f &orig, const Vector3f &dir) : orig_(orig), dir_(dir) {
     sign_[2] = (invdir_.z() < 0);
 }
 
-Ray::Ray(const Ray &other, const Eigen::Isometry3f &tr):
+Ray::Ray(const Ray &other, const Eigen::Affine3f &tr):
     Ray((tr * other.orig_.homogeneous()).head<3>(), tr.linear() * other.dir_) {}
 
 } // namespace viz

@@ -466,7 +466,7 @@ void MaterialInstance::applyDefaultPerspective(const Matrix4f &cam, const Matrix
     p->setUniform("mvn", wp) ;
 }
 
-void MaterialInstance::applyDefaultLight(uint light_index, const LightPtr &light, const Isometry3f &tf)
+void MaterialInstance::applyDefaultLight(uint light_index, const LightPtr &light, const Affine3f &tf)
 {
     auto prog = material_->prog() ;
 

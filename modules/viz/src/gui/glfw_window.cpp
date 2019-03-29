@@ -24,6 +24,7 @@ bool glfwRenderWindow::run(size_t width, size_t height, const string &wname) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_FALSE);
+
     if ( !( handle_ = glfwCreateWindow(width, height, wname.c_str(), 0, 0) )) {
         glfwTerminate();
         return false ;
@@ -52,7 +53,7 @@ bool glfwRenderWindow::run(size_t width, size_t height, const string &wname) {
         double elapsed_time = current_time - saved_time_;
 
         if ( elapsed_time >= 1.0/30 ) {
-            onRender() ;
+            onRender(elapsed_time) ;
             glfwSwapBuffers(handle_);
             saved_time_ = current_time ;
         }

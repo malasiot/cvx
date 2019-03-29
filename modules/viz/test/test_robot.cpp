@@ -110,7 +110,7 @@ public:
     }
 
 
-    void onRender() override {
+    void onRender(double) override {
         trackball_.update() ;
         rdr_.render(camera_) ;
         this_thread::yield() ;

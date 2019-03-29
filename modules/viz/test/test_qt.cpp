@@ -10,7 +10,7 @@
 #include <QMouseEvent>
 #include <QWheelEvent>
 
-#include <GL/gl3w.h>
+//#include <GL/gl3w.h>
 
 #include "qt_glwidget.hpp"
 
@@ -185,7 +185,7 @@ private:
 void ExampleWindow::initializeGL()
 {
 
-    gl3wInit() ;
+  //  gl3wInit() ;
 
 
 }

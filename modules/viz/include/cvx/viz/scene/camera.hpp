@@ -26,7 +26,7 @@ class Ray
     public:
     Ray(const Eigen::Vector3f &orig, const Eigen::Vector3f &dir);
 
-    Ray(const Ray &other, const Eigen::Isometry3f &tr) ;
+    Ray(const Ray &other, const Eigen::Affine3f &tr) ;
 
     Eigen::Vector3f orig_, dir_;
     Eigen::Vector3f invdir_ ;

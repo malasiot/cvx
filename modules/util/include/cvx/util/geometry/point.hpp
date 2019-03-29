@@ -1,5 +1,5 @@
-#ifndef __Point_HPP__
-#define __Point_HPP__
+#ifndef __POINT_HPP__
+#define __POINT_HPP__
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>

@@ -22,7 +22,7 @@ public:
     VertexAccumulator() = default;
 
     void visit(const Node &node) override {
-        Isometry3f tf = node.globalTransform() ;
+        Affine3f tf = node.globalTransform() ;
         for( const DrawablePtr &dr: node.drawables() ) {
             MeshPtr mesh = std::dynamic_pointer_cast<Mesh>(dr->geometry()) ;
             if ( mesh ) {
@@ -109,7 +109,7 @@ bool Node::hit(const Ray &ray, Hit &hit)
     if ( !is_visible_ ) return false ;
     if ( !is_pickable_ ) return false ;
 
-    Isometry3f tf = globalTransform().inverse() ;
+    Affine3f tf = globalTransform().inverse() ;
     for( const DrawablePtr &dr: drawables() ) {
         GeometryPtr geom = dr->geometry() ;
         float t ;

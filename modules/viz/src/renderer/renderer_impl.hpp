@@ -28,13 +28,11 @@ public:
     void render(const CameraPtr &cam) ;
     void render(const NodePtr &node, const Eigen::Matrix4f &mat) ;
     void render(const DrawablePtr &geom, const Eigen::Matrix4f &mat) ;
-    void setModelTransform(const Eigen::Matrix4f &tf);
 
-    void setProgram(const std::string &) ;
     void drawMeshData(MeshData &data, GeometryPtr geom);
 
     void setLights(const MaterialInstancePtr &mat) ;
-    void setLights(const NodePtr &node, const Eigen::Isometry3f &parent_tf, const MaterialInstancePtr &mat) ;
+    void setLights(const NodePtr &node, const Eigen::Affine3f &parent_tf, const MaterialInstancePtr &mat) ;
 
     void renderText(const std::string &text, float x, float y, const Font &face, const Eigen::Vector3f &clr) ;
 

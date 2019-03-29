@@ -41,31 +41,7 @@ errorCallback( GLenum source,
            ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
             type, severity, message );
 }
-/*
-bool RendererImpl::init() {
 
-
-
-    // setup glew
-
-    if ( gl3wInit() != 0 ) return false ;
-
-
-    // During init, enable debug output
-    glEnable              ( GL_DEBUG_OUTPUT );
-    glDebugMessageCallback( errorCallback, this );
-    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_FALSE);
-    glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_ERROR, GL_DONT_CARE, 0, nullptr, true);
-
-    // create vertex buffers
-
-
-
-
-    return true ;
-}
-
-*/
 #define POSITION_LOCATION    0
 #define NORMALS_LOCATION    1
 #define COLORS_LOCATION    2
@@ -133,9 +109,9 @@ RendererImpl::~RendererImpl() {
 
 #define MAX_LIGHTS 10
 
-void RendererImpl::setLights(const NodePtr &node, const Isometry3f &parent_tf, const MaterialInstancePtr &mat)
+void RendererImpl::setLights(const NodePtr &node, const Affine3f &parent_tf, const MaterialInstancePtr &mat)
 {
-    Isometry3f tf = parent_tf * node->matrix() ;
+    Affine3f tf = parent_tf * node->matrix() ;
 
     for( uint i=0 ; i< node->lights().size() ; i++  ) {
         if ( light_index_ >= MAX_LIGHTS ) return ;
@@ -248,7 +224,7 @@ cv::Mat RendererImpl::getColor(bool alpha)
 
         cv::flip(mask, mask, 0) ;
 
-        cv::cvtColor(mask, mask, CV_RGBA2BGRA);
+        cv::cvtColor(mask, mask, cv::COLOR_RGBA2BGRA);
 
         return mask ;
     }
@@ -260,7 +236,7 @@ cv::Mat RendererImpl::getColor(bool alpha)
 
         cv::flip(mask, mask, 0) ;
 
-        cv::cvtColor(mask, mask, CV_RGB2BGR);
+        cv::cvtColor(mask, mask, cv::COLOR_RGB2BGR);
 
         return mask ;
     }
@@ -277,7 +253,7 @@ cv::Mat RendererImpl::getColor(cv::Mat &bg, float alpha)
     glReadBuffer(GL_COLOR_ATTACHMENT0);
     glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, mask.ptr());
     cv::flip(mask, mask, 0) ;
-    cv::cvtColor(mask, mask, CV_RGB2BGR);
+    cv::cvtColor(mask, mask, cv::COLOR_RGB2BGR);
 
     cv::Mat dst ;
     cv::addWeighted( mask, alpha, bg, (1 - alpha), 0.0, dst);

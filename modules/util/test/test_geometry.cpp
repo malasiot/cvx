@@ -5,7 +5,6 @@
 
 #include <Eigen/Geometry>
 
-
 using namespace std ;
 using namespace cvx::util ;
 using namespace Eigen ;

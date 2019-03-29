@@ -32,7 +32,7 @@ public:
 
     Node() { mat_.setIdentity() ; }
 
-    Eigen::Isometry3f &matrix() { return mat_ ; }
+    Eigen::Affine3f &matrix() { return mat_ ; }
 
     std::string name() const { return name_ ; }
 
@@ -66,7 +66,7 @@ public:
 
     const std::vector<LightPtr> &lights() const { return lights_ ; }
 
-    Eigen::Isometry3f globalTransform() const {
+    Eigen::Affine3f globalTransform() const {
         if ( parent_ ) return parent_->globalTransform() * mat_ ;
         else return mat_ ;
     }
@@ -120,7 +120,7 @@ private:
 
     std::string name_ ;
 
-    Eigen::Isometry3f mat_ ;             // transformation matrix to apply to child nodes and attached geometries
+    Eigen::Affine3f mat_ ;             // transformation matrix to apply to child nodes and attached geometries
 
     std::vector<NodePtr> children_ ;      // child nodes
     std::vector<DrawablePtr> drawables_ ; // meshes associated with this node

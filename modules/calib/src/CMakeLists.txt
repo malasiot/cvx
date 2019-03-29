@@ -1,7 +1,7 @@
-find_package(OpenCV 3 REQUIRED COMPONENTS core highgui video imgproc)
+find_package(OpenCV REQUIRED COMPONENTS core highgui video imgproc)
 find_package(Eigen3 REQUIRED)
 find_package(Ceres REQUIRED)
-find_package(glog 0.3.5 REQUIRED)
+find_package(glog REQUIRED)
 
 include_directories(
         ${CVX_INCLUDE_DIRS}

@@ -20,16 +20,14 @@ public:
     Polygon(T *data, int n, bool row_major = true):
         PointList<T, 2>(data, n, row_major) {}
 
-    size_t numPoints() const { return base_t::mat_.rows() ; }
-
     T area() const {
-        int n = numPoints() ;
+        int n = this->size() ;
 
         T s = 0 ;
         for( uint i=0 ; i<n ; i++ )
         {
             uint i1 = (i+1)%n ;
-            const Point<T, 2> &pi = base_t::mat_.row(i), &pi1 = base_t::mat_.row(i1) ;
+            const Point<T, 2> &pi = base_t::at(i), &pi1 = this->at(i1) ;
             s += pi.x()*pi1.y() - pi1.x()*pi.y() ;
         }
 
@@ -37,11 +35,11 @@ public:
     }
 
     Rectangle<T> boundingBox() const {
-        Point<T, 2> pmin = base_t::mat_.row(0), pmax = base_t::mat_.row(0) ;
+        Point<T, 2> pmin = this->at(0), pmax = this->at(0) ;
 
-        for( uint i=1 ; i<numPoints() ; i++ ) {
-            pmin = min(pmin, base_t::mat_.row(i)) ;
-            pmax = max(pmax, base_t::mat_.row(i)) ;
+        for( uint i=1 ; i<this->size() ; i++ ) {
+            pmin = min(pmin, this->at(i)) ;
+            pmax = max(pmax, this->at(i)) ;
         }
 
         return Rectangle<T>(pmin, pmax) ;

@@ -1,4 +1,4 @@
-find_package(OpenCV 3 REQUIRED)
+find_package(OpenCV REQUIRED)
 
 include_directories(
     ${CVX_INCLUDE_DIRS}
@@ -39,3 +39,5 @@ target_link_libraries(test_qt cvx_viz Qt5::Widgets)
 add_executable(test_imageview test_imageview.cpp)
 # Use the Widgets module from Qt 5
 target_link_libraries(test_imageview cvx_viz Qt5::Widgets)
+
+add_subdirectory(bullet)

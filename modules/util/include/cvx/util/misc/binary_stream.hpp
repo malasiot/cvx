@@ -1,8 +1,6 @@
 #ifndef __BINARY_STREAM_HPP__
 #define __BINARY_STREAM_HPP__
 
-//#include <cvx/util/point2d.hpp>
-
 #include <iostream>
 #include <vector>
 

@@ -16,7 +16,7 @@ public:
     bool run(size_t width, size_t height, const std::string &name = "window");
 
     virtual void onInit() {} // one time initialization of renderer
-    virtual void onRender() {} // called to render every frame
+    virtual void onRender(double deltaTime) {} // called to render every frame
 
     virtual void onMouseButtonPressed(uint button, size_t x, size_t y, uint flags) {}
     virtual void onMouseButtonReleased(uint button, size_t x, size_t y, uint flags) {}

@@ -87,7 +87,7 @@ public:
     }
 
 
-    void onRender() {
+    void onRender(double delta) override {
         trackball_.update() ;
 
         rdr_.render(camera_) ;

@@ -73,14 +73,14 @@ public:
     virtual void use() ;
     virtual void applyParameters() {}
     virtual void applyTransform(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) {}
-    virtual void applyLight(uint idx, const LightPtr &light, const Eigen::Isometry3f &tf) {}
+    virtual void applyLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) {}
 
 protected:
     MaterialInstance(const std::shared_ptr<Material> &material, const std::shared_ptr<MaterialParameters> &params):
         material_(material), params_(params) {}
 
     void applyDefaultPerspective(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) ;
-    void applyDefaultLight(uint idx, const LightPtr &light, const Eigen::Isometry3f &tf) ;
+    void applyDefaultLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) ;
 
     std::shared_ptr<Material> material_ ;
     std::shared_ptr<MaterialParameters> params_ ;
@@ -115,7 +115,7 @@ protected:
         applyDefaultPerspective(cam, view, model) ;
     }
 
-    void applyLight(uint idx, const LightPtr &light, const Eigen::Isometry3f &tf) override {
+    void applyLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) override {
         applyDefaultLight(idx, light, tf) ;
     }
 
@@ -156,7 +156,7 @@ protected:
         applyDefaultPerspective(cam, view, model) ;
     }
 
-    void applyLight(uint idx, const LightPtr &light, const Eigen::Isometry3f &tf) override {
+    void applyLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) override {
         applyDefaultLight(idx, light, tf) ;
     }
 };
@@ -199,7 +199,7 @@ protected:
 
     void applyParameters() override ;
 
-    void applyLight(uint idx, const LightPtr &light, const Eigen::Isometry3f &tf) override {
+    void applyLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) override {
         applyDefaultLight(idx, light, tf) ;
     }
 };
@@ -235,7 +235,7 @@ protected:
         applyDefaultPerspective(cam, view, model) ;
     }
 
-    void applyLight(uint idx, const LightPtr &light, const Eigen::Isometry3f &tf) override {
+    void applyLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) override {
         applyDefaultLight(idx, light, tf) ;
     }
 };
