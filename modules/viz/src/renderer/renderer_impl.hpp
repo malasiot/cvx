@@ -16,43 +16,58 @@
 #include "text_item.hpp"
 #include "mesh_data.hpp"
 
-namespace cvx { namespace viz { namespace impl {
+namespace cvx { namespace viz { namespace detail {
 
 class RendererImpl {
 public:
 
-    RendererImpl(const ScenePtr &scene): scene_(scene),  default_material_(new PhongMaterialInstance) {
+    RendererImpl():  default_material_(new PhongMaterialInstance) {
     }
     ~RendererImpl() ;
 
-    void render(const CameraPtr &cam) ;
-    void render(const NodePtr &node, const Eigen::Matrix4f &mat) ;
-    void render(const DrawablePtr &geom, const Eigen::Matrix4f &mat) ;
+    void init(const CameraPtr &cam) ;
+
+    void renderScene(const ScenePtr &scene) ;
+
+    void render(const ScenePtr &scene, const NodePtr &node, const Eigen::Matrix4f &mat) ;
+    void render(const ScenePtr &scene, const DrawablePtr &geom, const Eigen::Matrix4f &mat) ;
+
+    void clearZBuffer() ;
 
     void drawMeshData(MeshData &data, GeometryPtr geom);
 
-    void setLights(const MaterialInstancePtr &mat) ;
+    void setLights(const ScenePtr &scene, const MaterialInstancePtr &mat) ;
     void setLights(const NodePtr &node, const Eigen::Affine3f &parent_tf, const MaterialInstancePtr &mat) ;
 
     void renderText(const std::string &text, float x, float y, const Font &face, const Eigen::Vector3f &clr) ;
+    void renderText(const std::string &text, const Eigen::Vector3f &pos, const Font &face, const Eigen::Vector3f &clr) ;
+
+    void renderTextObject(const Text  &text, float x, float y, const Font &face, const Eigen::Vector3f &clr) ;
+    void renderTextObject(const Text &text, const Eigen::Vector3f &pos, const Font &face, const Eigen::Vector3f &clr) ;
+
+    void drawLine(const Eigen::Vector3f &from, const Eigen::Vector3f &to, const Eigen::Vector4f &clr, float lineWidth);
 
     cv::Mat getColor(bool alpha);
     cv::Mat getColor(cv::Mat &bg, float alpha);
     cv::Mat getDepth();
 
+
 private:
 
-
-    ScenePtr scene_ ;
     Eigen::Matrix4f perspective_, proj_ ;
     GLuint query_ ;
-    Eigen::Vector4f bg_clr_= { 0, 0, 0, 1 } ;
+ //   Eigen::Vector4f bg_clr_= { 0, 0, 0, 1 } ;
     float znear_, zfar_ ;
     MaterialInstancePtr default_material_ ;
 
     uint light_index_ = 0 ;
 
     static detail::GlyphCacheMap g_glyphs ;
+
+    OpenGLShaderProgram::Ptr line_shader_ ;
+    GLuint line_vao_, line_vbo_, line_idx_vbo_ ;
+    GLint line_width_range_[2] ;
+
 } ;
 
 

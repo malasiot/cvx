@@ -3,6 +3,7 @@
 
 #include <bullet/btBulletCollisionCommon.h>
 #include <bullet/btBulletDynamicsCommon.h>
+#include <bullet/BulletCollision/NarrowPhaseCollision/btRaycastCallback.h>
 
 #include <memory>
 #include <vector>
@@ -32,6 +33,10 @@ struct Physics
     using TransformObserver = std::function<void(const Eigen::Affine3f &)> ;
     std::map<btRigidBody *, TransformObserver> observers_ ;
 
+
+    static btVector3 eigenVectorToBullet(const Eigen::Vector3f &v) {
+        return btVector3(btScalar(v.x()), btScalar(v.y()), btScalar(v.z())) ;
+    }
     btDiscreteDynamicsWorld* getDynamicsWorld()
     {
         return m_dynamicsWorld.get();
@@ -111,6 +116,85 @@ struct Physics
         m_dispatcher.release();
         m_collisionConfiguration.release() ;
 
+    }
+
+
+    bool movePickedBody(const btVector3& rayFromWorld, const btVector3& rayToWorld)
+    {
+        if (m_pickedBody && m_pickedConstraint)
+        {
+            btPoint2PointConstraint* pickCon = static_cast<btPoint2PointConstraint*>(m_pickedConstraint);
+            if (pickCon)
+            {
+                //keep it at the same picking distance
+
+                btVector3 newPivotB;
+
+                btVector3 dir = rayToWorld - rayFromWorld;
+                dir.normalize();
+                dir *= m_oldPickingDist;
+
+                newPivotB = rayFromWorld + dir;
+                pickCon->setPivotB(newPivotB);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool pickBody(const btVector3& rayFromWorld, const btVector3& rayToWorld)
+    {
+        if (!m_dynamicsWorld) return false;
+
+        btCollisionWorld::ClosestRayResultCallback rayCallback(rayFromWorld, rayToWorld);
+
+        rayCallback.m_flags |= btTriangleRaycastCallback::kF_UseGjkConvexCastRaytest;
+        m_dynamicsWorld->rayTest(rayFromWorld, rayToWorld, rayCallback);
+        if (rayCallback.hasHit())
+        {
+            btVector3 pickPos = rayCallback.m_hitPointWorld;
+            btRigidBody* body = (btRigidBody*)btRigidBody::upcast(rayCallback.m_collisionObject);
+            if (body)
+            {
+                //other exclusions?
+                if (!(body->isStaticObject() || body->isKinematicObject()))
+                {
+                    m_pickedBody = body;
+                    m_savedState = m_pickedBody->getActivationState();
+                    m_pickedBody->setActivationState(DISABLE_DEACTIVATION);
+                    //printf("pickPos=%f,%f,%f\n",pickPos.getX(),pickPos.getY(),pickPos.getZ());
+                    btVector3 localPivot = body->getCenterOfMassTransform().inverse() * pickPos;
+                    btPoint2PointConstraint* p2p = new btPoint2PointConstraint(*body, localPivot);
+                    m_dynamicsWorld->addConstraint(p2p, true);
+                    m_pickedConstraint = p2p;
+                    btScalar mousePickClamping = 30.f;
+                    p2p->m_setting.m_impulseClamp = mousePickClamping;
+                    //very weak constraint for picking
+                    p2p->m_setting.m_tau = 0.001f;
+                }
+            }
+
+            //					pickObject(pickPos, rayCallback.m_collisionObject);
+            m_oldPickingPos = rayToWorld;
+            m_hitPos = pickPos;
+            m_oldPickingDist = (pickPos - rayFromWorld).length();
+            //					printf("hit !\n");
+            //add p2p
+        }
+        return false;
+    }
+
+    virtual void removePickingConstraint()
+    {
+        if (m_pickedConstraint)
+        {
+            m_pickedBody->forceActivationState(m_savedState);
+            m_pickedBody->activate();
+            m_dynamicsWorld->removeConstraint(m_pickedConstraint);
+            delete m_pickedConstraint;
+            m_pickedConstraint = 0;
+            m_pickedBody = 0;
+        }
     }
 
     void debugDraw(int debugDrawFlags)

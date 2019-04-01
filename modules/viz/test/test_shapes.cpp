@@ -323,9 +323,9 @@ int main(int argc, char *argv[]) {
 
     // initialize renderer
 
-    Renderer rdr(scene) ;
-
-    rdr.render(cam) ;
+    Renderer rdr ;
+    rdr.init(cam) ;
+    rdr.render(scene) ;
 
     // obtain the color buffer
     cv::Mat clr = rdr.getColor() ;

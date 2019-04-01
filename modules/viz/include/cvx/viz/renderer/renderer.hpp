@@ -11,38 +11,60 @@
 
 namespace cvx { namespace viz {
 
-namespace impl {
+namespace detail {
     class RendererImpl ;
 }
 
 class Renderer {
 public:
 
-    Renderer(const ScenePtr &scene) ;
+    Renderer() ;
     ~Renderer() ;
 
-    // render scene
-    void render(const CameraPtr &cam) ;
+    // init renderer
+    void init(const CameraPtr &cam) ;
+
+    void clearZBuffer();
 
     cv::Mat getColor(bool alpha = true);
     cv::Mat getColor(cv::Mat &bg, float alpha);
     cv::Mat getDepth();
 
+    // render a scene hierarchy
+
+    void render(const ScenePtr &scene) ;
+
     // Draws text on top of the scene using given font and color
     void text(const std::string &text, float x, float y, const Font &f, const Eigen::Vector3f &clr) ;
+    void text(const std::string &text, const Eigen::Vector3f &pos, const Font &f, const Eigen::Vector3f &clr) ;
 
     // It returns a text object that may be cached and drawn several times by calling render function.
     // It uses OpenGL so it should be called after initializing GL context
-    Text text(const std::string &text, const Font &f) ;
+    Text textObject(const std::string &text, const Font &f) ;
+
+    // Draws text object on top of the scene using given font and color
+    void text(const Text &text, float x, float y, const Font &f, const Eigen::Vector3f &clr) ;
+    void text(const Text &text, const Eigen::Vector3f &pos, const Font &f, const Eigen::Vector3f &clr) ;
+
+    // draw a line with given color and width. suitable for drawing a few lines for debug purpose
+    void line(const Eigen::Vector3f &from, const Eigen::Vector3f &to, const Eigen::Vector4f &clr, float lineWidth = 1.);
+
+    // draw a 3D elliptic arc with given center and normal
+    void arc(const Eigen::Vector3f &center, const Eigen::Vector3f &normal, const Eigen::Vector3f &xaxis,
+             float radiusA, float radiusB,
+             float minAngle, float maxAngle,
+             const Eigen::Vector4f &color, bool drawSect, float lineWidth = 1.f, float stepDegrees = 10.f);
+
+    void circle(const Eigen::Vector3f &center, const Eigen::Vector3f &normal, float radius, const Eigen::Vector4f &color, float lineWidth = 1.0) ;
 
 private:
 
-    std::unique_ptr<impl::RendererImpl> impl_ ;
+    std::unique_ptr<detail::RendererImpl> impl_ ;
 } ;
 
 class OffscreenRenderer: public Renderer {
 public:
-    OffscreenRenderer(uint width, uint height, const ScenePtr &scene): Renderer(scene), ow_(width, height) {}
+    OffscreenRenderer(uint width, uint height): Renderer(), ow_(width, height) {}
 
 protected:
     OffscreenRenderingWindow ow_ ;

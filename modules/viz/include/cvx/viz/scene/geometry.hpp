@@ -15,7 +15,7 @@ namespace cvx { namespace viz {
 
 class Ray ;
 
-namespace impl {
+namespace detail {
 class MeshData ;
 }
 
@@ -28,7 +28,7 @@ public:
 
     // creates and returns the vertex buffers needed for this type of geometry
 
-    impl::MeshData *getMeshData() {
+    detail::MeshData *getMeshData() {
         if ( !data_ ) makeMeshData() ;
         return data_.get() ;
     }
@@ -37,7 +37,7 @@ protected:
 
     virtual void makeMeshData() {}
 
-    std::shared_ptr<impl::MeshData> data_ = nullptr ;
+    std::shared_ptr<detail::MeshData> data_ = nullptr ;
 };
 
 

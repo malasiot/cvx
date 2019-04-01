@@ -3,7 +3,9 @@ find_package(Eigen3 REQUIRED)
 find_package(ZLIB REQUIRED)
 
 find_package(F2C REQUIRED)
-find_package(LAPACK)
+find_package(LAPACK REQUIRED)
+
+message(${LAPACK_LIBRARIES})
 
 include_directories(
    ${CMAKE_CURRENT_SOURCE_DIR}/../include/

@@ -10,9 +10,11 @@
 #include <cvx/viz/gui/trackball.hpp>
 
 #include <cvx/util/math/rng.hpp>
+#include <cvx/util/misc/strings.hpp>
 
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <thread>
 #include "physics.hpp"
 
 using namespace cvx::viz ;
@@ -29,7 +31,7 @@ class glfwGUI: public glfwRenderWindow {
 public:
 
 
-    glfwGUI(const ScenePtr &sc, Physics &physics): glfwRenderWindow(), scene_(sc), rdr_(sc), physics_(physics) {
+    glfwGUI(const ScenePtr &sc, Physics &physics): glfwRenderWindow(), scene_(sc), physics_(physics) {
 
         Vector3f c{0, 0, 0};
         float r = 10.0 ;
@@ -59,31 +61,61 @@ public:
 
 
     void onMouseButtonPressed(uint button, size_t x, size_t y, uint flags) override {
-        switch ( button ) {
-            case GLFW_MOUSE_BUTTON_LEFT:
-                trackball_.setLeftClicked(true) ;
-                break ;
-            case GLFW_MOUSE_BUTTON_MIDDLE:
-                trackball_.setMiddleClicked(true) ;
-                break ;
-            case GLFW_MOUSE_BUTTON_RIGHT:
-                trackball_.setRightClicked(true) ;
-                break ;
+
+
+
+
+        if ( flags & GLFW_MOD_ALT ) {
+            Ray ray = camera_->getRay(x, y) ;
+
+            physics_.pickBody(Physics::eigenVectorToBullet(ray.getOrigin()), Physics::eigenVectorToBullet(ray.getDir()*10000));
+
+            Hit hit ;
+            if ( scene_->hit(ray, hit) ) {
+                cout << hit.node_->name() << endl ;
+            }
+
+            picking_ = true ;
+
+        } else {
+            switch ( button ) {
+                case GLFW_MOUSE_BUTTON_LEFT:
+                    trackball_.setLeftClicked(true) ;
+                    break ;
+                case GLFW_MOUSE_BUTTON_MIDDLE:
+                    trackball_.setMiddleClicked(true) ;
+                    break ;
+                case GLFW_MOUSE_BUTTON_RIGHT:
+                    trackball_.setRightClicked(true) ;
+                    break ;
+            }
+
+            trackball_.setClickPoint(x, y) ;
         }
-        trackball_.setClickPoint(x, y) ;
     }
 
+
     void onMouseButtonReleased(uint button, size_t x, size_t y, uint flags) override {
-        switch ( button ) {
-            case GLFW_MOUSE_BUTTON_LEFT:
-                trackball_.setLeftClicked(false) ;
-                break ;
-            case GLFW_MOUSE_BUTTON_MIDDLE:
-                trackball_.setMiddleClicked(false) ;
-                break ;
-            case GLFW_MOUSE_BUTTON_RIGHT:
-                trackball_.setRightClicked(false) ;
-                break ;
+
+
+
+        if ( flags & GLFW_MOD_ALT ) {
+            physics_.removePickingConstraint();
+            picking_ = false ;
+        } else {
+            switch ( button ) {
+                case GLFW_MOUSE_BUTTON_LEFT:
+                    trackball_.setLeftClicked(false) ;
+                    break ;
+                case GLFW_MOUSE_BUTTON_MIDDLE:
+                    trackball_.setMiddleClicked(false) ;
+                    break ;
+                case GLFW_MOUSE_BUTTON_RIGHT:
+                    trackball_.setRightClicked(false) ;
+                    break ;
+            }
+
+
         }
 
     }
@@ -93,8 +125,13 @@ public:
         s << xpos << ',' << ypos ;
         text_ = s.str() ;
 
+        if ( picking_ )  {
+            Ray ray = camera_->getRay(xpos, ypos) ;
 
-        trackball_.setClickPoint(xpos, ypos) ;
+            physics_.movePickedBody(Physics::eigenVectorToBullet(ray.getOrigin()), Physics::eigenVectorToBullet(ray.getDir()*10000));
+        }
+        else
+            trackball_.setClickPoint(xpos, ypos) ;
     }
 
     void onMouseWheel(double x) {
@@ -105,10 +142,28 @@ public:
     void onRender(double delta) override {
         trackball_.update() ;
 
-        rdr_.render(camera_) ;
+        rdr_.init(camera_) ;
+        rdr_.render(scene_) ;
+
+        rdr_.clearZBuffer();
+
         rdr_.text(text_, 10, 10, Font("arial", 24), {1, 1, 0});
+
+        rdr_.line({0, 0, 0}, {10, 0, 0}, {1, 0, 0, 1});
+        rdr_.line({0, 0, 0}, {0, 10, 0}, {0, 1, 0, 1});
+        rdr_.line({0, 0, 0}, {0, 0, 10}, {0, 0, 1, 1});
+
+        rdr_.text("X", Vector3f{10, 0, 0}, Font("Arial", 12), Vector3f{1, 0, 0}) ;
+        rdr_.text("Y", Vector3f{0, 10, 0}, Font("Arial", 12), Vector3f{0, 1, 0}) ;
+        rdr_.text("Z", Vector3f{0, 0, 10}, Font("Arial", 12), Vector3f{0, 0, 1}) ;
+
+        rdr_.circle({0, 0, 0}, {0, 1, 0}, 5.0, {0, 1, 0, 1}) ;
+
         physics_.stepSimulation(delta);
         physics_.updateTransforms();
+        this_thread::yield() ;
+
+
 
 
     }
@@ -120,6 +175,8 @@ public:
     TrackBall trackball_ ;
     CameraPtr camera_ ;
     Physics &physics_ ;
+
+    bool picking_ = false ;
 };
 
 NodePtr makeBox(const string &name, const Vector3f &hs, const Matrix4f &tr, const Vector4f &clr) {
@@ -154,6 +211,8 @@ void createScene() {
     std::shared_ptr<DirectionalLight> dl( new DirectionalLight(Vector3f(0.5, 0.5, 1)) ) ;
     dl->diffuse_color_ = Vector3f(1, 1, 1) ;
     scene->addLight(dl) ;
+
+    scene->setPickable(true);
 
     // init physics
 
@@ -232,15 +291,21 @@ void createScene() {
 
                     btRigidBody *body = physics.createRigidBody(mass, startTransform, colShape);
 
-
-
                     NodePtr node(new Node) ;
 
-                    MaterialInstancePtr material(new ConstantMaterialInstance({g_rng.uniform(0.0, 1.), 1, g_rng.uniform(0., 1.), 1})) ;
+                    std::shared_ptr<PhongMaterialParameters> params(new PhongMaterialParameters) ;
+                    params->setDiffuse({g_rng.uniform(0.0, 1.), 1, g_rng.uniform(0., 1.), 1}) ;
+
+                    MaterialInstancePtr material(new PhongMaterialInstance(params)) ;
 
                     DrawablePtr dr(new Drawable(geom, material)) ;
 
                     node->addDrawable(dr) ;
+
+                    node->setPickable(true);
+
+
+                    node->setName(cvx::util::format("%d %d %d", i, j, k)) ;
 
                     Affine3f tr ;
                     tr.setIdentity() ;

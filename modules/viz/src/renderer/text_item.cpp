@@ -167,6 +167,7 @@ void TextItem::render(float x, float y, const Eigen::Vector3f &clr)
     glBindVertexArray(0) ;
 }
 
+
 TextItem::~TextItem() {
     glDeleteVertexArrays(1, &vao_);
     glDeleteBuffers(1, &vbo_);

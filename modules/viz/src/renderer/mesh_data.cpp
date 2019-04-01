@@ -3,7 +3,7 @@
 
 using namespace cvx::util ;
 
-namespace cvx { namespace viz { namespace impl {
+namespace cvx { namespace viz { namespace detail {
 
 
 #define POSITION_LOCATION    0
@@ -89,14 +89,14 @@ namespace cvx {  namespace  viz {
 
 void Mesh::makeMeshData() {
     MeshPtr fmesh = Mesh::flatten(shared_from_this());
-    data_.reset(new impl::MeshData(*fmesh)) ;
+    data_.reset(new detail::MeshData(*fmesh)) ;
 
 }
 
 void BoxGeometry::makeMeshData() {
     MeshPtr mesh = Mesh::createSolidCube(halfExtents()) ;
     MeshPtr fmesh = Mesh::flatten(mesh) ;
-    data_.reset(new impl::MeshData(*fmesh)) ;
+    data_.reset(new detail::MeshData(*fmesh)) ;
 }
 
 }}

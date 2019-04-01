@@ -10,6 +10,7 @@ namespace cvx { namespace viz {
 
 namespace detail {
     class TextItem ;
+    class RendererImpl ;
 }
 
 // wrapper for text object, usefull for repetitive drawing of the same text
@@ -22,6 +23,7 @@ public:
 
 private:
 
+    friend class detail::RendererImpl ;
     std::shared_ptr<detail::TextItem> impl_ ;
 } ;
 

@@ -25,7 +25,7 @@ using namespace std ;
 using namespace Eigen ;
 using namespace cvx::util ;
 
-namespace cvx { namespace viz { namespace impl {
+namespace cvx { namespace viz { namespace detail {
 
 
 void
@@ -49,7 +49,7 @@ errorCallback( GLenum source,
 #define BONE_WEIGHT_LOCATION    4
 #define UV_LOCATION 5
 
-void RendererImpl::render(const CameraPtr &cam) {
+void RendererImpl::init(const CameraPtr &cam) {
 
     glEnable(GL_DEPTH_TEST) ;
     glDepthFunc(GL_LESS);
@@ -76,14 +76,16 @@ void RendererImpl::render(const CameraPtr &cam) {
     glViewport(vp.x_, vp.y_, vp.width_, vp.height_);
 
     proj_ = cam->getViewMatrix() ;
+}
+
+void RendererImpl::renderScene(const ScenePtr &scene) {
 
     // render node hierarchy
 
-    render(scene_, Matrix4f::Identity()) ;
-
+    render(scene, scene, Matrix4f::Identity()) ;
 }
 
-void RendererImpl::render(const NodePtr &node, const Matrix4f &tf) {
+void RendererImpl::render(const ScenePtr &scene, const NodePtr &node, const Matrix4f &tf) {
 
     if ( !node->isVisible() ) return ;
 
@@ -92,12 +94,12 @@ void RendererImpl::render(const NodePtr &node, const Matrix4f &tf) {
 
     for( uint i=0 ; i<node->numDrawables() ; i++ ) {
         const DrawablePtr &m = node->getDrawable(i) ;
-        render(m, tr) ;
+        render(scene, m, tr) ;
     }
 
     for( uint i=0 ; i<node->numChildren() ; i++ ) {
         const NodePtr &n = node->getChild(i) ;
-        render(n, tr) ;
+        render(scene, n, tr) ;
     }
 }
 
@@ -125,13 +127,13 @@ void RendererImpl::setLights(const NodePtr &node, const Affine3f &parent_tf, con
         setLights(node->getChild(i), tf, mat) ;
 }
 
-void RendererImpl::setLights(const MaterialInstancePtr &material) {
+void RendererImpl::setLights(const ScenePtr &scene, const MaterialInstancePtr &material) {
     light_index_ = 0 ;
 
     Isometry3f mat ;
     mat.setIdentity() ;
 
-    setLights(scene_, mat, material) ;
+    setLights(scene, mat, material) ;
 }
 
 
@@ -139,6 +141,7 @@ void RendererImpl::drawMeshData(MeshData &data, GeometryPtr geom) {
     glBindVertexArray(data.vao_);
 
     MeshPtr mesh = std::dynamic_pointer_cast<Mesh>(geom) ;
+
 
     if ( mesh ) {
         if ( mesh->ptype() == Mesh::Triangles ) {
@@ -168,7 +171,7 @@ void RendererImpl::drawMeshData(MeshData &data, GeometryPtr geom) {
 }
 
 
-void RendererImpl::render(const DrawablePtr &geom, const Matrix4f &mat)
+void RendererImpl::render(const ScenePtr &scene, const DrawablePtr &geom, const Matrix4f &mat)
 {
     if ( !geom->geometry() ) return ;
 
@@ -180,7 +183,7 @@ void RendererImpl::render(const DrawablePtr &geom, const Matrix4f &mat)
     material->use() ;
     material->applyParameters() ;
     material->applyTransform(perspective_, proj_, mat) ;
-    setLights(material) ;
+    setLights(scene, material) ;
 
 #if 0
 
@@ -206,6 +209,11 @@ void RendererImpl::render(const DrawablePtr &geom, const Matrix4f &mat)
 
 #endif
     // glUseProgram(0) ;
+}
+
+void RendererImpl::clearZBuffer()
+{
+    glClear(GL_DEPTH_BUFFER_BIT) ;
 }
 
 
@@ -309,6 +317,137 @@ void RendererImpl::renderText(const string &text, float x, float y, const Font &
 
     TextItem ti(text, font) ;
     ti.render(x, y, clr) ;
+}
+
+void RendererImpl::renderText(const string &text, const Vector3f &pos, const Font &font, const Vector3f &clr) {
+    using namespace detail ;
+
+    if ( text.empty() ) return ;
+
+    TextItem ti(text, font) ;
+
+    Vector3f p = Affine3f(perspective_ * proj_) * pos ;
+
+    GLint vp[4] ;
+    glGetIntegerv (GL_VIEWPORT, vp) ;
+
+    float xn = p.x()/p.z(), yn = p.y()/p.z() ;
+    float x = (xn + 1.0) * (vp[2]/2.0) + vp[0] ;
+    float y = (yn + 1.0) * (vp[3]/2.0) + vp[1];
+
+    ti.render(x, y, clr) ;
+}
+
+void RendererImpl::renderTextObject(const Text &text, float x, float y, const Font &face, const Vector3f &clr)
+{
+    text.impl_->render(x, y, clr) ;
+}
+
+void RendererImpl::renderTextObject(const Text &text, const Vector3f &pos , const Font &face, const Vector3f &clr)
+{
+    Vector3f p = Affine3f(perspective_ * proj_) * pos ;
+
+    GLint vp[4] ;
+    glGetIntegerv (GL_VIEWPORT, vp) ;
+
+    float xn = p.x()/p.z(), yn = p.y()/p.z() ;
+    float x = (xn + 1.0) * (vp[2]/2.0) + vp[0] ;
+    float y = (yn + 1.0) * (vp[3]/2.0) + vp[1];
+
+    text.impl_->render(x, y, clr) ;
+}
+
+static const char * line_shader_vertex_ = R"(
+#version 330
+uniform mat4 mvp;
+uniform vec4 colour;
+in vec4 position;
+out vec4 colourV;
+
+void main (void) {
+  colourV = colour;
+  gl_Position = mvp * position;
+}
+)" ;
+
+static const char * line_shader_fragment_ = R"(
+#version 330
+in vec4 colourV;
+out vec4 fragColour;
+void main(void) {
+  fragColour = colourV ;
+}
+)";
+
+void RendererImpl::drawLine(const Vector3f &from, const Vector3f &to, const Vector4f &clr, float lineWidth) {
+
+    if ( !line_shader_ ) {
+        line_shader_.reset(new OpenGLShaderProgram(line_shader_vertex_, line_shader_fragment_)) ;
+
+        static const int MAX_POINTS_IN_BATCH  = 8 ;
+
+        glGenVertexArrays(1, &line_vao_);
+        glBindVertexArray(line_vao_);
+
+        glGenBuffers(1, &line_vbo_);
+        glGenBuffers(1, &line_idx_vbo_);
+
+        glBindVertexArray(line_vao_);
+        int sz = MAX_POINTS_IN_BATCH * sizeof(Vector3f);
+        glBindBuffer(GL_ARRAY_BUFFER, line_vbo_);
+        glBufferData(GL_ARRAY_BUFFER, sz, 0, GL_DYNAMIC_DRAW);
+
+        glBindVertexArray(0);
+
+        glGetIntegerv(GL_SMOOTH_LINE_WIDTH_RANGE, line_width_range_);
+    }
+
+    glEnable(GL_BLEND);
+    // glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE);
+
+    glEnable(GL_DEPTH_TEST) ;
+    glDisable(GL_CULL_FACE) ;
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    line_shader_->use() ;
+
+    line_shader_->setUniform("mvp", Matrix4f(perspective_ * proj_) ) ;
+    line_shader_->setUniform("colour", clr) ;
+
+    const float vertexPositions[] = {
+        from[0], from[1], from[2], 1,
+        to[0], to[1], to[2], 1};
+
+    int sz = sizeof(vertexPositions);
+
+    glLineWidth(lineWidth);
+
+    lineWidth = std::max((float)line_width_range_[0], std::min(lineWidth, (float)line_width_range_[1])) ;
+
+    glBindVertexArray(line_vao_);
+
+    glBindBuffer(GL_ARRAY_BUFFER, line_vbo_);
+
+    {
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sz, vertexPositions);
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, line_vbo_);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glDrawArrays(GL_LINES, 0, 2);
+
+    glBindVertexArray(0);
+    glLineWidth(1);
+    glUseProgram(0);
+
+
 }
 
 }}}

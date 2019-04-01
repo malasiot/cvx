@@ -15,6 +15,7 @@ public:
     ~TextItem() ;
 
     void render(float x, float y, const Eigen::Vector3f &clr) ;
+
 private:
 
     GLuint vao_, vbo_, ebo_, texture_ ;

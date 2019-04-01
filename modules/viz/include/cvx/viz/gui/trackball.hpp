@@ -45,6 +45,8 @@ public:
 	void setSpeed(float s);
 	void update();
 
+    Eigen::Vector3f getEyePosition() const { return eye_ ; }
+
 protected:
     char clickQuadrant(float x, float y);
     Eigen::Vector3f computeCameraEye();

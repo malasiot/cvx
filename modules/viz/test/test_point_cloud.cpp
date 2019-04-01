@@ -27,7 +27,7 @@ using namespace Eigen ;
 class glfwGUI: public glfwRenderWindow {
 public:
 
-    glfwGUI(ScenePtr scene): glfwRenderWindow(), rdr_(scene) {
+    glfwGUI(ScenePtr scene): glfwRenderWindow() {
         auto c = scene->geomCenter() ;
         auto r = scene->geomRadius(c) ;
 
@@ -94,7 +94,8 @@ public:
 
     void onRender(double delta) override {
         trackball_.update() ;
-        rdr_.render(camera_) ;
+        rdr_.init(camera_) ;
+        rdr_.render(scene_) ;
     }
 
     string text_ ;

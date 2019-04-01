@@ -20,7 +20,7 @@ using namespace Eigen ;
 class glfwGUI: public glfwRenderWindow {
 public:
 
-    glfwGUI(RobotScenePtr scene): glfwRenderWindow(), scene_(scene), rdr_(scene) {
+    glfwGUI(const RobotScenePtr scene): glfwRenderWindow(), scene_(scene) {
         auto c = scene->geomCenter() ;
         auto r = scene->geomRadius(c) ;
 
@@ -112,7 +112,8 @@ public:
 
     void onRender(double) override {
         trackball_.update() ;
-        rdr_.render(camera_) ;
+        rdr_.init(camera_) ;
+        rdr_.render(scene_) ;
         this_thread::yield() ;
     }
 

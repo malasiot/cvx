@@ -202,11 +202,11 @@ void ExampleWindow::resizeGL(int w, int h) {
 
 void ExampleWindow::paintGL()
 {
-
-    rdr_.render(camera_) ;
+    rdr_.init(camera_) ;
+    rdr_.render(scene_) ;
 }
 
-ExampleWindow::ExampleWindow(ScenePtr scene): scene_(scene), rdr_(scene) {
+ExampleWindow::ExampleWindow(ScenePtr scene): scene_(scene) {
 
 
 

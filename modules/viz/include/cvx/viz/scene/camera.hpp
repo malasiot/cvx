@@ -21,12 +21,15 @@ struct Viewport {
     size_t x_ = 0, y_ = 0, width_, height_ ;
 };
 
-class Ray
+struct Ray
 {
     public:
     Ray(const Eigen::Vector3f &orig, const Eigen::Vector3f &dir);
 
     Ray(const Ray &other, const Eigen::Affine3f &tr) ;
+
+    Eigen::Vector3f getOrigin() const { return orig_ ; }
+    Eigen::Vector3f getDir() const { return dir_ ; }
 
     Eigen::Vector3f orig_, dir_;
     Eigen::Vector3f invdir_ ;

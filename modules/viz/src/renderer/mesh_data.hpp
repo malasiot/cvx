@@ -5,7 +5,7 @@
 
 #include "GL/gl3w.h"
 
-namespace cvx { namespace viz { namespace impl {
+namespace cvx { namespace viz { namespace detail {
 
 class MeshData {
 public:

@@ -53,10 +53,11 @@ int main(int argc, char *argv[]) {
 
     // create the offscreen window
 
-    OffscreenRenderer rdr(width, height, scene) ;
+    OffscreenRenderer rdr(width, height) ;
 
     // render scene (possibly multiple times)
-    rdr.render(cam) ;
+    rdr.init(cam) ;
+    rdr.render(scene) ;
     rdr.text("ABCDabcd", 100, 100, Font("arial", 32), { 1, 0, 0} ) ;
     // obtain the color buffer
     cv::Mat clr = rdr.getColor(true) ;
