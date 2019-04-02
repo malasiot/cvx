@@ -28,11 +28,9 @@ public:
         trackball_.setCamera(camera_, c + Vector3f{0.0, 0, 2*r}, c, {0, 1, 0}) ;
         trackball_.setZoomScale(0.1*r) ;
 
-        palm_joint_ = std::dynamic_pointer_cast<RevoluteJoint>(scene_->getJoint("palm_right_finger")) ;
-        palm_joint_pos_ = 0.0 ;
+        joint_ = std::dynamic_pointer_cast<RevoluteJoint>(scene_->getJoint("r2_joint_u")) ;
+        joint_pos_ = 0.0 ;
 
-        subfinger_joint_ = std::dynamic_pointer_cast<RevoluteJoint>(scene_->getJoint("left_finger_left_subfinger")) ;
-        subfinger_pos_ = 0.0 ;
     }
 
     void onInit() override {
@@ -54,16 +52,12 @@ public:
 
     void onKeyPressed(size_t key, uint) override {
         if (key == GLFW_KEY_Q ) {
-            palm_joint_pos_ -= 0.1 ;
-            palm_joint_pos_ = palm_joint_->setPosition(palm_joint_pos_) ;
+            joint_pos_ -= 0.1 ;
+            joint_pos_ = joint_->setPosition(joint_pos_) ;
 
         } else if ( key ==  GLFW_KEY_W ) {
-            palm_joint_pos_ += 0.1 ;
-            palm_joint_pos_ = palm_joint_->setPosition(palm_joint_pos_) ;
-        } else if (key == GLFW_KEY_A ) {
-            subfinger_pos_ = subfinger_joint_->setPosition(subfinger_pos_ - 0.1) ;
-        } else if ( key ==  GLFW_KEY_S ) {
-            subfinger_pos_ = subfinger_joint_->setPosition(subfinger_pos_ + 0.1) ;
+            joint_pos_ += 0.1 ;
+            joint_pos_ = joint_->setPosition(joint_pos_) ;
         }
     }
 
@@ -122,8 +116,8 @@ public:
     Renderer rdr_ ;
     TrackBall trackball_ ;
     CameraPtr camera_ ;
-    std::shared_ptr<RevoluteJoint> palm_joint_, subfinger_joint_ ;
-    float palm_joint_pos_, subfinger_pos_ ;
+    std::shared_ptr<RevoluteJoint> joint_ ;
+    float joint_pos_ ;
 
 };
 

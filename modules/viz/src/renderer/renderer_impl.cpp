@@ -177,6 +177,8 @@ void RendererImpl::render(const ScenePtr &scene, const DrawablePtr &geom, const 
 
     MeshData *data = geom->geometry()->getMeshData() ;
 
+    if ( !data ) return ;
+
     MaterialInstancePtr material = geom->material() ;
     if ( !material ) material = default_material_ ;
 

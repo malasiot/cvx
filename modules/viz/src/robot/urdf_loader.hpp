@@ -3,47 +3,39 @@
 
 #include <map>
 #include <pugixml/pugixml.hpp>
-#include <cvx/viz/robot/robot_scene.hpp>
-#include <cvx/viz/scene/material.hpp>
+#include <cvx/viz/robot/urdf_robot.hpp>
+#include <Eigen/Geometry>
 
 namespace cvx { namespace viz {
 
+namespace urdf {
 
-struct Joint {
-    std::string parent_, child_, type_, mimic_joint_, name_ ;
-    NodePtr node_ ;
-    Eigen::Vector3f axis_ ;
-    float upper_, lower_, mimic_offset_, mimic_multiplier_ ;
-};
-
-class URDFLoader {
+class Loader {
 public:
-    URDFLoader(const std::map<std::string, std::string> package_map, bool load_collision_geometry): package_map_(package_map),
-        load_collision_geometry_(load_collision_geometry) {}
+    Loader(const std::map<std::string, std::string> package_map, bool load_collision_geometry): package_map_(package_map),
+        parse_collision_geometry_(load_collision_geometry) {}
 
-    void parse(const std::string &urdf_file) ;
-    void parseRobot(const pugi::xml_node &node) ;
-    void parseLink(const pugi::xml_node &node) ;
-    void parseJoint(const pugi::xml_node &node) ;
+    Robot parse(const std::string &urdf_file) ;
+
+private:
+    void parseRobot(const pugi::xml_node &node, Robot &rb) ;
+    void parseLink(const pugi::xml_node &node, Robot &rb) ;
+    void parseJoint(const pugi::xml_node &node, Robot &rb) ;
     bool buildTree();
 
-    RobotScenePtr exportScene() ;
+ //   RobotScenePtr exportScene() ;
 
     Eigen::Isometry3f parseOrigin(const pugi::xml_node &node) ;
-    NodePtr parseGeometry(const pugi::xml_node &node, const MaterialInstancePtr &mat, Eigen::Vector3f &sc) ;
-    void parseMaterial(const pugi::xml_node &node) ;
+    Geometry *parseGeometry(const pugi::xml_node &node, const std::string &mat, Eigen::Vector3f &sc) ;
+    void parseMaterial(const pugi::xml_node &node, Robot &rb) ;
     bool resolveUri(const std::string &uri, std::string &path);
 
-    std::string robot_name_ ;
-    std::map<std::string, Joint> joints_ ;
-    std::map<std::string, NodePtr> links_ ;
     std::map<std::string, std::string> package_map_ ;
-    std::vector<MeshPtr> meshes_ ;
-    std::map<std::string, MaterialInstancePtr> materials_ ;
-    NodePtr root_node_ ;
-    bool load_collision_geometry_ ;
+
+    bool parse_collision_geometry_ ;
 };
 
+} // namespace urdf
 
 }}
 #endif

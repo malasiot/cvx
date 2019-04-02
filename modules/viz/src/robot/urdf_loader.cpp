@@ -13,121 +13,107 @@ using namespace Eigen ;
 
 namespace cvx { namespace viz {
 
+namespace urdf {
 
-void URDFLoader::parse(const string &urdf_file) {
+
+Robot Loader::parse(const string &urdf_file) {
+    Robot robot ;
+
     xml_document doc ;
 
     xml_parse_result result = doc.load_file(urdf_file.c_str()) ;
 
     if ( !result )
-        throw URDFLoadException(result.description()) ;
+        throw LoadException(result.description()) ;
 
     xml_node root = doc.child("robot") ;
 
     if ( !root )
-        throw URDFLoadException("No <robot> element found") ;
+        throw LoadException("No <robot> element found") ;
 
-    robot_name_ = root.attribute("name").as_string() ;
+    robot.name_ = root.attribute("name").as_string() ;
 
-    parseRobot(root) ;
+    parseRobot(root, robot) ;
+
+    return robot ;
 
 
 }
 
-void URDFLoader::parseRobot(const xml_node &node) {
+void Loader::parseRobot(const xml_node &node, Robot &rb) {
 
     for( const xml_node &n: node.children("material") )
-        parseMaterial(n) ;
+        parseMaterial(n, rb) ;
 
     for( const xml_node &n: node.children("link") )
-        parseLink(n) ;
+        parseLink(n, rb) ;
 
     for( const xml_node &n: node.children("joint") )
-        parseJoint(n) ;
+        parseJoint(n, rb) ;
 }
 
-void URDFLoader::parseLink(const xml_node &node) {
+void Loader::parseLink(const xml_node &node, Robot &rb) {
 
-    NodePtr link(new Node) ;
+    Link link ;
 
     string name = node.attribute("name").as_string() ;
 
     if ( name.empty() )
-        throw URDFLoadException("Attribute \"name\" missing from <link>") ;
+        throw LoadException("Attribute \"name\" missing from <link>") ;
 
-    link->setName(name) ;
+    link.name_ = name ;
 
+    if ( xml_node visual_node = node.child("visual") ) {
+        Isometry3f tr ;
+        tr.setIdentity() ;
 
-    if ( !load_collision_geometry_ ) {
+        if ( xml_node origin_node = visual_node.child("origin") )
+            tr = parseOrigin(origin_node) ;
 
-        if ( xml_node visual_node = node.child("visual") ) {
-            Isometry3f tr ;
-            tr.setIdentity() ;
+        string matid ;
 
-            if ( xml_node origin_node = visual_node.child("origin") )
-                tr = parseOrigin(origin_node) ;
-
-            NodePtr visual(new Node), geom ;
-            visual->setName("visual") ;
-
-            MaterialInstancePtr mat ;
-
-            if ( xml_node material_node = visual_node.child("material") ) {
-                string matid = material_node.attribute("name").as_string() ;
-                if ( !matid.empty() ) {
-                    auto it = materials_.find(matid) ;
-                    if ( it != materials_.end() )
-                        mat = it->second ;
-                }
-            }
-
-            Vector3f scale{1, 1, 1} ;
-
-            if ( xml_node geom_node = visual_node.child("geometry") )
-                geom = parseGeometry(geom_node, mat, scale) ;
-            else
-                throw URDFLoadException("<geometry> element is missing from <visual>") ;
-
-            tr.linear() *= scale.asDiagonal() ;
-            geom->matrix() = tr ;
-
-
-            visual->addChild(geom) ;
-            link->addChild(visual) ;
-        }
-    } else {
-
-        if ( xml_node collision_node = node.child("collision") ) {
-            Isometry3f tr ;
-            tr.setIdentity() ;
-
-            if ( xml_node origin_node = collision_node.child("origin") )
-                tr = parseOrigin(origin_node) ;
-
-            NodePtr collision(new Node), geom ;
-            collision->setName("collision") ;
-
-            Vector3f scale{1, 1, 1} ;
-
-            if ( xml_node geom_node = collision_node.child("geometry") )
-                geom = parseGeometry(geom_node, MaterialInstancePtr(), scale) ;
-            else
-                throw URDFLoadException("<geometry> element is missing from <collision>") ;
-
-            tr.linear() *= scale.asDiagonal() ;
-            geom->matrix() = tr ;
-
-
-            collision->addChild(geom) ;
-            link->addChild(collision) ;
+        if ( xml_node material_node = visual_node.child("material") ) {
+            matid = material_node.attribute("name").as_string() ;
         }
 
+        Vector3f scale{1, 1, 1} ;
 
+        Geometry *geom = nullptr ;
 
+        if ( xml_node geom_node = visual_node.child("geometry") )
+            geom = parseGeometry(geom_node, matid, scale) ;
+        else
+            throw LoadException("<geometry> element is missing from <visual>") ;
 
+        tr.linear() *= scale.asDiagonal() ;
+        geom->tr_ = tr ;
+
+        link.visual_geom_.reset(geom) ;
     }
 
-    links_.insert({name, link}) ;
+    if ( xml_node collision_node = node.child("collision") ) {
+        Isometry3f tr ;
+        tr.setIdentity() ;
+
+        if ( xml_node origin_node = collision_node.child("origin") )
+            tr = parseOrigin(origin_node) ;
+
+        Vector3f scale{1, 1, 1} ;
+
+        Geometry *geom ;
+
+        if ( xml_node geom_node = collision_node.child("geometry") )
+            geom = parseGeometry(geom_node, std::string(), scale) ;
+        else
+            throw LoadException("<geometry> element is missing from <collision>") ;
+
+        tr.linear() *= scale.asDiagonal() ;
+        geom->tr_ = tr ;
+
+        link.collision_geom_.reset(geom) ;
+    }
+
+    rb.links_.insert(std::make_pair(name, std::move(link))) ;
 }
 
 static Vector3f parse_vec3(const std::string &s) {
@@ -145,23 +131,20 @@ static Vector4f parse_vec4(const std::string &s) {
 }
 
 
-void URDFLoader::parseJoint(const xml_node &node) {
+void Loader::parseJoint(const xml_node &node, Robot &rb) {
     string name = node.attribute("name").as_string() ;
     string type = node.attribute("type").as_string() ;
 
     if ( name.empty() )
-        throw URDFLoadException("<joint> is missing \"name\" attribute") ;
+        throw LoadException("<joint> is missing \"name\" attribute") ;
 
     Joint j ;
 
     j.type_ = type ;
     j.name_ = name ;
 
-    NodePtr joint(new Node) ;
-    joint->setName(name) ;
-
     if ( xml_node origin_node = node.child("origin") )
-        joint->matrix() = parseOrigin(origin_node) ;
+        j.origin_ = parseOrigin(origin_node) ;
 
     if ( xml_node parent_node = node.child("parent") ) {
         string link_name = parent_node.attribute("link").as_string() ;
@@ -172,8 +155,6 @@ void URDFLoader::parseJoint(const xml_node &node) {
         string link_name = child_node.attribute("link").as_string() ;
         j.child_ = link_name ;
     }
-
-    j.node_ = joint ;
 
     if ( xml_node axis_node = node.child("axis") ) {
         string axis_str = axis_node.attribute("xyz").as_string() ;
@@ -192,111 +173,11 @@ void URDFLoader::parseJoint(const xml_node &node) {
         j.mimic_multiplier_ = mimic_node.attribute("multiplier").as_float(1.0) ;
     }
 
-    joints_.emplace(name, j) ;
+    rb.joints_.emplace(name, j) ;
 
 }
 
-bool URDFLoader::buildTree() {
-    map<string, string> parent_link_tree ;
-
-    for( auto &jp: joints_ ) {
-        string parent_link_name = jp.second.parent_ ;
-        string child_link_name = jp.second.child_ ;
-        NodePtr jnode = jp.second.node_ ;
-
-        if ( parent_link_name.empty() || child_link_name.empty() ) return false ;
-
-        NodePtr parent_link, child_link ;
-
-        auto pl_it = links_.find(parent_link_name) ;
-        if ( pl_it == links_.end() ) return false ;
-        else parent_link = pl_it->second ;
-
-        auto cl_it = links_.find(child_link_name) ;
-        if ( cl_it == links_.end() ) return false ;
-        else child_link = cl_it->second ;
-
-        NodePtr ctrl_node(new Node) ;
-        ctrl_node->setName(jp.second.name_ + "_ctrl") ;
-
-        jnode->addChild(ctrl_node) ;
-
-        parent_link->addChild(jnode) ;
-
-        ctrl_node->addChild(child_link) ;
-
-        jp.second.node_ = ctrl_node ;
-
-        parent_link_tree[child_link_name] = parent_link_name ;
-    }
-
-    // find root
-
-    for( const auto &lp: links_ ) {
-        auto it = parent_link_tree.find(lp.first) ;
-        if ( it == parent_link_tree.end() ) {
-            root_node_ = lp.second ;
-            break ;
-        }
-
-    }
-
-    return true ;
-}
-
-RobotScenePtr URDFLoader::exportScene() {
-    RobotScenePtr scene(new RobotScene) ;
-
-    if ( !buildTree() ) return nullptr ;
-
-    scene->addChild(root_node_) ;
-
-    // create dofs
-
-    map<string, JointNodePtr> mimic_joints ;
-
-    for( const auto &jp: joints_ ) {
-        const Joint &j = jp.second ;
-
-        JointNodePtr jnode ;
-
-        if ( j.type_ == "revolute" ) {
-            RevoluteJoint *rj = new RevoluteJoint ;
-            rj->lower_limit_ = j.lower_ ;
-            rj->upper_limit_ = j.upper_ ;
-            rj->axis_ = j.axis_ ;
-            rj->node_ = j.node_ ;
-            jnode.reset(rj) ;
-        }
-        else continue ;
-
-        if ( j.mimic_joint_.empty() )
-            scene->joints_.emplace(j.name_, jnode) ;
-        else
-            mimic_joints[j.name_] = jnode ;
-    }
-
-    for( const auto &jp: joints_ ) {
-        const Joint &j = jp.second ;
-
-        if ( j.mimic_joint_.empty() ) continue ;
-
-        auto it = scene->joints_.find(j.mimic_joint_) ;
-        if ( it == scene->joints_.end() ) continue ;
-
-        auto jit = mimic_joints.find(j.name_) ;
-        if ( jit != mimic_joints.end() ) {
-            JointNodePtr dof = it->second ;
-            dof->multipliers_.push_back(j.mimic_multiplier_) ;
-            dof->offsets_.push_back(j.mimic_offset_) ;
-            dof->dependent_.push_back(jit->second) ;
-        }
-    }
-
-    return scene ;
-}
-
-Isometry3f URDFLoader::parseOrigin(const xml_node &node) {
+Isometry3f Loader::parseOrigin(const xml_node &node) {
 
     string xyz = node.attribute("xyz").as_string() ;
     string rpy = node.attribute("rpy").as_string() ;
@@ -321,7 +202,7 @@ Isometry3f URDFLoader::parseOrigin(const xml_node &node) {
     return tr ;
 }
 
-bool URDFLoader::resolveUri(const std::string &uri, std::string &path) {
+bool Loader::resolveUri(const std::string &uri, std::string &path) {
 
     if ( startsWith(uri, "package://") ) {
         size_t pos = uri.find_first_of('/', 10) ;
@@ -339,16 +220,17 @@ bool URDFLoader::resolveUri(const std::string &uri, std::string &path) {
 
 }
 
-NodePtr URDFLoader::parseGeometry(const xml_node &node, const MaterialInstancePtr &mat, Vector3f &sc) {
+Geometry *Loader::parseGeometry(const xml_node &node, const std::string &mat, Vector3f &sc) {
 
     if ( xml_node mesh_node = node.child("mesh") ) {
-        NodePtr geom(new Node) ;
+
+        MeshGeometry *geom = new MeshGeometry() ;
 
         string uri = mesh_node.attribute("filename").as_string(), path ;
 
-        geom->setName(uri) ;
-
         if ( !resolveUri(uri, path) ) return nullptr ;
+
+        geom->path_ = path ;
 
         string scale = mesh_node.attribute("scale").as_string() ;
 
@@ -356,65 +238,38 @@ NodePtr URDFLoader::parseGeometry(const xml_node &node, const MaterialInstancePt
             sc = parse_vec3(scale) ;
         }
 
-        ScenePtr scene(new Scene) ;
-        scene->load(path, geom) ;
-
-        // replace all materials in loaded model with that provided in urdf
-        if ( mat ) {
-            geom->visit([&](Node &n) {
-                for( auto &dr: n.drawables() ) {
-                    dr->setMaterial(mat) ;
-                }
-            }) ;
-        }
+        geom->scale_ = sc ;
+        geom->material_ref_ = mat ;
 
         return geom ;
     } else if ( xml_node box_node = node.child("box") ) {
         string sz = box_node.attribute("size").as_string() ;
         Vector3f hs = parse_vec3(sz)/2 ;
 
-        NodePtr geom_node(new Node) ;
 
-        GeometryPtr geom(new BoxGeometry(hs)) ;
-
-        DrawablePtr dr(new Drawable(geom, mat)) ;
-
-        geom_node->addDrawable(dr) ;
-
-        return geom_node ;
+        BoxGeometry *geom = new BoxGeometry(hs) ;
+        return geom ;
     } else if ( xml_node cylinder_node = node.child("cylinder") ) {
 
         float radius = cylinder_node.attribute("radius").as_float(0) ;
         float length = cylinder_node.attribute("length").as_float(0) ;
 
-        NodePtr geom_node(new Node) ;
+        CylinderGeometry *geom = new CylinderGeometry(radius, length) ;
 
-        GeometryPtr geom(new CylinderGeometry(radius, length)) ;
-
-        DrawablePtr dr(new Drawable(geom, mat)) ;
-
-        geom_node->addDrawable(dr) ;
-
-        return geom_node ;
+        return geom ;
     } else if ( xml_node cylinder_node = node.child("sphere") ) {
 
         float radius = cylinder_node.attribute("radius").as_float(0) ;
 
-        NodePtr geom_node(new Node) ;
+        SphereGeometry *geom = new SphereGeometry(radius) ;
 
-        GeometryPtr geom(new SphereGeometry(radius)) ;
-
-        DrawablePtr dr(new Drawable(geom, mat)) ;
-
-        geom_node->addDrawable(dr) ;
-
-        return geom_node ;
+        return geom ;
     }
 
     return nullptr ;
 }
 
-void URDFLoader::parseMaterial(const xml_node &node)
+void Loader::parseMaterial(const xml_node &node, Robot &rb)
 {
     string name = node.attribute("name").as_string() ;
     if ( name.empty() ) return ;
@@ -423,12 +278,10 @@ void URDFLoader::parseMaterial(const xml_node &node)
         string rgba = clr_node.attribute("rgba").as_string() ;
         if ( !rgba.empty() ) {
             Vector4f clr = parse_vec4(rgba) ;
-            PhongMaterialInstance *mat = new PhongMaterialInstance ;
-            mat->params().setShininess(0);
-            mat->params().setSpecular(Vector4f(0, 0, 0, 1)) ;
-            mat->params().setDiffuse(clr) ;
 
-            materials_.emplace(name, MaterialInstancePtr(mat)) ;
+            Material *mat = new Material ;
+            mat->diffuse_color_ = clr ;
+            rb.materials_.emplace(name, std::shared_ptr<Material>(mat)) ;
             return ;
         }
     }
@@ -438,14 +291,10 @@ void URDFLoader::parseMaterial(const xml_node &node)
 
         if ( resolveUri(uri, path) ) {
 
-            Texture2D s(path) ;
+            Material *mat = new Material ;
+            mat->texture_path_ = path ;
 
-            DiffuseMapMaterialInstance *mat = new DiffuseMapMaterialInstance(s) ;
-            mat->params().setShininess(0);
-            mat->params().setSpecular(Vector4f(0, 0, 0, 1)) ;
-            mat->params().setDiffuse(s) ;
-
-            materials_.emplace(name, MaterialInstancePtr(mat)) ;
+            rb.materials_.emplace(name, std::shared_ptr<Material>(mat)) ;
             return ;
         }
     }
@@ -453,5 +302,6 @@ void URDFLoader::parseMaterial(const xml_node &node)
 
 }
 
+}
 }}
 

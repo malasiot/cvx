@@ -2,8 +2,9 @@
 #define __CVX_VIZ_ROBOT_SCENE_HPP__
 
 #include <cvx/viz/scene/scene.hpp>
+#include <cvx/viz/robot/urdf_robot.hpp>
 
-class URDFLoader ;
+class Loader ;
 
 namespace cvx { namespace viz {
 
@@ -22,9 +23,6 @@ public:
 
     Type type() const { return type_ ; }
 
-protected:
-
-    friend class URDFLoader ;
 
     Type type_ ;
     NodePtr node_ ;
@@ -38,8 +36,6 @@ public:
 
     float setPosition(float pos) ;
 
-protected:
-    friend class URDFLoader ;
     float upper_limit_, lower_limit_ ;
     Eigen::Vector3f axis_ ;
 };
@@ -64,13 +60,11 @@ public:
     }
 
 private:
-    friend class URDFLoader ;
-    std::map<std::string, JointNodePtr> joints_ ;
-};
 
-class URDFLoadException: public std::runtime_error {
-public:
-    URDFLoadException(const std::string &msg): std::runtime_error(msg) {}
+    static RobotScenePtr parseRobotURDF(const urdf::Robot &rb) ;
+
+
+    std::map<std::string, JointNodePtr> joints_ ;
 };
 
 } // namespace viz
