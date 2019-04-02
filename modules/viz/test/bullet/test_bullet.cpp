@@ -79,15 +79,15 @@ public:
 
         } else {
             switch ( button ) {
-                case GLFW_MOUSE_BUTTON_LEFT:
-                    trackball_.setLeftClicked(true) ;
-                    break ;
-                case GLFW_MOUSE_BUTTON_MIDDLE:
-                    trackball_.setMiddleClicked(true) ;
-                    break ;
-                case GLFW_MOUSE_BUTTON_RIGHT:
-                    trackball_.setRightClicked(true) ;
-                    break ;
+            case GLFW_MOUSE_BUTTON_LEFT:
+                trackball_.setLeftClicked(true) ;
+                break ;
+            case GLFW_MOUSE_BUTTON_MIDDLE:
+                trackball_.setMiddleClicked(true) ;
+                break ;
+            case GLFW_MOUSE_BUTTON_RIGHT:
+                trackball_.setRightClicked(true) ;
+                break ;
             }
 
             trackball_.setClickPoint(x, y) ;
@@ -104,15 +104,15 @@ public:
             picking_ = false ;
         } else {
             switch ( button ) {
-                case GLFW_MOUSE_BUTTON_LEFT:
-                    trackball_.setLeftClicked(false) ;
-                    break ;
-                case GLFW_MOUSE_BUTTON_MIDDLE:
-                    trackball_.setMiddleClicked(false) ;
-                    break ;
-                case GLFW_MOUSE_BUTTON_RIGHT:
-                    trackball_.setRightClicked(false) ;
-                    break ;
+            case GLFW_MOUSE_BUTTON_LEFT:
+                trackball_.setLeftClicked(false) ;
+                break ;
+            case GLFW_MOUSE_BUTTON_MIDDLE:
+                trackball_.setMiddleClicked(false) ;
+                break ;
+            case GLFW_MOUSE_BUTTON_RIGHT:
+                trackball_.setRightClicked(false) ;
+                break ;
             }
 
 
@@ -149,9 +149,9 @@ public:
 
         rdr_.text(text_, 10, 10, Font("arial", 24), {1, 1, 0});
 
-        rdr_.line({0, 0, 0}, {10, 0, 0}, {1, 0, 0, 1});
-        rdr_.line({0, 0, 0}, {0, 10, 0}, {0, 1, 0, 1});
-        rdr_.line({0, 0, 0}, {0, 0, 10}, {0, 0, 1, 1});
+        rdr_.line({0, 0, 0}, {10, 0, 0}, {1, 0, 0, 1}, 3);
+        rdr_.line({0, 0, 0}, {0, 10, 0}, {0, 1, 0, 1}, 3);
+        rdr_.line({0, 0, 0}, {0, 0, 10}, {0, 0, 1, 1}, 3);
 
         rdr_.text("X", Vector3f{10, 0, 0}, Font("Arial", 12), Vector3f{1, 0, 0}) ;
         rdr_.text("Y", Vector3f{0, 10, 0}, Font("Arial", 12), Vector3f{0, 1, 0}) ;
@@ -160,12 +160,8 @@ public:
         rdr_.circle({0, 0, 0}, {0, 1, 0}, 5.0, {0, 1, 0, 1}) ;
 
         physics_.stepSimulation(delta);
-        physics_.updateTransforms();
+
         this_thread::yield() ;
-
-
-
-
     }
 
 
@@ -218,15 +214,6 @@ void createScene() {
 
     physics.createEmptyDynamicsWorld();
 
-    //m_dynamicsWorld->setGravity(btVector3(0,0,0));
-    //m_guiHelper->createPhysicsDebugDrawer(m_dynamicsWorld);
-
-    auto dynamicsWorld = physics.getDynamicsWorld() ;
-
-    if (dynamicsWorld->getDebugDrawer())
-        dynamicsWorld->getDebugDrawer()->setDebugMode(btIDebugDraw::DBG_DrawWireframe + btIDebugDraw::DBG_DrawContactPoints);
-
-
     Affine3f tr ;
     tr.setIdentity() ;
     tr.translate(Vector3f(0, -50, 0)) ;
@@ -235,90 +222,69 @@ void createScene() {
 
     scene->addChild(node) ;
 
-    btBoxShape* groundShape = physics.createBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
-    physics.m_collisionShapes.push_back(groundShape);
+    std::shared_ptr<btCollisionShape> groundShape = physics.createBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
+    physics.addCollisionShape(groundShape) ;
 
     btTransform groundTransform;
     groundTransform.setIdentity();
     groundTransform.setOrigin(btVector3(0, -50, 0));
 
-    {
-        btScalar mass(0.);
-        physics.createRigidBody(mass, groundTransform, groundShape, btVector4(0, 0, 1, 1));
-    }
+    physics.createStaticRigidBody(groundTransform, groundShape.get());
 
 
+    //create a few dynamic rigidbodies
+    // Re-using the same collision is better for memory usage and performance
 
-    {
-        //create a few dynamic rigidbodies
-        // Re-using the same collision is better for memory usage and performance
+    GeometryPtr geom(new BoxGeometry(.1, .1, .1)) ;
 
-        GeometryPtr geom(new BoxGeometry(.1, .1, .1)) ;
-
-
+    std::shared_ptr<btCollisionShape> colShape = physics.createBoxShape(btVector3(.1, .1, .1));
 
 
-        btBoxShape* colShape = physics.createBoxShape(btVector3(.1, .1, .1));
+    /// Create Dynamic Objects
+    ///
+    btTransform startTransform;
+    startTransform.setIdentity();
+    btScalar mass(1.f);
+    btVector3 localInertia(0, 0, 0);
 
-        //btCollisionShape* colShape = new btSphereShape(btScalar(1.));
-        physics.m_collisionShapes.push_back(colShape);
+    colShape->calculateLocalInertia(mass, localInertia);
 
-        /// Create Dynamic Objects
-        btTransform startTransform;
-        startTransform.setIdentity();
+    for (int k = 0; k < ARRAY_SIZE_Y; k++)  {
+        for (int i = 0; i < ARRAY_SIZE_X; i++)  {
+            for (int j = 0; j < ARRAY_SIZE_Z; j++) {
+                float tx = 0.2 * i ;
+                float ty = 2 + 0.2 * k ;
+                float tz = 0.2 * j ;
 
-        btScalar mass(1.f);
+                startTransform.setOrigin(btVector3(btScalar(tx), btScalar(ty), btScalar(tz)));
 
-        //rigidbody is dynamic if and only if mass is non zero, otherwise static
-        bool isDynamic = (mass != 0.f);
+                NodePtr node(new Node) ;
 
-        btVector3 localInertia(0, 0, 0);
-        if (isDynamic)
-            colShape->calculateLocalInertia(mass, localInertia);
+                std::shared_ptr<PhongMaterialParameters> params(new PhongMaterialParameters) ;
+                params->setDiffuse({g_rng.uniform(0.0, 1.), 1, g_rng.uniform(0., 1.), 1}) ;
 
-        for (int k = 0; k < ARRAY_SIZE_Y; k++)
-        {
-            for (int i = 0; i < ARRAY_SIZE_X; i++)
-            {
-                for (int j = 0; j < ARRAY_SIZE_Z; j++)
-                {
-                    float tx = 0.2 * i ;
-                    float ty = 2 + 0.2 * k ;
-                    float tz = 0.2 * j ;
+                MaterialInstancePtr material(new PhongMaterialInstance(params)) ;
 
-                    startTransform.setOrigin(btVector3(
-                        btScalar(tx), btScalar(ty), btScalar(tz)));
+                DrawablePtr dr(new Drawable(geom, material)) ;
 
-                    btRigidBody *body = physics.createRigidBody(mass, startTransform, colShape);
+                node->addDrawable(dr) ;
 
-                    NodePtr node(new Node) ;
+                node->setPickable(true);
 
-                    std::shared_ptr<PhongMaterialParameters> params(new PhongMaterialParameters) ;
-                    params->setDiffuse({g_rng.uniform(0.0, 1.), 1, g_rng.uniform(0., 1.), 1}) ;
+                node->setName(cvx::util::format("%d %d %d", i, j, k)) ;
 
-                    MaterialInstancePtr material(new PhongMaterialInstance(params)) ;
+                Affine3f tr ;
+                tr.setIdentity() ;
+                tr.translate(Vector3f{tx, ty, tz}) ;
+                node->matrix() = tr.matrix() ;
 
-                    DrawablePtr dr(new Drawable(geom, material)) ;
+                scene->addChild(node) ;
 
-                    node->addDrawable(dr) ;
-
-                    node->setPickable(true);
-
-
-                    node->setName(cvx::util::format("%d %d %d", i, j, k)) ;
-
-                    Affine3f tr ;
-                    tr.setIdentity() ;
-                    tr.translate(Vector3f{tx, ty, tz}) ;
-                    node->matrix() = tr.matrix() ;
-
-                    scene->addChild(node) ;
-
-                    physics.addTransformObserver(body, [node](const Affine3f &tr) { node->matrix() = tr ;} ) ;
-                }
+                physics.createRigidBody(mass, node, colShape.get(), localInertia);
             }
         }
     }
+
 
 
 }

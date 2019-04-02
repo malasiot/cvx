@@ -10,11 +10,63 @@
 
 #include <cvx/viz/scene/node.hpp>
 
+using namespace Eigen ;
+
+inline Eigen::Vector3f toEigenVector(const std::vector<float>& vec) {return Eigen::Vector3f(vec[0],vec[1],vec[2]);}
+inline Eigen::Vector3f toEigenVector(const btVector3& vec) {return Eigen::Vector3f(vec.x(),vec.y(),vec.z());}
+inline btVector3 toBulletVector(const Eigen::Vector3f& vec) {return btVector3(vec[0],vec[1],vec[2]);}
+
+inline Eigen::Affine3f toEigenTransform(const btTransform& transform) {
+  btVector3 transBullet = transform.getOrigin();
+  btQuaternion quatBullet = transform.getRotation();
+  Eigen::Translation3f transEig;
+  transEig = Eigen::Translation3f(toEigenVector(transBullet));
+  Eigen::Matrix3f rotEig = Eigen::Quaternionf(quatBullet.w(),quatBullet.x(),quatBullet.y(),quatBullet.z()).toRotationMatrix();
+  Eigen::Affine3f out(transEig*rotEig);
+  return out;
+}
+
+inline btTransform toBulletTransform(const Eigen::Affine3f& affine) {
+  Eigen::Vector3f transEig = affine.translation();
+  Eigen::Matrix3f rotEig = affine.rotation();
+  Eigen::Quaternionf quatEig = Eigen::Quaternionf(rotEig);
+  btVector3 transBullet = toBulletVector(transEig);
+  btQuaternion quatBullet = btQuaternion(quatEig.x(), quatEig.y(), quatEig.z(), quatEig.w());
+  return btTransform(quatBullet,transBullet);
+}
+
+class MotionState: public btMotionState {
+    public:
+
+    MotionState ( const cvx::viz::NodePtr &node): node_(node) {
+        Affine3f world = node->globalTransform() ;
+        world_trans_ = toBulletTransform(world) ;
+
+    }
+
+    virtual void getWorldTransform( btTransform& centerOfMassWorldTrans ) const override {
+        centerOfMassWorldTrans = world_trans_;
+    }
+
+    /// synchronizes world transform from physics to user
+    /// Bullet only calls the update of worldtransform for active objects
+    virtual void setWorldTransform( const btTransform& centerOfMassWorldTrans )
+    {
+        world_trans_ = centerOfMassWorldTrans;
+        node_->matrix() = toEigenTransform(world_trans_);
+    }
+
+private:
+
+    btTransform	world_trans_;
+    cvx::viz::NodePtr node_ ;
+};
+
 struct Physics
 {
 
 
-    std::vector<btCollisionShape*> m_collisionShapes;
+    std::vector<std::shared_ptr<btCollisionShape>> collision_shapes_ ;
     std::unique_ptr<btBroadphaseInterface> m_broadphase ;
     std::unique_ptr<btCollisionDispatcher> m_dispatcher ;
     std::unique_ptr<btConstraintSolver> m_solver ;
@@ -42,6 +94,9 @@ struct Physics
         return m_dynamicsWorld.get();
     }
 
+    void addCollisionShape(const std::shared_ptr<btCollisionShape> &shape) {
+        collision_shapes_.push_back(shape) ;
+    }
     virtual void createEmptyDynamicsWorld()
     {
         ///collision configuration contains default setup for memory, collision setup
@@ -102,13 +157,6 @@ struct Physics
                 delete obj;
             }
         }
-        //delete collision shapes
-        for (int j = 0; j < m_collisionShapes.size(); j++) {
-            btCollisionShape* shape = m_collisionShapes[j];
-            delete shape;
-        }
-
-        m_collisionShapes.clear();
 
         m_dynamicsWorld.release() ;
         m_solver.release();
@@ -197,98 +245,49 @@ struct Physics
         }
     }
 
-    void debugDraw(int debugDrawFlags)
-    {
-        if (m_dynamicsWorld)
-        {
-            if (m_dynamicsWorld->getDebugDrawer())
-            {
-                m_dynamicsWorld->getDebugDrawer()->setDebugMode(debugDrawFlags);
-            }
-            m_dynamicsWorld->debugDrawWorld();
-        }
-    }
-
-
-    btBoxShape* createBoxShape(const btVector3& halfExtents)
-    {
-        btBoxShape* box = new btBoxShape(halfExtents);
-        return box;
+    std::shared_ptr<btCollisionShape> createBoxShape(const btVector3& halfExtents)  {
+        auto shape = std::make_shared<btBoxShape>(halfExtents);
+        addCollisionShape(shape);
+        return shape ;
     }
 
     void deleteRigidBody(btRigidBody* body)
     {
-        int graphicsUid = body->getUserIndex();
- //       m_guiHelper->removeGraphicsInstance(graphicsUid);
-
         m_dynamicsWorld->removeRigidBody(body);
         btMotionState* ms = body->getMotionState();
         delete body;
         delete ms;
     }
 
-    btRigidBody* createRigidBody(float mass, const btTransform& startTransform, btCollisionShape* shape, const btVector4& color = btVector4(1, 0, 0, 1))
+    btRigidBody* createRigidBody(float mass, const cvx::viz::NodePtr &node, btCollisionShape* shape, const btVector3 &localInertia)
     {
         btAssert((!shape || shape->getShapeType() != INVALID_SHAPE_PROXYTYPE));
 
-        //rigidbody is dynamic if and only if mass is non zero, otherwise static
-        bool isDynamic = (mass != 0.f);
-
-        btVector3 localInertia(0, 0, 0);
-        if (isDynamic)
-            shape->calculateLocalInertia(mass, localInertia);
-
-        //using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
-
-#define USE_MOTIONSTATE 1
-#ifdef USE_MOTIONSTATE
-        btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
+        MotionState* myMotionState = new MotionState(node);
 
         btRigidBody::btRigidBodyConstructionInfo cInfo(mass, myMotionState, shape, localInertia);
 
         btRigidBody* body = new btRigidBody(cInfo);
         //body->setContactProcessingThreshold(m_defaultContactProcessingThreshold);
 
-#else
-        btRigidBody* body = new btRigidBody(mass, 0, shape, localInertia);
+        m_dynamicsWorld->addRigidBody(body);
+        return body;
+    }
+
+    btRigidBody* createStaticRigidBody(const btTransform &startTransform, btCollisionShape* shape)
+    {
+        btAssert((!shape || shape->getShapeType() != INVALID_SHAPE_PROXYTYPE));
+
+        btVector3 localInertia(0, 0, 0);
+
+        btRigidBody* body = new btRigidBody(btScalar(0.), nullptr, shape, localInertia);
         body->setWorldTransform(startTransform);
-#endif  //
 
         body->setUserIndex(-1);
         m_dynamicsWorld->addRigidBody(body);
         return body;
     }
 
-
-    void addTransformObserver(btRigidBody *body, TransformObserver o) {
-        observers_.insert(make_pair(body, o)) ;
-    }
-
-    static inline Eigen::Vector3f toEigenVector(const std::vector<float>& vec) {return Eigen::Vector3f(vec[0],vec[1],vec[2]);}
-    static inline Eigen::Vector3f toEigenVector(const btVector3& vec) {return Eigen::Vector3f(vec.x(),vec.y(),vec.z());}
-
-    static Eigen::Affine3f toEigenTransform(const btTransform& transform) {
-      btVector3 transBullet = transform.getOrigin();
-      btQuaternion quatBullet = transform.getRotation();
-      Eigen::Translation3f transEig;
-      transEig = Eigen::Translation3f(toEigenVector(transBullet));
-      Eigen::Matrix3f rotEig = Eigen::Quaternionf(quatBullet.w(),quatBullet.x(),quatBullet.y(),quatBullet.z()).toRotationMatrix();
-      Eigen::Affine3f out(transEig*rotEig);
-      return out;
-    }
-    void updateTransforms() {
-        for ( auto &lp: observers_ ) {
-            btRigidBody *rb = lp.first ;
-            TransformObserver ob = lp.second ;
-
-            btTransform trans ;
-            rb->getMotionState()->getWorldTransform(trans);
-
-            Eigen::Affine3f etr = toEigenTransform(trans) ;
-
-            ob(etr) ;
-        }
-    }
 };
 
 

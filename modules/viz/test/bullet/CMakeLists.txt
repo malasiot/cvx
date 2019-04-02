@@ -7,6 +7,6 @@ include_directories(
     ${BULLET_INCLUDE_DIRS}
 )
 
-add_executable(test_bullet test_bullet.cpp)
+add_executable(test_bullet test_bullet.cpp collision_world.cpp)
 target_link_libraries(test_bullet cvx_viz ${BULLET_LIBRARIES})
 ENDIF(BULLET_FOUND)

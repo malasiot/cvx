@@ -25,7 +25,7 @@ bool glfwRenderWindow::run(size_t width, size_t height, const string &wname) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_FALSE);
-    glfwWindowHint(GLFW_DOUBLEBUFFER, GL_TRUE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
     if ( !( handle_ = glfwCreateWindow(width, height, wname.c_str(), 0, 0) )) {
         glfwTerminate();
