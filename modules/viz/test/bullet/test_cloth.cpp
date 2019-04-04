@@ -116,7 +116,7 @@ btSoftBody *createSoftBody(const btScalar s, const int numX, const int numY,cons
                                                        numX, numY,
                                                        fixed, true);
 
-    cloth->getCollisionShape()->setMargin(0.1f);
+    cloth->getCollisionShape()->setMargin(0.01f);
     cloth->getCollisionShape()->setUserPointer((void*)cloth);
     cloth->generateBendingConstraints(2, cloth->appendMaterial());
     cloth->setTotalMass(1);
