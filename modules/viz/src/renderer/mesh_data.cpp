@@ -99,4 +99,10 @@ void BoxGeometry::makeMeshData() {
     data_.reset(new detail::MeshData(*fmesh)) ;
 }
 
+void CylinderGeometry::makeMeshData() {
+    MeshPtr mesh = Mesh::createSolidCylinder(radius_, height_, 12, 10) ;
+    MeshPtr fmesh = Mesh::flatten(mesh) ;
+    data_.reset(new detail::MeshData(*fmesh)) ;
+}
+
 }}

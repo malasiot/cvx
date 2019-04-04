@@ -230,7 +230,7 @@ MeshPtr Mesh::createSolidCylinder(float radius, float height, size_t slices, siz
 
     /* Cover the circular base with a triangle fan... */
 
-    z0 = 0.0;
+    z0 = -height/2.0;
     z1 = z0 + zStep;
 
     m->vertices().data().push_back({0, 0, z0}) ;
@@ -289,7 +289,7 @@ MeshPtr Mesh::createSolidCylinder(float radius, float height, size_t slices, siz
 
     size_t offset = (stacks)*slices + 1;
 
-    m->vertices().data().push_back({0, 0, height}) ;
+    m->vertices().data().push_back({0, 0, height/2.0}) ;
     m->normals().data().push_back({0, 0, 1}) ;
 
     for( uint i=0 ; i<slices ; i++ ) {

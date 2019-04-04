@@ -10,7 +10,7 @@
 #include <QMouseEvent>
 #include <QWheelEvent>
 
-//#include <GL/gl3w.h>
+#include <GL/gl3w.h>
 
 #include "qt_glwidget.hpp"
 
@@ -96,10 +96,10 @@ NodePtr randomBox(const string &name, MaterialInstancePtr material, const Vector
     return box_node ;
 }
 
-class ExampleWindow : public GLWidget
+class TestRopeWidget : public QOpenGLWidget
 {
 public:
-    ExampleWindow(ScenePtr scene);
+    TestRopeWidget(ScenePtr scene);
 
     void hit(int mouse_x, int mouse_y) {
 
@@ -182,15 +182,15 @@ private:
 
 };
 
-void ExampleWindow::initializeGL()
+void TestRopeWidget::initializeGL()
 {
 
-  //  gl3wInit() ;
+    gl3wInit() ;
 
 
 }
 
-void ExampleWindow::resizeGL(int w, int h) {
+void TestRopeWidget::resizeGL(int w, int h) {
     float ratio = w/(float)h ;
     std::static_pointer_cast<PerspectiveCamera>(camera_)->setAspectRatio(ratio) ;
 
@@ -200,13 +200,13 @@ void ExampleWindow::resizeGL(int w, int h) {
 }
 
 
-void ExampleWindow::paintGL()
+void TestRopeWidget::paintGL()
 {
     rdr_.init(camera_) ;
     rdr_.render(scene_) ;
 }
 
-ExampleWindow::ExampleWindow(ScenePtr scene): scene_(scene) {
+TestRopeWidget::TestRopeWidget(ScenePtr scene): scene_(scene) {
 
 
 
@@ -261,7 +261,7 @@ int main(int argc, char **argv)
       QSurfaceFormat::setDefaultFormat(format);
 
     QMainWindow window ;
-    window.setCentralWidget(new ExampleWindow(scene)) ;
+    window.setCentralWidget(new TestRopeWidget(scene)) ;
     window.show() ;
 
     return app.exec();

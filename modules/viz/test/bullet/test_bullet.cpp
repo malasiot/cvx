@@ -6,16 +6,16 @@
 #include <cvx/viz/scene/material.hpp>
 #include <cvx/viz/scene/geometry.hpp>
 
-#include <cvx/viz/gui/glfw_window.hpp>
-#include <cvx/viz/gui/trackball.hpp>
-
 #include <cvx/util/math/rng.hpp>
 #include <cvx/util/misc/strings.hpp>
 
-#include <GLFW/glfw3.h>
 #include <iostream>
 #include <thread>
 #include "physics.hpp"
+#include "bullet_gui.hpp"
+
+#include <QApplication>
+#include <QMainWindow>
 
 using namespace cvx::viz ;
 using namespace cvx::util ;
@@ -26,154 +26,6 @@ using namespace Eigen ;
 #define ARRAY_SIZE_Y 5
 #define ARRAY_SIZE_X 5
 #define ARRAY_SIZE_Z 5
-
-class glfwGUI: public glfwRenderWindow {
-public:
-
-
-    glfwGUI(const ScenePtr &sc, Physics &physics): glfwRenderWindow(), scene_(sc), physics_(physics) {
-
-        Vector3f c{0, 0, 0};
-        float r = 10.0 ;
-
-        camera_.reset(new PerspectiveCamera(1.0, 50*M_PI/180, 0.0001, 10*r)) ;
-        trackball_.setCamera(camera_, c + Vector3f{0.0, 0, 2*r}, c, {0, 1, 0}) ;
-        trackball_.setZoomScale(0.1*r) ;
-    }
-
-    void onInit() {
-
-    }
-
-
-
-
-    void onResize(int width, int height) {
-        float ratio;
-        ratio = width / (float) height;
-
-        trackball_.setScreenSize(width, height);
-
-        static_pointer_cast<PerspectiveCamera>(camera_)->setAspectRatio(ratio) ;
-
-        camera_->setViewport(width, height)  ;
-    }
-
-
-    void onMouseButtonPressed(uint button, size_t x, size_t y, uint flags) override {
-
-
-
-
-        if ( flags & GLFW_MOD_ALT ) {
-            Ray ray = camera_->getRay(x, y) ;
-
-            physics_.pickBody(Physics::eigenVectorToBullet(ray.getOrigin()), Physics::eigenVectorToBullet(ray.getDir()*10000));
-
-            Hit hit ;
-            if ( scene_->hit(ray, hit) ) {
-                cout << hit.node_->name() << endl ;
-            }
-
-            picking_ = true ;
-
-        } else {
-            switch ( button ) {
-            case GLFW_MOUSE_BUTTON_LEFT:
-                trackball_.setLeftClicked(true) ;
-                break ;
-            case GLFW_MOUSE_BUTTON_MIDDLE:
-                trackball_.setMiddleClicked(true) ;
-                break ;
-            case GLFW_MOUSE_BUTTON_RIGHT:
-                trackball_.setRightClicked(true) ;
-                break ;
-            }
-
-            trackball_.setClickPoint(x, y) ;
-        }
-    }
-
-
-    void onMouseButtonReleased(uint button, size_t x, size_t y, uint flags) override {
-
-
-
-        if ( flags & GLFW_MOD_ALT ) {
-            physics_.removePickingConstraint();
-            picking_ = false ;
-        } else {
-            switch ( button ) {
-            case GLFW_MOUSE_BUTTON_LEFT:
-                trackball_.setLeftClicked(false) ;
-                break ;
-            case GLFW_MOUSE_BUTTON_MIDDLE:
-                trackball_.setMiddleClicked(false) ;
-                break ;
-            case GLFW_MOUSE_BUTTON_RIGHT:
-                trackball_.setRightClicked(false) ;
-                break ;
-            }
-
-
-        }
-
-    }
-
-    void onMouseMoved(double xpos, double ypos) override {
-        ostringstream s ;
-        s << xpos << ',' << ypos ;
-        text_ = s.str() ;
-
-        if ( picking_ )  {
-            Ray ray = camera_->getRay(xpos, ypos) ;
-
-            physics_.movePickedBody(Physics::eigenVectorToBullet(ray.getOrigin()), Physics::eigenVectorToBullet(ray.getDir()*10000));
-        }
-        else
-            trackball_.setClickPoint(xpos, ypos) ;
-    }
-
-    void onMouseWheel(double x) {
-        trackball_.setScrollDirection(x>0);
-    }
-
-
-    void onRender(double delta) override {
-        trackball_.update() ;
-
-        rdr_.init(camera_) ;
-        rdr_.render(scene_) ;
-
-        rdr_.clearZBuffer();
-
-        rdr_.text(text_, 10, 10, Font("arial", 24), {1, 1, 0});
-
-        rdr_.line({0, 0, 0}, {10, 0, 0}, {1, 0, 0, 1}, 3);
-        rdr_.line({0, 0, 0}, {0, 10, 0}, {0, 1, 0, 1}, 3);
-        rdr_.line({0, 0, 0}, {0, 0, 10}, {0, 0, 1, 1}, 3);
-
-        rdr_.text("X", Vector3f{10, 0, 0}, Font("Arial", 12), Vector3f{1, 0, 0}) ;
-        rdr_.text("Y", Vector3f{0, 10, 0}, Font("Arial", 12), Vector3f{0, 1, 0}) ;
-        rdr_.text("Z", Vector3f{0, 0, 10}, Font("Arial", 12), Vector3f{0, 0, 1}) ;
-
-        rdr_.circle({0, 0, 0}, {0, 1, 0}, 5.0, {0, 1, 0, 1}) ;
-
-        physics_.stepSimulation(delta);
-
-        this_thread::yield() ;
-    }
-
-
-    string text_ ;
-    Renderer rdr_ ;
-    ScenePtr scene_ ;
-    TrackBall trackball_ ;
-    CameraPtr camera_ ;
-    Physics &physics_ ;
-
-    bool picking_ = false ;
-};
 
 NodePtr makeBox(const string &name, const Vector3f &hs, const Matrix4f &tr, const Vector4f &clr) {
 
@@ -222,14 +74,13 @@ void createScene() {
 
     scene->addChild(node) ;
 
-    std::shared_ptr<btCollisionShape> groundShape = physics.createBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
-    physics.addCollisionShape(groundShape) ;
+    btCollisionShape *groundShape = physics.createBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
 
     btTransform groundTransform;
     groundTransform.setIdentity();
     groundTransform.setOrigin(btVector3(0, -50, 0));
 
-    physics.createStaticRigidBody(groundTransform, groundShape.get());
+    physics.createStaticRigidBody(groundTransform, groundShape);
 
 
     //create a few dynamic rigidbodies
@@ -237,8 +88,7 @@ void createScene() {
 
     GeometryPtr geom(new BoxGeometry(.1, .1, .1)) ;
 
-    std::shared_ptr<btCollisionShape> colShape = physics.createBoxShape(btVector3(.1, .1, .1));
-
+    btCollisionShape *colShape = physics.createBoxShape(btVector3(.1, .1, .1));
 
     /// Create Dynamic Objects
     ///
@@ -280,7 +130,7 @@ void createScene() {
 
                 scene->addChild(node) ;
 
-                physics.createRigidBody(mass, node, colShape.get(), localInertia);
+                physics.createRigidBody(mass, node, colShape, localInertia);
             }
         }
     }
@@ -289,13 +139,28 @@ void createScene() {
 
 }
 
-int main(int argc, char *argv[]) {
-
+int main(int argc, char **argv)
+{
 
     createScene() ;
 
-    glfwGUI gui(scene, physics) ;
+    QApplication app(argc, argv);
 
-    gui.run(640, 480) ;
+    QSurfaceFormat format;
+    format.setDepthBufferSize(24);
+    format.setMajorVersion(3);
+    format.setMinorVersion(3);
+    format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
+    format.setSwapInterval(1);
 
+    format.setSamples(4);
+    format.setProfile(QSurfaceFormat::CoreProfile);
+
+    QSurfaceFormat::setDefaultFormat(format);
+
+    QMainWindow window ;
+    window.setCentralWidget(new TestBulletQtWidget(scene, physics)) ;
+    window.show() ;
+
+    return app.exec();
 }

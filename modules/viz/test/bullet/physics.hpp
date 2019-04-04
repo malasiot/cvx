@@ -3,6 +3,9 @@
 
 #include <bullet/btBulletCollisionCommon.h>
 #include <bullet/btBulletDynamicsCommon.h>
+#include <bullet/BulletSoftBody/btSoftRigidDynamicsWorld.h>
+#include <bullet/BulletSoftBody/btSoftBodyHelpers.h>
+#include <bullet/BulletSoftBody/btSoftBodyRigidBodyCollisionConfiguration.h>
 #include <bullet/BulletCollision/NarrowPhaseCollision/btRaycastCallback.h>
 
 #include <memory>
@@ -35,6 +38,11 @@ inline btTransform toBulletTransform(const Eigen::Affine3f& affine) {
   return btTransform(quatBullet,transBullet);
 }
 
+
+inline btVector3 eigenVectorToBullet(const Eigen::Vector3f &v) {
+    return btVector3(btScalar(v.x()), btScalar(v.y()), btScalar(v.z())) ;
+}
+
 class MotionState: public btMotionState {
     public:
 
@@ -62,16 +70,17 @@ private:
     cvx::viz::NodePtr node_ ;
 };
 
+
 struct Physics
 {
-
-
-    std::vector<std::shared_ptr<btCollisionShape>> collision_shapes_ ;
+    btAlignedObjectArray<const btCollisionShape *> collision_shapes_ ;
     std::unique_ptr<btBroadphaseInterface> m_broadphase ;
     std::unique_ptr<btCollisionDispatcher> m_dispatcher ;
     std::unique_ptr<btConstraintSolver> m_solver ;
     std::unique_ptr<btDefaultCollisionConfiguration> m_collisionConfiguration ;
-    std::unique_ptr<btDiscreteDynamicsWorld> m_dynamicsWorld;
+    std::unique_ptr<btDynamicsWorld> m_dynamicsWorld;
+
+    btSoftBodyWorldInfo softBodyWorldInfo;
 
     //data for picking objects
     class btRigidBody* m_pickedBody = nullptr;
@@ -82,21 +91,16 @@ struct Physics
     btScalar m_oldPickingDist;
 
 
-    using TransformObserver = std::function<void(const Eigen::Affine3f &)> ;
-    std::map<btRigidBody *, TransformObserver> observers_ ;
 
-
-    static btVector3 eigenVectorToBullet(const Eigen::Vector3f &v) {
-        return btVector3(btScalar(v.x()), btScalar(v.y()), btScalar(v.z())) ;
-    }
-    btDiscreteDynamicsWorld* getDynamicsWorld()
+    btDynamicsWorld* getDynamicsWorld()
     {
         return m_dynamicsWorld.get();
     }
 
-    void addCollisionShape(const std::shared_ptr<btCollisionShape> &shape) {
+    void addCollisionShape(const btCollisionShape *shape) {
         collision_shapes_.push_back(shape) ;
     }
+
     virtual void createEmptyDynamicsWorld()
     {
         ///collision configuration contains default setup for memory, collision setup
@@ -114,6 +118,31 @@ struct Physics
         m_dynamicsWorld.reset( new btDiscreteDynamicsWorld(m_dispatcher.get(), m_broadphase.get(), m_solver.get(), m_collisionConfiguration.get()));
 
         m_dynamicsWorld->setGravity(btVector3(0, -10, 0));
+    }
+
+    virtual void createSoftBodyDynamicsWorld()
+    {
+        ///collision configuration contains default setup for memory, collision setup
+        m_collisionConfiguration.reset( new btSoftBodyRigidBodyCollisionConfiguration() ) ;
+        //m_collisionConfiguration->setConvexConvexMultipointIterations();
+
+        ///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
+        m_dispatcher.reset( new btCollisionDispatcher(m_collisionConfiguration.get()) ) ;
+
+        m_broadphase.reset(new btDbvtBroadphase() ) ;
+
+        ///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
+        m_solver.reset( new btSequentialImpulseConstraintSolver() ) ;
+
+        m_dynamicsWorld.reset( new btSoftRigidDynamicsWorld(m_dispatcher.get(), m_broadphase.get(), m_solver.get(), m_collisionConfiguration.get()));
+
+        m_dynamicsWorld->setGravity(btVector3(0, -10, 0));
+
+        softBodyWorldInfo.m_broadphase = m_broadphase.get();
+        softBodyWorldInfo.m_dispatcher = m_dispatcher.get();
+        softBodyWorldInfo.m_gravity = m_dynamicsWorld->getGravity();
+        softBodyWorldInfo.m_sparsesdf.Initialize();
+
     }
 
     void stepSimulation(float deltaTime)
@@ -245,8 +274,14 @@ struct Physics
         }
     }
 
-    std::shared_ptr<btCollisionShape> createBoxShape(const btVector3& halfExtents)  {
-        auto shape = std::make_shared<btBoxShape>(halfExtents);
+    btCollisionShape *createBoxShape(const btVector3& halfExtents)  {
+        auto shape = new btBoxShape(halfExtents);
+        addCollisionShape(shape);
+        return shape ;
+    }
+
+    btCollisionShape *createCylinderShape(float radius, float len)  {
+        auto shape = new btCylinderShape(btVector3(radius, len/2.0, radius));
         addCollisionShape(shape);
         return shape ;
     }
@@ -259,7 +294,7 @@ struct Physics
         delete ms;
     }
 
-    btRigidBody* createRigidBody(float mass, const cvx::viz::NodePtr &node, btCollisionShape* shape, const btVector3 &localInertia)
+    btRigidBody* createRigidBody(float mass, const cvx::viz::NodePtr &node,  btCollisionShape* shape, const btVector3 &localInertia)
     {
         btAssert((!shape || shape->getShapeType() != INVALID_SHAPE_PROXYTYPE));
 
@@ -280,8 +315,11 @@ struct Physics
 
         btVector3 localInertia(0, 0, 0);
 
-        btRigidBody* body = new btRigidBody(btScalar(0.), nullptr, shape, localInertia);
-        body->setWorldTransform(startTransform);
+        btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
+
+        btRigidBody::btRigidBodyConstructionInfo cInfo(btScalar(0.), myMotionState, shape, localInertia);
+
+        btRigidBody* body = new btRigidBody(cInfo);
 
         body->setUserIndex(-1);
         m_dynamicsWorld->addRigidBody(body);

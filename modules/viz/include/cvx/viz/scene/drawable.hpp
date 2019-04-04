@@ -17,6 +17,7 @@ public:
     MaterialInstancePtr material() const { return material_ ; }
 
     void setMaterial(MaterialInstancePtr mat) { material_ = mat ; }
+    void setGeometry(GeometryPtr geom) { geometry_ = geom ; }
 
 private:
 

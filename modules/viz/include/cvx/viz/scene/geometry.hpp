@@ -77,6 +77,7 @@ public:
     float radius() const { return radius_ ; }
     float height() const { return height_ ; }
 
+    void makeMeshData() override ;
   //  bool hit(const Ray &ray, Eigen::Vector3f &pos) const override ;
 
 private:
