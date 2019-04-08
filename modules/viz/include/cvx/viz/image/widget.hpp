@@ -1,5 +1,5 @@
-#ifndef __CVX_VIZ_IMAGE_WIDGET_HPP__
-#define __CVX_VIZ_IMAGE_WIDGET_HPP___
+#ifndef CVX_VIZ_IMAGE_WIDGET_HPP
+#define CVX_VIZ_IMAGE_WIDGET_HPP
 
 #include <QGraphicsView>
 #include <QGraphicsItem>
@@ -24,9 +24,7 @@ public:
     // the underlying graphics scene
     QGraphicsScene *scene();
 
-    // set the image
-    void setImage(const cv::Mat &im) ;
-    void setImage(const QImage &qim) ;
+
 
     // set canvas size
     void setCanvasSize(int sw, int sh) ;
@@ -98,6 +96,10 @@ public slots:
 
     void zoomToRect(const QRectF &rect) ;
     void zoomToPoint(const QPointF &pt, int delta) ;
+
+    // set the image
+    void setImage(const cv::Mat &im) ;
+    void setImage(const QImage &qim) ;
 private:
 
     friend class QImageGraphicsScene ;

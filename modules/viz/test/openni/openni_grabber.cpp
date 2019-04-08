@@ -19,7 +19,7 @@ public:
 
     ~OpenNI2Initializer() {
         if ( initialized_ ) {
-            openni::OpenNI::shutdown();
+       //     openni::OpenNI::shutdown();
             initialized_ = false ;
         }
     }
@@ -218,6 +218,6 @@ void OpenNI2Grabber::setColorStreamCallback(Callback cb) {
 
 void OpenNI2Grabber::setDepthStreamCallback(Callback cb) {
     depth_cb_.reset(new DepthFrameListener(cb)) ;
-    depth_.addNewFrameListener(color_cb_.get()) ;
+    depth_.addNewFrameListener(depth_cb_.get()) ;
 }
 
