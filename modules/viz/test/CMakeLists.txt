@@ -41,3 +41,4 @@ add_executable(test_imageview test_imageview.cpp)
 target_link_libraries(test_imageview cvx_viz Qt5::Widgets)
 
 add_subdirectory(bullet)
+add_subdirectory(openni)
