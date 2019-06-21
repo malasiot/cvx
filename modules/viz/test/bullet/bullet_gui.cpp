@@ -6,12 +6,12 @@
 
 using namespace cvx::viz ;
 
-void TestBulletQtWidget::initializeGL()
+void TestAnimation::initializeGL()
 {
     gl3wInit() ;
 }
 
-void TestBulletQtWidget::resizeGL(int w, int h) {
+void TestAnimation::resizeGL(int w, int h) {
     float ratio = w/(float)h ;
     std::static_pointer_cast<PerspectiveCamera>(camera_)->setAspectRatio(ratio) ;
 
@@ -20,7 +20,7 @@ void TestBulletQtWidget::resizeGL(int w, int h) {
 }
 
 
-void TestBulletQtWidget::paintGL()
+void TestAnimation::paintGL()
 {
     rdr_.init(camera_) ;
     rdr_.render(scene_) ;
@@ -40,7 +40,7 @@ void TestBulletQtWidget::paintGL()
 
 }
 
-TestBulletQtWidget::TestBulletQtWidget(ScenePtr scene, Physics &physics): scene_(scene), physics_(physics) {
+TestAnimation::TestAnimation(ScenePtr scene, Physics &physics): scene_(scene), physics_(physics) {
 
 
     Vector3f c{0, 0, 0};
@@ -57,7 +57,7 @@ TestBulletQtWidget::TestBulletQtWidget(ScenePtr scene, Physics &physics): scene_
     timer->start(30);
 }
 
-void TestBulletQtWidget::mousePressEvent(QMouseEvent *event)
+void TestAnimation::mousePressEvent(QMouseEvent *event)
 {
     if ( event->modifiers() & Qt::AltModifier ) {
         Ray ray = camera_->getRay(event->x(), event->y()) ;
@@ -84,7 +84,7 @@ void TestBulletQtWidget::mousePressEvent(QMouseEvent *event)
 
 }
 
-void TestBulletQtWidget::mouseReleaseEvent(QMouseEvent *event)
+void TestAnimation::mouseReleaseEvent(QMouseEvent *event)
 {
     if ( event->modifiers() & Qt::AltModifier ) {
         physics_.removePickingConstraint();
@@ -107,7 +107,7 @@ void TestBulletQtWidget::mouseReleaseEvent(QMouseEvent *event)
 
 }
 
-void TestBulletQtWidget::mouseMoveEvent(QMouseEvent *event)
+void TestAnimation::mouseMoveEvent(QMouseEvent *event)
 {
     int x = event->x() ;
     int y = event->y() ;
@@ -124,7 +124,7 @@ void TestBulletQtWidget::mouseMoveEvent(QMouseEvent *event)
     update() ;
 }
 
-void TestBulletQtWidget::wheelEvent(QWheelEvent *event) {
+void TestAnimation::wheelEvent(QWheelEvent *event) {
     trackball_.setScrollDirection(event->delta()>0);
     trackball_.update() ;
     update() ;

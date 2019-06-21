@@ -197,7 +197,7 @@ int main(int argc, char **argv)
     QSurfaceFormat::setDefaultFormat(format);
 
     QMainWindow window ;
-    window.setCentralWidget(new TestBulletQtWidget(scene, physics)) ;
+    window.setCentralWidget(new TestAnimation(scene, physics)) ;
     window.show() ;
 
     return app.exec();

@@ -33,9 +33,9 @@ static Physics physics ;
 static ScenePtr scene ;
 static btSoftBody *cloth ;
 
-class TestClothWidget: public TestBulletQtWidget {
+class TestClothWidget: public TestAnimation {
 public:
-    TestClothWidget(ScenePtr scene, Physics &physics, btSoftBody *cloth): TestBulletQtWidget(scene, physics), cloth_(cloth) {
+    TestClothWidget(ScenePtr scene, Physics &physics, btSoftBody *cloth): TestAnimation(scene, physics), cloth_(cloth) {
         node_ = scene_->findNodeByName("cloth") ;
     }
 

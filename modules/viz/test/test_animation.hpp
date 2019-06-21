@@ -8,17 +8,16 @@
 #include <QOpenGLWidget>
 #include <QMouseEvent>
 
-#include "physics.hpp"
+
 
 class TestAnimation : public QOpenGLWidget
 {
     Q_OBJECT
 public:
-    TestAnimation(cvx::viz::ScenePtr scene, Physics &physics) ;
+    TestAnimation(cvx::viz::ScenePtr scene) ;
 
 protected:
 
-    Physics &physics_ ;
     cvx::viz::ScenePtr scene_ ;
     bool picking_ = false ;
 
@@ -43,7 +42,7 @@ protected:
     void resizeGL(int width, int height) override;
 
     virtual void onAnimationUpdate() {
-        physics_.stepSimulation(1/60.);
+
     }
 
     cvx::viz::Renderer rdr_ ;
