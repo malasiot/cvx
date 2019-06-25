@@ -5,28 +5,29 @@
 #include <cvx/viz/gui/trackball.hpp>
 #include <cvx/viz/scene/camera.hpp>
 
+#include <cvx/viz/animation/animation.hpp>
 #include <QOpenGLWidget>
 #include <QMouseEvent>
+#include <QElapsedTimer>
 
-
+class SimpleAnimation ;
 
 class TestAnimation : public QOpenGLWidget
 {
     Q_OBJECT
-public:
-    TestAnimation(cvx::viz::ScenePtr scene) ;
 
+public:
+    TestAnimation() ;
+    virtual ~TestAnimation() override ;
 protected:
 
     cvx::viz::ScenePtr scene_ ;
+    cvx::viz::NodePtr box_ ;
     bool picking_ = false ;
 
 public slots:
 
-    void updateAnimation()  {
-        onAnimationUpdate() ;
-        update() ;
-    }
+    void updateAnimation() ;
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -41,11 +42,14 @@ protected:
     void paintGL() override;
     void resizeGL(int width, int height) override;
 
-    virtual void onAnimationUpdate() {
-
-    }
+    void createScene();
 
     cvx::viz::Renderer rdr_ ;
     cvx::viz::CameraPtr camera_ ;
     cvx::viz::TrackBall trackball_ ;
+
+    QElapsedTimer et_ ;
+    std::unique_ptr<cvx::viz::AnimationTimer> timer_ ;
+    std::unique_ptr<SimpleAnimation> animation_ ;
+
 };

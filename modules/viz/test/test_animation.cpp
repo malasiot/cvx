@@ -18,11 +18,59 @@
 #include <QTimer>
 #include <QApplication>
 #include <QMainWindow>
+#include <QElapsedTimer>
+
+#include <Eigen/Geometry>
 
 using namespace cvx::viz ;
 using namespace cvx::util ;
 using namespace Eigen ;
 using namespace std ;
+
+class QtAnimationTimer: public AnimationTimer {
+public:
+
+    QtAnimationTimer(const QElapsedTimer &et): et_(et) {}
+
+    float getTime() const override { return (float)et_.elapsed() ; }
+
+    const QElapsedTimer &et_ ;
+};
+
+class SimpleAnimation: public Animation {
+public:
+    SimpleAnimation(AnimationTimer *timer): Animation(timer){
+        setDuration(2500) ;
+       // setRepeatCount(0) ;
+       // setRepeatMode(Animation::RESTART) ;
+
+        translation_sampler_.reset(new LinearKeyFrameSampler<Vector3f>()) ;
+        translation_tl_.reset(new TimeLine<Vector3f>()) ;
+        translation_tl_->addKeyFrame(0.0, {0.0f, 2.0f, 1.0f}) ;
+        translation_tl_->addKeyFrame(1.0, {4.0f, 2.0f, 1.0f}) ;
+        translation_channel_.reset(new TimeLineChannel<Vector3f>(*translation_tl_, *translation_sampler_, lec)) ;
+        addChannel(translation_channel_.get()) ;
+
+        rotation_sampler_.reset(new LinearKeyFrameSampler<Quaternionf>()) ;
+        rotation_tl_.reset(new TimeLine<Quaternionf>()) ;
+        rotation_tl_->addKeyFrame(0.0, {1.0, 0.0f, 0.0f, 0.0f}) ;
+        rotation_tl_->addKeyFrame(1.0, {1.0f, 0.5f, 0.0f, 0.0f}) ;
+        rotation_channel_.reset(new TimeLineChannel<Quaternionf>(*rotation_tl_, *rotation_sampler_, lec)) ;
+        addChannel(rotation_channel_.get()) ;
+    }
+
+    std::unique_ptr<TimeLine<Vector3f>> translation_tl_ ;
+    std::unique_ptr<KeyFrameSampler<Vector3f>> translation_sampler_ ;
+    std::unique_ptr<TimeLineChannel<Vector3f>> translation_channel_ ;
+
+    std::unique_ptr<TimeLine<Quaternionf>> rotation_tl_ ;
+    std::unique_ptr<KeyFrameSampler<Quaternionf>> rotation_sampler_ ;
+    std::unique_ptr<TimeLineChannel<Quaternionf>> rotation_channel_ ;
+
+    EaseInOutCubic lec ;
+};
+
+TestAnimation::~TestAnimation() = default ;
 
 void TestAnimation::initializeGL()
 {
@@ -54,12 +102,11 @@ void TestAnimation::paintGL()
     rdr_.text("Z", Vector3f{0, 0, 10}, Font("Arial", 12), Vector3f{0, 0, 1}) ;
 
     rdr_.circle({0, 0, 0}, {0, 1, 0}, 5.0, {0, 1, 0, 1}) ;
-
-
 }
 
-TestAnimation::TestAnimation(ScenePtr scene): scene_(scene) {
+TestAnimation::TestAnimation() {
 
+    createScene() ;
 
     Vector3f c{0, 0, 0};
     float r = 10.0 ;
@@ -70,9 +117,16 @@ TestAnimation::TestAnimation(ScenePtr scene): scene_(scene) {
 
     camera_->setBgColor({1, 1, 1, 1}) ;
 
+    timer_.reset(new QtAnimationTimer(et_)) ;
+
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(updateAnimation()));
+
+    et_.start() ;
     timer->start(30);
+
+    animation_.reset(new SimpleAnimation(timer_.get())) ;
+    animation_->play() ;
 }
 
 void TestAnimation::mousePressEvent(QMouseEvent *event)
@@ -148,19 +202,17 @@ NodePtr makeBox(const string &name, const Vector3f &hs, const Matrix4f &tr, cons
 
 RNG g_rng ;
 
-ScenePtr createScene() {
+void TestAnimation::createScene() {
 
-    ScenePtr scene(new Scene) ;
+    scene_.reset(new Scene) ;
 
     // create new scene and add light
 
-    scene->addMarkerInstance(MarkerInstancePtr(new SphereMarkerInstance({0, -1, 0}, 0.2, {1, 0, 0})));
-
     std::shared_ptr<DirectionalLight> dl( new DirectionalLight(Vector3f(0.5, 0.5, 1)) ) ;
     dl->diffuse_color_ = Vector3f(1, 1, 1) ;
-    scene->addLight(dl) ;
+    scene_->addLight(dl) ;
 
-    scene->setPickable(true);
+    scene_->setPickable(true);
 
     {
         Affine3f tr ;
@@ -169,7 +221,7 @@ ScenePtr createScene() {
 
         NodePtr node = makeBox("ground", Vector3f{50., 50., 50.}, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
 
-        scene->addChild(node) ;
+        scene_->addChild(node) ;
     }
 
     {
@@ -193,17 +245,36 @@ ScenePtr createScene() {
         tr.translate(Vector3f{0., 2.0, 0.0}) ;
         node->matrix() = tr.matrix() ;
 
-        scene->addChild(node) ;
+        scene_->addChild(node) ;
+
+        box_ = node ;
     }
 
-    return scene ;
+}
+
+void TestAnimation::updateAnimation() {
+    const TimeLineChannel<Vector3f> *translation_channel = animation_->translation_channel_.get() ;
+    const TimeLineChannel<Quaternionf> *rotation_channel = animation_->rotation_channel_.get() ;
+
+    animation_->update() ;
+    Vector3f tval = translation_channel->getValue() ;
+    Quaternionf rval = rotation_channel->getValue() ;
+
+    Affine3f &mat = box_->matrix() ;
+
+    mat.translation() = tval ;
+
+    mat.linear() = rval.toRotationMatrix() ;
+
+    update() ;
+
 
 }
 
 int main(int argc, char **argv)
 {
 
-    ScenePtr scene = createScene() ;
+
 
     QApplication app(argc, argv);
 
@@ -220,7 +291,7 @@ int main(int argc, char **argv)
     QSurfaceFormat::setDefaultFormat(format);
 
     QMainWindow window ;
-    window.setCentralWidget(new TestAnimation(scene)) ;
+    window.setCentralWidget(new TestAnimation()) ;
     window.show() ;
 
     return app.exec();
