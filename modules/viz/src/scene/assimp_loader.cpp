@@ -5,6 +5,8 @@
 #include <cvx/viz/scene/light.hpp>
 #include <cvx/viz/scene/material.hpp>
 
+#include <cvx/viz/animation/animation.hpp>
+
 #include <cvx/util/misc/path.hpp>
 
 #include <assimp/scene.h>
@@ -39,11 +41,13 @@ public:
     map<const aiMaterial *, MaterialInstancePtr> materials_ ;
     map<string, LightPtr> lights_ ;
     map<string, CameraPtr> cameras_ ;
+    map<string, NodePtr> node_map_ ;
     bool make_pickable_ ;
 
     bool importMaterials(const string &mpath, const aiScene *sc);
     bool importMeshes(const aiScene *sc);
     bool importLights(const aiScene *sc);
+    bool importAnimations(const aiScene *sc) ;
     bool importNodes(NodePtr &pnode, const aiScene *sc, const aiNode *nd);
     bool import(const aiScene *sc, const std::string &fname, const NodePtr &parent);
 };
@@ -269,9 +273,113 @@ bool AssimpImporter::importLights(const aiScene *sc) {
         }
     }
 
-
-
     return true ;
+}
+
+struct ChannelAffine {
+    TimeLineChannel<Vector3f> translation_, scaling_ ;
+    TimeLineChannel<Quaternionf> rotation_ ;
+};
+
+class NodeAnimation: public Animation {
+public:
+
+    void update(float t) override {
+        Animation::update(t) ;
+
+        if ( isRunning() ) {
+            for( const auto &lp: node_map_ ) {
+                const ChannelAffine &tr = *lp.first ;
+                NodePtr node = lp.second ;
+
+                Affine3f mat(Affine3f::Identity()) ;
+
+    //        mat.scale(tr.scaling_.getValue()) ;
+    //        mat.rotate(tr.rotation_.getValue()) ;
+                mat.translate(tr.translation_.getValue()) ;
+
+                node->matrix() = mat ;
+            }
+        }
+    }
+
+    std::vector<ChannelAffine> channels_ ;
+    std::map<ChannelAffine *, NodePtr> node_map_ ;
+};
+
+bool AssimpImporter::importAnimations(const aiScene *sc)
+{
+    for( int i=0 ; i< sc->mNumAnimations ; i++ ) {
+        aiAnimation *anim = sc->mAnimations[i] ;
+
+        NodeAnimation *animation = new NodeAnimation() ;
+        animation->setDuration(anim->mDuration * 1000.0/anim->mTicksPerSecond) ;
+
+        scene_.addAnimation(animation) ;
+
+        animation->channels_.resize(anim->mNumChannels) ;
+
+        for( int j = 0 ; j<anim->mNumChannels ; j++ ) {
+            aiNodeAnim *channel = anim->mChannels[j] ;
+
+            string node_name(channel->mNodeName.C_Str()) ;
+            auto it = node_map_.find(node_name) ;
+            if ( it == node_map_.end() ) continue ;
+
+            NodePtr node = it->second ;
+
+            ChannelAffine &ca = animation->channels_[j] ;
+            TimeLineChannel<Vector3f> &translation = ca.translation_ ;
+
+            if ( channel->mNumPositionKeys == 1 ) {
+                const aiVectorKey &key = channel->mPositionKeys[0] ;
+                translation.getTimeLine().addKeyFrame(0.0, Vector3f(key.mValue.x, key.mValue.y, key.mValue.z)) ;
+                translation.getTimeLine().addKeyFrame(1.0, Vector3f(key.mValue.x, key.mValue.y, key.mValue.z)) ;
+            } else {
+                for( uint k=0 ; k<channel->mNumPositionKeys ; k++ ) {
+                    const aiVectorKey &key = channel->mPositionKeys[k] ;
+                    translation.getTimeLine().addKeyFrame(key.mTime/anim->mDuration, Vector3f(key.mValue.x, key.mValue.y, key.mValue.z)) ;
+                }
+            }
+
+            animation->addChannel(&ca.translation_) ;
+
+            TimeLineChannel<Vector3f> &scaling = ca.scaling_ ;
+
+            if ( channel->mNumScalingKeys == 1 ) {
+                const aiVectorKey &key = channel->mScalingKeys[0] ;
+                scaling.getTimeLine().addKeyFrame(0.0, Vector3f(key.mValue.x, key.mValue.y, key.mValue.z)) ;
+                scaling.getTimeLine().addKeyFrame(1.0, Vector3f(key.mValue.x, key.mValue.y, key.mValue.z)) ;
+            } else {
+                for( uint k=0 ; k<channel->mNumScalingKeys ; k++ ) {
+                    const aiVectorKey &key = channel->mScalingKeys[k] ;
+                    scaling.getTimeLine().addKeyFrame(key.mTime/anim->mDuration, Vector3f(key.mValue.x, key.mValue.y, key.mValue.z)) ;
+                }
+            }
+
+            animation->addChannel(&ca.scaling_) ;
+
+            TimeLineChannel<Quaternionf> &rotation = ca.rotation_ ;
+
+            if ( channel->mNumRotationKeys == 1 ) {
+                const aiQuatKey &key = channel->mRotationKeys[0] ;
+                rotation.getTimeLine().addKeyFrame(0.0, Quaternionf(key.mValue.w, key.mValue.x, key.mValue.y, key.mValue.z)) ;
+                rotation.getTimeLine().addKeyFrame(1.0, Quaternionf(key.mValue.w, key.mValue.x, key.mValue.y, key.mValue.z)) ;
+            } else {
+                for( uint k=0 ; k<channel->mNumScalingKeys ; k++ ) {
+                    const aiQuatKey &key = channel->mRotationKeys[k] ;
+                    rotation.getTimeLine().addKeyFrame(key.mTime/anim->mDuration, Quaternionf(key.mValue.w, key.mValue.x, key.mValue.y, key.mValue.z)) ;
+                }
+            }
+
+            animation->addChannel(&ca.rotation_) ;
+
+            animation->node_map_.emplace(&ca, node) ;
+        }
+
+    }
+
+
 }
 
 bool AssimpImporter::importNodes(NodePtr &pnode, const struct aiScene *sc, const struct aiNode* nd)
@@ -284,6 +392,7 @@ bool AssimpImporter::importNodes(NodePtr &pnode, const struct aiScene *sc, const
     NodePtr snode(new Node) ;
 
 
+
     Matrix4f tf ;
     tf << m.a1, m.a2, m.a3, m.a4,
             m.b1, m.b2, m.b3, m.b4,
@@ -294,6 +403,8 @@ bool AssimpImporter::importNodes(NodePtr &pnode, const struct aiScene *sc, const
 
     string nname(nd->mName.C_Str()) ;
     snode->setName(nname);
+
+     node_map_.emplace(nname, snode) ;
 
     /* draw all meshes assigned to this node */
     for (; n < nd->mNumMeshes; ++n) {
@@ -349,6 +460,8 @@ bool AssimpImporter::import(const aiScene *sc, const std::string &fname, const N
 
     NodePtr root = (parent) ? parent : scene_.shared_from_this() ;
     if ( !importNodes(root, sc, sc->mRootNode) ) return false ;
+
+     if ( !importAnimations(sc) ) return false ;
 
     return true ;
 }

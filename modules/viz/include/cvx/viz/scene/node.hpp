@@ -12,6 +12,7 @@
 #include <cvx/viz/scene/scene_fwd.hpp>
 #include <cvx/viz/scene/drawable.hpp>
 #include <cvx/viz/scene/marker.hpp>
+#include <cvx/viz/animation/animation.hpp>
 
 namespace cvx { namespace viz {
 
@@ -65,6 +66,33 @@ public:
     void addLight(const LightPtr &light) { lights_.push_back(light) ; }
 
     const std::vector<LightPtr> &lights() const { return lights_ ; }
+
+    void addAnimation(Animation *anim) { animations_.emplace_back(anim) ; }
+
+    void updateAnimations(float t) {
+        for( auto &a: animations_ )
+            a->update(t) ;
+
+        for( auto &c: children_ )
+            c->updateAnimations(t) ;
+    }
+
+    void startAnimations(float t) {
+        for( auto &a: animations_ )
+            a->start(t) ;
+
+        for( auto &c: children_ )
+            c->startAnimations(t) ;
+    }
+
+    void stopAnimations() {
+        for( auto &a: animations_ )
+            a->stop() ;
+
+        for( auto &c: children_ )
+            c->stopAnimations() ;
+    }
+
 
     Eigen::Affine3f globalTransform() const {
         if ( parent_ ) return parent_->globalTransform() * mat_ ;
@@ -126,6 +154,7 @@ private:
     std::vector<DrawablePtr> drawables_ ; // meshes associated with this node
     std::vector<LightPtr> lights_ ;
     std::vector<MarkerInstancePtr> markers_ ;
+    std::vector<std::unique_ptr<Animation>> animations_ ;
 
     Node *parent_ = nullptr;
 

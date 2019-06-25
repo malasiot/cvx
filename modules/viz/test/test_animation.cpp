@@ -27,19 +27,10 @@ using namespace cvx::util ;
 using namespace Eigen ;
 using namespace std ;
 
-class QtAnimationTimer: public AnimationTimer {
-public:
-
-    QtAnimationTimer(const QElapsedTimer &et): et_(et) {}
-
-    float getTime() const override { return (float)et_.elapsed() ; }
-
-    const QElapsedTimer &et_ ;
-};
 
 class SimpleAnimation: public Animation {
 public:
-    SimpleAnimation(AnimationTimer *timer): Animation(timer){
+    SimpleAnimation(): Animation() {
         setDuration(2500) ;
        // setRepeatCount(0) ;
        // setRepeatMode(Animation::RESTART) ;
@@ -48,14 +39,14 @@ public:
         translation_tl_.reset(new TimeLine<Vector3f>()) ;
         translation_tl_->addKeyFrame(0.0, {0.0f, 2.0f, 1.0f}) ;
         translation_tl_->addKeyFrame(1.0, {4.0f, 2.0f, 1.0f}) ;
-        translation_channel_.reset(new TimeLineChannel<Vector3f>(*translation_tl_, *translation_sampler_, lec)) ;
+        translation_channel_.reset(new TimeLineChannel<Vector3f>(*translation_tl_, translation_sampler_.get(), &lec)) ;
         addChannel(translation_channel_.get()) ;
 
         rotation_sampler_.reset(new LinearKeyFrameSampler<Quaternionf>()) ;
         rotation_tl_.reset(new TimeLine<Quaternionf>()) ;
         rotation_tl_->addKeyFrame(0.0, {1.0, 0.0f, 0.0f, 0.0f}) ;
         rotation_tl_->addKeyFrame(1.0, {1.0f, 0.5f, 0.0f, 0.0f}) ;
-        rotation_channel_.reset(new TimeLineChannel<Quaternionf>(*rotation_tl_, *rotation_sampler_, lec)) ;
+        rotation_channel_.reset(new TimeLineChannel<Quaternionf>(*rotation_tl_, rotation_sampler_.get(), &lec)) ;
         addChannel(rotation_channel_.get()) ;
     }
 
@@ -108,16 +99,14 @@ TestAnimation::TestAnimation() {
 
     createScene() ;
 
-    Vector3f c{0, 0, 0};
-    float r = 10.0 ;
+    Vector3f c = scene_->geomCenter() ;
+    float r = scene_->geomRadius(c) ;
 
     camera_.reset(new PerspectiveCamera(1.0, 50*M_PI/180, 0.0001, 10*r)) ;
     trackball_.setCamera(camera_, c + Vector3f{0.0, 0, 3*r}, c, {0, 1, 0}) ;
     trackball_.setZoomScale(0.1*r) ;
 
-    camera_->setBgColor({1, 1, 1, 1}) ;
-
-    timer_.reset(new QtAnimationTimer(et_)) ;
+  //  camera_->setBgColor({1, 1, 1, 1}) ;
 
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(updateAnimation()));
@@ -125,8 +114,10 @@ TestAnimation::TestAnimation() {
     et_.start() ;
     timer->start(30);
 
-    animation_.reset(new SimpleAnimation(timer_.get())) ;
-    animation_->play() ;
+    animation_.reset(new SimpleAnimation()) ;
+    animation_->start((float)et_.elapsed()) ;
+
+   // scene_->startAnimations((float)et_.elapsed());
 }
 
 void TestAnimation::mousePressEvent(QMouseEvent *event)
@@ -173,6 +164,8 @@ void TestAnimation::mouseMoveEvent(QMouseEvent *event)
     trackball_.setClickPoint(x, y) ;
     trackball_.update() ;
 
+    update() ;
+
 }
 
 void TestAnimation::wheelEvent(QWheelEvent *event) {
@@ -206,6 +199,8 @@ void TestAnimation::createScene() {
 
     scene_.reset(new Scene) ;
 
+    scene_->load("/home/malasiot/Downloads/box.fbx") ;
+
     // create new scene and add light
 
     std::shared_ptr<DirectionalLight> dl( new DirectionalLight(Vector3f(0.5, 0.5, 1)) ) ;
@@ -214,6 +209,8 @@ void TestAnimation::createScene() {
 
     scene_->setPickable(true);
 
+    box_ = scene_ ;
+    return ;
     {
         Affine3f tr ;
         tr.setIdentity() ;
@@ -253,10 +250,13 @@ void TestAnimation::createScene() {
 }
 
 void TestAnimation::updateAnimation() {
+
+    scene_->updateAnimations((float)et_.elapsed()) ;
+    /*
     const TimeLineChannel<Vector3f> *translation_channel = animation_->translation_channel_.get() ;
     const TimeLineChannel<Quaternionf> *rotation_channel = animation_->rotation_channel_.get() ;
 
-    animation_->update() ;
+    animation_->update((float)et_.elapsed()) ;
     Vector3f tval = translation_channel->getValue() ;
     Quaternionf rval = rotation_channel->getValue() ;
 
@@ -265,7 +265,7 @@ void TestAnimation::updateAnimation() {
     mat.translation() = tval ;
 
     mat.linear() = rval.toRotationMatrix() ;
-
+*/
     update() ;
 
 

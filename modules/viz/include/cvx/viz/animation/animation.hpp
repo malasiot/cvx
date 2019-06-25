@@ -6,31 +6,15 @@
 #include <limits>
 #include <cmath>
 
-
 #include <cvx/viz/animation/channel.hpp>
 
 namespace cvx { namespace viz {
 
-
-
-// This should be overriden to return an api specific elapsed time in the same units as the animation data
-
-class AnimationTimer {
-public:
-    AnimationTimer() = default ;
-
-    virtual float getTime() const = 0 ;
-};
-
-
 class Animation {
 public:
     enum RepeatMode {  RESTART, REVERSE  } ;
-    enum State { RUNNING, PAUSED, STOPPED } ;
 
-    // define an animation of specific duration for each repetition cycle
-
-    Animation(AnimationTimer *timer): timer_(timer) {}
+    Animation() {}
 
     // set/get the number of repetitions
 
@@ -63,14 +47,17 @@ public:
         return repeat_mode_ ;
     }
 
+    // add a new animation channel
     void addChannel(AbstractChannel *e) {
         channels_.emplace_back(e) ;
     }
 
-    void update() {
+    // update channels given the current time
 
-        if ( state_ == RUNNING ) {
-            float elapsed = timer_->getTime() - start_time_ ;
+    virtual void update(float t) {
+
+        if ( is_running_ ) {
+            float elapsed = t - start_time_ ;
             bool done = false ;
 
             float fraction = cycle_duration_ > 0 ? elapsed / cycle_duration_ : 1.f;
@@ -101,34 +88,37 @@ public:
         }
     }
 
-    void play() {
-        if ( state_ == PAUSED ) {
-            start_time_ = paused_time_ ;
-        } else if ( state_ == STOPPED ) {
-            start_time_ = timer_->getTime() ;
+    // callbacks usefull for chaining animations
+
+    virtual void onAnimationStarted() {}
+    virtual void onAnimationStopped() {}
+
+    // start the animation from current time stamp
+
+    void start(float t) {
+        if ( !is_running_ ) {
+            start_time_ = t ;
         }
-        state_ = RUNNING ;
+        is_running_ = true ;
+        onAnimationStarted() ;
     }
 
-    void pause() {
-        if ( state_ != PAUSED ) {
-            paused_time_ = timer_->getTime() ;
-            state_ = PAUSED ;
-        }
-    }
+    // stop animation
+
     void stop() {
-        if ( state_ != STOPPED ) {
-            state_ = STOPPED ;
+        if ( is_running_  ) {
+            is_running_ = false ;
         }
+        onAnimationStopped() ;
     }
 
+    bool isRunning() const { return is_running_ ; }
 
 private:
-    AnimationTimer *timer_ ;
     float cycle_duration_ = 0.f ;
-    float start_time_ = 0.f, paused_time_ = 0.0 ;
+    float start_time_ = 0.f ;
     bool reverse = false ;
-    State state_ = STOPPED ;
+    bool is_running_ = false ;
     int repeat_count_ = -1 ; // infinite
     RepeatMode repeat_mode_ = REVERSE ; // repeat mode
     int cycle_ = 0; // the current cycle ;

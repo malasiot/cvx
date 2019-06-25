@@ -49,7 +49,7 @@ protected:
     cvx::viz::TrackBall trackball_ ;
 
     QElapsedTimer et_ ;
-    std::unique_ptr<cvx::viz::AnimationTimer> timer_ ;
+
     std::unique_ptr<SimpleAnimation> animation_ ;
 
 };

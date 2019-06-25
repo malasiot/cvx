@@ -19,22 +19,39 @@ public:
 
 template <class S> class TimeLineChannel: public AbstractChannel {
 public:
-    TimeLineChannel(const TimeLine<S> &f, const KeyFrameSampler<S> &sampler, const EasingCurve &ec):
+
+    TimeLineChannel() {
+        static LinearKeyFrameSampler<S> default_sampler ;
+        static EaseLinear default_easing ;
+        sampler_ = &default_sampler ;
+        easing_curve_ = &default_easing ;
+    }
+
+    void setSampler(const KeyFrameSampler<S> *sampler) {
+        sampler_ = sampler ;
+    }
+
+    void setEasing(const EasingCurve *ec) {
+        easing_curve_ = ec ;
+    }
+
+    TimeLineChannel(const TimeLine<S> &f, const KeyFrameSampler<S> *sampler, const EasingCurve *ec):
     data_(f), sampler_(sampler), easing_curve_(ec) {}
 
     virtual void update(float ts) override {
-        float tt = easing_curve_.value(ts) ;
-        value_ = sampler_.interpolate(data_, tt) ;
+        float tt = easing_curve_->value(ts) ;
+        value_ = sampler_->interpolate(data_, tt) ;
     }
 
+    TimeLine<S> &getTimeLine() { return data_ ; }
     const S &getValue() const { return value_ ; }
 
 protected:
 
     S value_ ;
-    const TimeLine<S> &data_ ;
-    const KeyFrameSampler<S> &sampler_ ;
-    const EasingCurve &easing_curve_ ;
+    TimeLine<S> data_ ;
+    const KeyFrameSampler<S> *sampler_ ;
+    const EasingCurve *easing_curve_ ;
 };
 
 
