@@ -131,7 +131,7 @@ btSoftBody *createSoftBody(const btScalar s, const int numX, const int numY,cons
     NodePtr node(new Node) ;
 
     node->setName("cloth") ;
-    MaterialInstancePtr material(new PerVertexColorMaterialInstance(0.5)) ;
+    MaterialInstancePtr material(new PerVertexColorMaterialInstance(0.5f)) ;
 
     DrawablePtr dr(new Drawable(nullptr, material)) ;
 

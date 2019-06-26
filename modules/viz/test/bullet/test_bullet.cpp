@@ -110,10 +110,10 @@ void createScene() {
 
                 NodePtr node(new Node) ;
 
-                std::shared_ptr<PhongMaterialParameters> params(new PhongMaterialParameters) ;
-                params->setDiffuse({g_rng.uniform(0.0, 1.), 1, g_rng.uniform(0., 1.), 1}) ;
+                PhongMaterialInstance *pm = new PhongMaterialInstance();
+                pm->setDiffuse({g_rng.uniform(0.0, 1.), 1, g_rng.uniform(0., 1.), 1}) ;
 
-                MaterialInstancePtr material(new PhongMaterialInstance(params)) ;
+                MaterialInstancePtr material(pm) ;
 
                 DrawablePtr dr(new Drawable(geom, material)) ;
 

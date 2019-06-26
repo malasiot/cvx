@@ -9,10 +9,82 @@ using namespace std ;
 using namespace Eigen ;
 using namespace cvx::util ;
 
+static string vertex_shader_code =
+        R"(
+        layout (location = 0) in vec3 vposition;
+        out vec3 position;
+
+#ifdef HAS_NORMALS
+        layout (location = 1) in vec3 vnormal;
+        out vec3 normal;
+#endif
+
+#ifdef HAS_COLORS
+        layout (location = 2) in vec3 vcolor;
+        out vec3 color ;
+#endif
+
+#ifdef USE_SKINNING
+        layout (location = 3) in ivec4 boneIDs;
+        layout (location = 4) in vec4  boneWeights;
+
+        const int MAX_BONES = 100;
+
+        uniform mat4 g_bones[MAX_BONES];
+#endif
+
+#ifdef  HAS_UVs
+        layout (location = 5) in vec2 vuv;
+        out vec2 uv;
+#endif
+
+        uniform mat4 mvp;
+        uniform mat4 mv;
+        uniform mat3 mvn ;
+
+        void main()
+        {
+#ifdef USE_SKINNING
+        mat4 BoneTransform = g_bones[boneIDs[0]] * boneWeights[0];
+        BoneTransform     += g_bones[boneIDs[1]] * boneWeights[1];
+        BoneTransform     += g_bones[boneIDs[2]] * boneWeights[2];
+        BoneTransform     += g_bones[boneIDs[3]] * boneWeights[3];
+
+        vec4 posl    = BoneTransform * vec4(vposition, 1.0);
+
+#ifdef HAS_NORMALS
+        vec3 normall = mat3(BoneTransform) * vnormal;
+#endif
+
+#else
+        vec4 posl = vec4(vposition, 1.0);
+
+#ifdef HAS_NORMALS
+        vec3 normall = vnormal;
+#endif
+
+#endif // SKINING
+
+        gl_Position  = mvp * posl;
+
+#ifdef HAS_NORMALS
+        normal = mvn * normall;
+#endif
+
+
+#ifdef HAS_COLORS
+       color = vcolor ;
+#endif
+
+#ifdef HAS_UVs
+        uv = vuv ;
+#endif
+        position    = (mv * posl).xyz;
+}
+)";
+
 static string pn_vertex_shader_code =
         R"(
-        #version 330
-
         layout (location = 0) in vec3 vposition;
         layout (location = 1) in vec3 vnormal;
 
@@ -34,7 +106,6 @@ static string pn_vertex_shader_code =
 
 static string pnt_vertex_shader_code =
         R"(
-        #version 330 core
 
         layout (location = 0) in vec3 vposition;
         layout (location = 1) in vec3 vnormal;
@@ -60,9 +131,7 @@ static string pnt_vertex_shader_code =
 
 static string p_vertex_shader_code =
         R"(
-        #version 330
-
-        layout (location = 0) in vec3 vposition;
+     layout (location = 0) in vec3 vposition;
 
         uniform mat4 mvp;
         uniform mat4 mv;
@@ -77,8 +146,6 @@ static string p_vertex_shader_code =
 
 static string pc_vertex_shader_code =
         R"(
-        #version 330
-
         layout (location = 0) in vec3 vposition;
         layout (location = 2) in vec3 vcolor;
 
@@ -98,7 +165,6 @@ static string pc_vertex_shader_code =
 
 static string phong_fragment_shader_common =
         R"(
-        #version 330
         precision mediump float;
         in vec3 normal;
         in vec3 position;
@@ -216,7 +282,6 @@ static string phong_fragment_shader_map = R"(
                                           )";
 
 static string constant_fragment_shader = R"(
-                                         #version 330
 
                                          uniform vec4 g_material_clr ;
                                          out vec4 FragColor;
@@ -228,7 +293,7 @@ static string constant_fragment_shader = R"(
                                          )";
 
 static string pervertex_fragment_shader = R"(
-                                          #version 330
+
 
                                           in vec3 color ;
                                           out vec4 FragColor;
@@ -244,13 +309,29 @@ namespace cvx { namespace viz {
 
 using MaterialPtr = std::shared_ptr<Material> ;
 
+
+template<class T>
+MaterialPtr materialSingleton(std::map<int, MaterialPtr> &instances, int flags) {
+    auto it = instances.find(flags) ;
+    if ( it == instances.end() ) {
+        std::shared_ptr<T> instance(new T(flags)) ;
+        instances.emplace(flags, instance) ;
+        return instance ;
+    } else {
+        return it->second ;
+    }
+}
+
 class PhongMaterial: public Material {
 public:
+
+    PhongMaterial(int flags): Material(flags) {}
+
     OpenGLShaderProgram::Ptr prog() override ;
 
-    static MaterialPtr instance() {
-        static MaterialPtr s_material(new PhongMaterial) ;
-        return s_material ;
+    static MaterialPtr instance(int flags) {
+        static std::map<int, MaterialPtr> s_materials ;
+        return materialSingleton<PhongMaterial>(s_materials, flags) ;
     }
 
     OpenGLShaderProgram::Ptr prog_ ;
@@ -260,7 +341,12 @@ OpenGLShaderProgram::Ptr PhongMaterial::prog()
 {
     if ( prog_ ) return prog_ ;
 
-    OpenGLShader::Ptr vs(new OpenGLShader(OpenGLShader::Vertex, pn_vertex_shader_code, "pn_vertex_shader_code")) ;
+    OpenGLShader::Ptr vs(new OpenGLShader(OpenGLShader::Vertex)) ;
+    vs->addPreProcDefinition("HAS_NORMALS") ;
+    if ( flags_ & USE_SKINNING ) vs->addPreProcDefinition("USE_SKINNING") ;
+
+    vs->compileString(vertex_shader_code, "vertex_shader_code") ;
+
     OpenGLShader::Ptr fs(new OpenGLShader(OpenGLShader::Fragment, phong_fragment_shader_common + phong_fragment_shader_material, "phong_fragment_shader_material"))  ;
 
     prog_.reset(new OpenGLShaderProgram) ;
@@ -275,29 +361,28 @@ OpenGLShaderProgram::Ptr PhongMaterial::prog()
 void PhongMaterialInstance::applyParameters() {
 
     auto p = material_->prog() ;
-    auto params = std::static_pointer_cast<PhongMaterialParameters>(params_) ;
 
-    p->setUniform("g_material.ambient", params->ambient_) ;
-    p->setUniform("g_material.diffuse", params->diffuse_) ;
-    p->setUniform("g_material.specular", params->specular_) ;
-    p->setUniform("g_material.shininess", params->shininess_) ;
+    p->setUniform("g_material.ambient", ambient_) ;
+    p->setUniform("g_material.diffuse", diffuse_) ;
+    p->setUniform("g_material.specular", specular_) ;
+    p->setUniform("g_material.shininess", shininess_) ;
 
 }
 
-PhongMaterialInstance::PhongMaterialInstance():
-    MaterialInstance(PhongMaterial::instance(), make_shared<PhongMaterialParameters>()) {}
-
-PhongMaterialInstance::PhongMaterialInstance(const std::shared_ptr<PhongMaterialParameters> &params):
-    MaterialInstance(PhongMaterial::instance(),params) {}
+PhongMaterialInstance::PhongMaterialInstance(int flags):
+    MaterialInstance(PhongMaterial::instance(flags)) {}
 
 
 class DiffuseMapMaterial: public Material {
 public:
     OpenGLShaderProgram::Ptr prog() override ;
 
-    static MaterialPtr instance() {
-        static MaterialPtr s_material(new DiffuseMapMaterial) ;
-        return s_material ;
+    DiffuseMapMaterial(int flags): Material(flags) {}
+
+    static MaterialPtr instance(int flags) {
+        static std::map<int, MaterialPtr> s_materials ;
+        return materialSingleton<DiffuseMapMaterial>(s_materials, flags) ;
+
     }
 
     OpenGLShaderProgram::Ptr prog_ ;
@@ -307,7 +392,13 @@ OpenGLShaderProgram::Ptr DiffuseMapMaterial::prog()
 {
     if ( prog_ ) return prog_ ;
 
-    OpenGLShader::Ptr vs(new OpenGLShader(OpenGLShader::Vertex, pnt_vertex_shader_code, "pnt_vertex_shader_code")) ;
+    OpenGLShader::Ptr vs(new OpenGLShader(OpenGLShader::Vertex)) ;
+    vs->addPreProcDefinition("HAS_NORMALS") ;
+    vs->addPreProcDefinition("HAS_UVs") ;
+    if ( flags_ & USE_SKINNING ) vs->addPreProcDefinition("USE_SKINNING") ;
+
+    vs->compileString(vertex_shader_code, "vertex_shader_code") ;
+
     OpenGLShader::Ptr fs(new OpenGLShader(OpenGLShader::Fragment, phong_fragment_shader_common + phong_fragment_shader_map, "phong_fragment_shader_map"))  ;
 
     prog_.reset(new OpenGLShaderProgram) ;
@@ -322,25 +413,19 @@ OpenGLShaderProgram::Ptr DiffuseMapMaterial::prog()
 void DiffuseMapMaterialInstance::applyParameters() {
 
     auto p = material_->prog() ;
-    auto params = std::static_pointer_cast<DiffuseMapMaterialParameters>(params_) ;
 
-    p->setUniform("g_material.ambient", params->ambient_) ;
-    p->setUniform("g_material.specular", params->specular_) ;
-    p->setUniform("g_material.shininess", params->shininess_) ;
+    p->setUniform("g_material.ambient", ambient_) ;
+    p->setUniform("g_material.specular", specular_) ;
+    p->setUniform("g_material.shininess", shininess_) ;
 
     p->setUniform("tex_unit", 0) ;
 
-    params->diffuse_map_.read() ;
-    params->diffuse_map_.upload() ;
-
+    diffuse_map_.read() ;
+    diffuse_map_.upload() ;
 }
 
-DiffuseMapMaterialInstance::DiffuseMapMaterialInstance(const Texture2D &tex):
-    MaterialInstance(DiffuseMapMaterial::instance(), std::make_shared<DiffuseMapMaterialParameters>(tex)){
-}
-
-DiffuseMapMaterialInstance::DiffuseMapMaterialInstance(const std::shared_ptr<DiffuseMapMaterialParameters> &params):
-    MaterialInstance(DiffuseMapMaterial::instance(), params) {
+DiffuseMapMaterialInstance::DiffuseMapMaterialInstance(const Texture2D &tex, int flags):
+    MaterialInstance(DiffuseMapMaterial::instance(flags)), diffuse_map_(tex) {
 }
 
 
@@ -348,9 +433,11 @@ class ConstantMaterial: public Material {
 public:
     OpenGLShaderProgram::Ptr prog() override ;
 
-    static MaterialPtr instance() {
-        static MaterialPtr s_material(new ConstantMaterial) ;
-        return s_material ;
+    ConstantMaterial(int flags): Material(flags_) {}
+
+    static MaterialPtr instance(int flags) {
+        static std::map<int, MaterialPtr> s_materials ;
+        return materialSingleton<ConstantMaterial>(s_materials, flags) ;
     }
 
     OpenGLShaderProgram::Ptr prog_ ;
@@ -360,7 +447,10 @@ OpenGLShaderProgram::Ptr ConstantMaterial::prog() {
 
     if ( prog_ ) return prog_ ;
 
-    OpenGLShader::Ptr vs(new OpenGLShader(OpenGLShader::Vertex, p_vertex_shader_code, "p_vertex_shader_code")) ;
+    OpenGLShader::Ptr vs(new OpenGLShader(OpenGLShader::Vertex)) ;
+    if ( flags_ & USE_SKINNING ) vs->addPreProcDefinition("USE_SKINNING") ;
+
+    vs->compileString(vertex_shader_code, "vertex_shader_code") ;
     OpenGLShader::Ptr fs(new OpenGLShader(OpenGLShader::Fragment, constant_fragment_shader, "constant_fragment_shader"))  ;
 
     prog_.reset(new OpenGLShaderProgram) ;
@@ -372,31 +462,30 @@ OpenGLShaderProgram::Ptr ConstantMaterial::prog() {
     return prog_ ;
 }
 
-ConstantMaterialParameters::ConstantMaterialParameters(const Vector4f &clr): clr_(clr) {
+ConstantMaterialInstance::ConstantMaterialInstance(const Vector4f &clr, int flags):
+    MaterialInstance(ConstantMaterial::instance(flags)), clr_(clr) {
 }
 
-ConstantMaterialInstance::ConstantMaterialInstance(const Vector4f &clr):
-    MaterialInstance(ConstantMaterial::instance(), std::make_shared<ConstantMaterialParameters>(clr)){
-}
-
-ConstantMaterialInstance::ConstantMaterialInstance(const std::shared_ptr<ConstantMaterialParameters> &params):
-    MaterialInstance(ConstantMaterial::instance(), params) {
+ConstantMaterialInstance::ConstantMaterialInstance(int flags):
+    MaterialInstance(ConstantMaterial::instance(flags)) {
 }
 
 void ConstantMaterialInstance::applyParameters() {
     auto p = material_->prog() ;
-    auto params = std::static_pointer_cast<ConstantMaterialParameters>(params_) ;
 
-    p->setUniform("g_material_clr", params->clr_) ;
+    p->setUniform("g_material_clr", clr_) ;
 }
+
 
 class PerVertexColorMaterial: public Material {
 public:
     OpenGLShaderProgram::Ptr prog() override ;
 
-    static MaterialPtr instance() {
-        static MaterialPtr s_material(new PerVertexColorMaterial) ;
-        return s_material ;
+    PerVertexColorMaterial(int flags): Material(flags) {}
+
+    static MaterialPtr instance(int flags) {
+        static std::map<int, MaterialPtr> s_materials ;
+        return materialSingleton<PerVertexColorMaterial>(s_materials, flags) ;
     }
 
     OpenGLShaderProgram::Ptr prog_ ;
@@ -406,7 +495,12 @@ OpenGLShaderProgram::Ptr PerVertexColorMaterial::prog()
 {
     if ( prog_ ) return prog_ ;
 
-    OpenGLShader::Ptr vs(new OpenGLShader(OpenGLShader::Vertex, pc_vertex_shader_code, "pc_vertex_shader_code")) ;
+    OpenGLShader::Ptr vs(new OpenGLShader(OpenGLShader::Vertex)) ;
+    vs->addPreProcDefinition("HAS_COLORS") ;
+    if ( flags_ & USE_SKINNING ) vs->addPreProcDefinition("USE_SKINNING") ;
+
+    vs->compileString(vertex_shader_code, "vertex_shader_code") ;
+
     OpenGLShader::Ptr fs(new OpenGLShader(OpenGLShader::Fragment, pervertex_fragment_shader, "pervertex_fragment_shader"))  ;
 
     prog_.reset(new OpenGLShaderProgram) ;
@@ -418,28 +512,27 @@ OpenGLShaderProgram::Ptr PerVertexColorMaterial::prog()
     return prog_ ;
 }
 
-PerVertexColorMaterialInstance::PerVertexColorMaterialInstance(float op):
-    MaterialInstance(PerVertexColorMaterial::instance(), std::make_shared<PerVertexColorMaterialParameters>(op)){
+PerVertexColorMaterialInstance::PerVertexColorMaterialInstance(float op, int flags):
+    MaterialInstance(PerVertexColorMaterial::instance(flags)), opacity_(op) {
 }
 
-PerVertexColorMaterialInstance::PerVertexColorMaterialInstance(const std::shared_ptr<PerVertexColorMaterialParameters> &params):
-    MaterialInstance(PerVertexColorMaterial::instance(), params) {
+PerVertexColorMaterialInstance::PerVertexColorMaterialInstance(int flags):
+    MaterialInstance(PerVertexColorMaterial::instance(flags)) {
 }
 
 void PerVertexColorMaterialInstance::applyParameters() {
     auto p = material_->prog() ;
-    auto params = std::static_pointer_cast<PerVertexColorMaterialParameters>(params_) ;
 
-    p->setUniform("opacity", params->opacity_) ;
+    p->setUniform("opacity", opacity_) ;
 }
 
 
 MaterialInstancePtr Material::makeLambertian(const Eigen::Vector4f &clr) {
     PhongMaterialInstance *p = new PhongMaterialInstance ;
 
-    p->params().setDiffuse(clr) ;
-    p->params().setSpecular(Vector4f(0, 0, 0, 1)) ;
-    p->params().setShininess(0.0) ;
+    p->setDiffuse(clr) ;
+    p->setSpecular(Vector4f(0, 0, 0, 1)) ;
+    p->setShininess(0.0) ;
     return MaterialInstancePtr(p) ;
 }
 

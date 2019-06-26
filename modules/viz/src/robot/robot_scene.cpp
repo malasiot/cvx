@@ -95,18 +95,18 @@ RobotScenePtr RobotScene::parseRobotURDF(const urdf::Robot &rb)
         if ( mat.texture_path_.empty() ) {
             Vector4f clr = mat.diffuse_color_ ;
             PhongMaterialInstance *material = new PhongMaterialInstance ;
-            material->params().setShininess(0);
-            material->params().setSpecular(Vector4f(0, 0, 0, 1)) ;
-            material->params().setDiffuse(clr) ;
+            material->setShininess(0);
+            material->setSpecular(Vector4f(0, 0, 0, 1)) ;
+            material->setDiffuse(clr) ;
 
             materials.emplace(name, MaterialInstancePtr(material)) ;
         } else {
             Texture2D s(mat.texture_path_) ;
 
             DiffuseMapMaterialInstance *material = new DiffuseMapMaterialInstance(s) ;
-            material->params().setShininess(0);
-            material->params().setSpecular(Vector4f(0, 0, 0, 1)) ;
-            material->params().setDiffuse(s) ;
+            material->setShininess(0);
+            material->setSpecular(Vector4f(0, 0, 0, 1)) ;
+            material->setDiffuse(s) ;
 
             materials.emplace(name, MaterialInstancePtr(material)) ;
         }

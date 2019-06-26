@@ -37,7 +37,7 @@ using MaterialInstancePtr = std::shared_ptr<MaterialInstance> ;
 
 class Material {
 public:
-    Material() = default ;
+    Material(int flags): flags_(flags) {}
 
     // Should be overriden to return the shader program used to render the material.
     // Since this should be called after context creation it should create the required shaders on demand and cache it
@@ -50,21 +50,11 @@ public:
 
 protected:
 
-
+    int flags_ ;
 } ;
 
-// Material paremeters are associated with each material instance, allowing to render several objects using the same technique but different parameters
 
-class MaterialParameters {
-public:
-    MaterialParameters() = default ;
-    virtual ~MaterialParameters() = default ;
-
-protected:
-
-    bool loadTexture(Texture2D &data) ;
-};
-
+enum { USE_SKINNING = 1 } ;
 
 class MaterialInstance {
 
@@ -76,37 +66,22 @@ public:
     virtual void applyLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) {}
 
 protected:
-    MaterialInstance(const std::shared_ptr<Material> &material, const std::shared_ptr<MaterialParameters> &params):
-        material_(material), params_(params) {}
+    MaterialInstance(const std::shared_ptr<Material> &material):
+        material_(material) {}
 
     void applyDefaultPerspective(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) ;
     void applyDefaultLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) ;
 
     std::shared_ptr<Material> material_ ;
-    std::shared_ptr<MaterialParameters> params_ ;
 };
-
-
-
-class ConstantMaterialParameters: public MaterialParameters {
-public:
-
-    ConstantMaterialParameters(const Eigen::Vector4f &clr) ;
-
-    void setColor(const Eigen::Vector4f &c) { clr_ = c ; }
-
-protected:
-
-    friend class ConstantMaterialInstance ;
-
-    Eigen::Vector4f clr_ = { 1, 1, 1, 1} ;
-} ;
 
 
 class ConstantMaterialInstance: public MaterialInstance {
 public:
-    ConstantMaterialInstance(const Eigen::Vector4f &clr) ;
-    ConstantMaterialInstance(const std::shared_ptr<ConstantMaterialParameters> &params) ;
+    ConstantMaterialInstance(int flags = 0) ;
+    ConstantMaterialInstance(const Eigen::Vector4f &clr, int flags = 0) ;
+
+    void setColor(const Eigen::Vector4f &c) { clr_ = c ; }
 
 protected:
     void applyParameters() override ;
@@ -119,12 +94,14 @@ protected:
         applyDefaultLight(idx, light, tf) ;
     }
 
+private:
+    Eigen::Vector4f clr_ = { 1, 1, 1, 1} ;
+
 };
 
-class PhongMaterialParameters: public MaterialParameters {
+class PhongMaterialInstance: public MaterialInstance {
 public:
-
-    PhongMaterialParameters() = default ;
+    PhongMaterialInstance(int flags = 0 ) ;
 
     void setAmbient(const Eigen::Vector4f &a) { ambient_ = a ; }
     void setDiffuse(const Eigen::Vector4f &d) { diffuse_ = d ; }
@@ -132,24 +109,6 @@ public:
     void setShininess(float s) { shininess_ = s ; }
 
 protected:
-
-    friend class PhongMaterialInstance ;
-
-    Eigen::Vector4f ambient_ = { 0, 0, 0, 1},
-    diffuse_ = { 0.5, 0.5, 0.5, 1.0 },
-    specular_ = { 0, 0, 0, 1 };
-    float shininess_  = 1.0 ;
-} ;
-
-class PhongMaterialInstance: public MaterialInstance {
-public:
-    PhongMaterialInstance() ;
-    PhongMaterialInstance(const std::shared_ptr<PhongMaterialParameters> &params) ;
-
-    PhongMaterialParameters &params() {
-        return *std::static_pointer_cast<PhongMaterialParameters>(params_) ;
-    }
-protected:
     void applyParameters() override ;
 
     void applyTransform(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) override {
@@ -159,12 +118,18 @@ protected:
     void applyLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) override {
         applyDefaultLight(idx, light, tf) ;
     }
+
+protected:
+
+    Eigen::Vector4f ambient_ = { 0, 0, 0, 1},
+    diffuse_ = { 0.5, 0.5, 0.5, 1.0 },
+    specular_ = { 0, 0, 0, 1 };
+    float shininess_  = 1.0 ;
 };
 
-class DiffuseMapMaterialParameters: public MaterialParameters {
+class DiffuseMapMaterialInstance: public MaterialInstance {
 public:
-
-    DiffuseMapMaterialParameters(const Texture2D &tex): diffuse_map_(tex) {}
+    DiffuseMapMaterialInstance(const Texture2D &tex, int flags = 0) ;
 
     void setAmbient(const Eigen::Vector4f &a) { ambient_ = a ; }
     void setDiffuse(const Texture2D &t) { diffuse_map_ = t ; }
@@ -174,60 +139,32 @@ public:
     void setTexture(const Texture2D &tex) { diffuse_map_ = tex ; }
 
 protected:
+    void applyTransform(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) override {
+        applyDefaultPerspective(cam, view, model) ;
+    }
 
-    friend class DiffuseMapMaterialInstance ;
+    void applyParameters() override ;
 
+    void applyLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) override {
+        applyDefaultLight(idx, light, tf) ;
+    }
+
+private:
     Eigen::Vector4f ambient_ = { 0, 0, 0, 1},
     specular_ = { 0, 0, 0, 1 };
     float shininess_  = 1.0 ;
     Texture2D diffuse_map_ ;
-} ;
-
-class DiffuseMapMaterialInstance: public MaterialInstance {
-public:
-    DiffuseMapMaterialInstance(const Texture2D &tex) ;
-    DiffuseMapMaterialInstance(const std::shared_ptr<DiffuseMapMaterialParameters> &params) ;
-
-    DiffuseMapMaterialParameters &params() {
-        return *std::static_pointer_cast<DiffuseMapMaterialParameters>(params_) ;
-    }
-
-protected:
-    void applyTransform(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) override {
-        applyDefaultPerspective(cam, view, model) ;
-    }
-
-    void applyParameters() override ;
-
-    void applyLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) override {
-        applyDefaultLight(idx, light, tf) ;
-    }
 };
 
 // This uses the colors specified per vertex as the ambient component and the specified diffuse color and normals for shading
 
-class PerVertexColorMaterialParameters: public MaterialParameters {
+class PerVertexColorMaterialInstance: public MaterialInstance {
 public:
-
-    PerVertexColorMaterialParameters(float o = 1.0): opacity_(o) {}
+    PerVertexColorMaterialInstance(int flags = 0) ;
+    PerVertexColorMaterialInstance(float opac, int flags = 0) ;
 
     void setOpacity(float o) { opacity_ = o ; }
 
-protected:
-
-    friend class PerVertexColorMaterialInstance ;
-
-    float opacity_ = 1.0 ;
-} ;
-
-class PerVertexColorMaterialInstance: public MaterialInstance {
-public:
-    PerVertexColorMaterialInstance(float opac) ;
-    PerVertexColorMaterialInstance(const std::shared_ptr<PerVertexColorMaterialParameters> &params) ;
-
-    PerVertexColorMaterialParameters &params() {
-        return *std::static_pointer_cast<PerVertexColorMaterialParameters>(params_) ;
-    }
 protected:
     void applyParameters() override ;
 
@@ -238,6 +175,9 @@ protected:
     void applyLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) override {
         applyDefaultLight(idx, light, tf) ;
     }
+
+private:
+      float opacity_ = 1.0 ;
 };
 
 } // namespace viz

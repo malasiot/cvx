@@ -102,11 +102,11 @@ TestAnimation::TestAnimation() {
     Vector3f c = scene_->geomCenter() ;
     float r = scene_->geomRadius(c) ;
 
-    camera_.reset(new PerspectiveCamera(1.0, 50*M_PI/180, 0.0001, 10*r)) ;
-    trackball_.setCamera(camera_, c + Vector3f{0.0, 0, 3*r}, c, {0, 1, 0}) ;
+    camera_.reset(new PerspectiveCamera(1.0, 50*M_PI/180, 0.0001, 100*r)) ;
+    trackball_.setCamera(camera_, c + Vector3f{0.0, 0, 4*r}, c, {0, 1, 0}) ;
     trackball_.setZoomScale(0.1*r) ;
 
-  //  camera_->setBgColor({1, 1, 1, 1}) ;
+    camera_->setBgColor({1, 1, 1, 1}) ;
 
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(updateAnimation()));
@@ -117,7 +117,7 @@ TestAnimation::TestAnimation() {
     animation_.reset(new SimpleAnimation()) ;
     animation_->start((float)et_.elapsed()) ;
 
-   // scene_->startAnimations((float)et_.elapsed());
+    scene_->startAnimations((float)et_.elapsed());
 }
 
 void TestAnimation::mousePressEvent(QMouseEvent *event)
@@ -134,6 +134,7 @@ void TestAnimation::mousePressEvent(QMouseEvent *event)
             break ;
         }
         trackball_.setClickPoint(event->x(), event->y()) ;
+         trackball_.update() ;
 
 }
 
@@ -151,7 +152,8 @@ void TestAnimation::mouseReleaseEvent(QMouseEvent *event)
             trackball_.setRightClicked(false) ;
             break ;
         }
-
+ trackball_.setClickPoint(event->x(), event->y()) ;
+  trackball_.update() ;
 
 }
 
@@ -199,7 +201,7 @@ void TestAnimation::createScene() {
 
     scene_.reset(new Scene) ;
 
-    scene_->load("/home/malasiot/Downloads/box.fbx") ;
+    scene_->load("/home/malasiot/Downloads/human.fbx") ;
 
     // create new scene and add light
 
@@ -226,12 +228,11 @@ void TestAnimation::createScene() {
 
         NodePtr node(new Node) ;
 
-        std::shared_ptr<PhongMaterialParameters> params(new PhongMaterialParameters) ;
-        params->setDiffuse({g_rng.uniform(0.0, 1.), 1, g_rng.uniform(0., 1.), 1}) ;
 
-        MaterialInstancePtr material(new PhongMaterialInstance(params)) ;
+        PhongMaterialInstance *material(new PhongMaterialInstance()) ;
+        material->setDiffuse({g_rng.uniform(0.0, 1.), 1, g_rng.uniform(0., 1.), 1}) ;
 
-        DrawablePtr dr(new Drawable(geom, material)) ;
+        DrawablePtr dr(new Drawable(geom, std::shared_ptr<MaterialInstance>(material))) ;
 
         node->addDrawable(dr) ;
 
@@ -292,6 +293,7 @@ int main(int argc, char **argv)
 
     QMainWindow window ;
     window.setCentralWidget(new TestAnimation()) ;
+    window.resize(512, 512) ;
     window.show() ;
 
     return app.exec();

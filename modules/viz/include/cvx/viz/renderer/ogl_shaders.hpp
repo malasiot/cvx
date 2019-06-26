@@ -18,6 +18,9 @@ public:
 
     OpenGLShader(Type t): type_(t) {}
 
+    void setHeader(const std::string &header) ;
+    void addPreProcDefinition(const std::string &key, const std::string &val = std::string()) ;
+
     // Compile shader from source code string. A resource name may be passed to be able to identify the code in error messages
     void compileString(const std::string &code, const std::string &resource_name = std::string()) ;
     // Loads the code from the designated file and calls compile string. If no resource name the filename will be used.
@@ -30,6 +33,9 @@ public:
     unsigned int handle() const { return handle_; }
 
 private:
+
+    std::string header_ = "#version 330\n" ;
+    std::string preproc_ ;
     unsigned int handle_ ;
     Type type_ ;
 };

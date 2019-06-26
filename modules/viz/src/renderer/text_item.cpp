@@ -46,8 +46,6 @@ TextItem::TextItem(const string &text, const Font &font)
 
 /// Source of the vertex shader used to scale the glyphs vertices
 static const char* text_vertex_shader_code = R"(
-#version 330
-
 layout(location = 0) in vec2 position;
 layout(location = 1) in vec2 texCoord;
 
@@ -66,8 +64,6 @@ void main() {
 
 /// Source of the fragment shader used to draw the glyphs using the cache texture
 static const char* text_fragment_shader_code = R"(
-#version 330
-
 smooth in vec2 smoothTexCoord;
 out vec4 outputColor;
 

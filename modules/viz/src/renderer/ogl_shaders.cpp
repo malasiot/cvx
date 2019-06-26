@@ -16,6 +16,17 @@ OpenGLShader::OpenGLShader(Type t, const std::string &code, const string &rname)
     compileString(code, rname) ;
 }
 
+void OpenGLShader::setHeader(const string &header) {
+    header_ = header ;
+}
+
+void OpenGLShader::addPreProcDefinition(const string &key, const string &val)
+{
+    preproc_ += "#define " + key ;
+    if ( !val.empty() ) preproc_ += val ;
+    preproc_ += '\n' ;
+}
+
 void OpenGLShader::compileString(const std::string &code, const string &resource_name) {
     GLenum shader_type ;
     switch ( type_ ) {
@@ -41,11 +52,13 @@ void OpenGLShader::compileString(const std::string &code, const string &resource
     if ( ( handle_ = glCreateShader(GLenum(shader_type)) ) == 0 )
         throw OpenGLShaderError("cannot create shader") ;
 
-    const GLchar* p[1];
-    p[0] = code.c_str() ;
-    GLint lengths[1] = { (GLint)code.length() };
+    const GLchar* p[3];
+    p[0] = header_.c_str() ;
+    p[1] = preproc_.c_str() ;
+    p[2] = code.c_str() ;
+    GLint lengths[3] = { (GLint)header_.length(), (GLint)preproc_.length(), (GLint)code.length() };
 
-    glShaderSource(handle_, 1, p, lengths);
+    glShaderSource(handle_, 3, p, lengths);
     glCompileShader(handle_);
 
     GLint success;

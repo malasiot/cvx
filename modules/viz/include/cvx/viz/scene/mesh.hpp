@@ -1,9 +1,10 @@
-#ifndef __CVX_VIZ_MESH_HPP__
-#define __CVX_VIZ_MESH_HPP__
+#ifndef CVX_VIZ_MESH_HPP
+#define CVX_VIZ_MESH_HPP
 
 #include <cvx/viz/scene/scene_fwd.hpp>
 #include <cvx/viz/scene/geometry.hpp>
 #include <cvx/util/geometry/point_list.hpp>
+#include <cvx/viz/scene/bone.hpp>
 
 #include <string>
 #include <vector>
@@ -72,6 +73,24 @@ public:
         return tex_coords_[t] ;
     }
 
+    static const int MAX_BONES_PER_VERTEX = 4 ;
+
+    struct BoneWeight {
+        int bone_[MAX_BONES_PER_VERTEX] ;
+        float weight_[MAX_BONES_PER_VERTEX] ;
+
+        BoneWeight() {
+            std::fill(bone_, bone_ + MAX_BONES_PER_VERTEX, -1) ;
+            std::fill(weight_, weight_ + MAX_BONES_PER_VERTEX, 0.f) ;
+        }
+    };
+
+    const std::vector<Bone> &skeleton() const { return skeleton_ ; }
+    std::vector<Bone> &skeleton() { return skeleton_ ; }
+
+    const std::vector<BoneWeight> &weights() const { return weights_ ; }
+    std::vector<BoneWeight> &weights() { return weights_ ; }
+
     PrimitiveType ptype() const { return ptype_ ; }
 
     // it is a simple triangle mesh with per-pertex attributes
@@ -110,6 +129,8 @@ public:
 private:
     vb3_t vertices_, normals_, colors_ ;
     vb2_t tex_coords_[MAX_TEXTURES] ;
+    std::vector<BoneWeight> weights_ ;
+    std::vector<Bone> skeleton_ ;
 
     PrimitiveType ptype_ ;
     detail::Octree *octree_ = nullptr ;

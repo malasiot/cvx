@@ -118,17 +118,17 @@ MaterialInstancePtr AssimpImporter::importMaterial(const struct aiMaterial *mtl,
 
     if ( diffuse_map ) {
         DiffuseMapMaterialInstance *mat = new DiffuseMapMaterialInstance(diffuse_map.value()) ;
-        if ( ambient ) mat->params().setAmbient(ambient.value()) ;
-        mat->params().setDiffuse(diffuse_map.value()) ;
-        if ( specular ) mat->params().setSpecular(specular.value()) ;
-        if ( shininess ) mat->params().setShininess(shininess.value()) ;
+        if ( ambient ) mat->setAmbient(ambient.value()) ;
+        mat->setDiffuse(diffuse_map.value()) ;
+        if ( specular ) mat->setSpecular(specular.value()) ;
+        if ( shininess ) mat->setShininess(shininess.value()) ;
         return MaterialInstancePtr(mat) ;
     } else {
         PhongMaterialInstance *mat = new PhongMaterialInstance() ;
-        if ( ambient ) mat->params().setAmbient(ambient.value()) ;
-        if ( diffuse ) mat->params().setDiffuse(diffuse.value()) ;
-        if ( specular ) mat->params().setSpecular(specular.value()) ;
-        if ( shininess ) mat->params().setShininess(shininess.value()) ;
+        if ( ambient ) mat->setAmbient(ambient.value()) ;
+        if ( diffuse ) mat->setDiffuse(diffuse.value()) ;
+        if ( specular ) mat->setSpecular(specular.value()) ;
+        if ( shininess ) mat->setShininess(shininess.value()) ;
         return MaterialInstancePtr(mat) ;
     }
 
@@ -205,6 +205,43 @@ bool AssimpImporter::importMeshes(const aiScene *sc) {
 
         if ( smesh->ptype() == Mesh::Triangles && make_pickable_ )
             smesh->makeOctree() ;
+
+        if ( mesh->HasBones() ) {
+            std::map<string, int> bone_map ;
+
+            int num_bones = mesh->mNumBones ;
+            smesh->skeleton().resize(num_bones) ;
+
+            smesh->weights().resize(mesh->mNumVertices) ;
+
+            for( size_t i=0 ; i<num_bones ; i++ ) {
+                aiBone *bone = mesh->mBones[i] ;
+                Bone &b = smesh->skeleton().at(i) ;
+                string name = bone->mName.C_Str() ;
+                b.name_.assign(std::move(name)) ;
+
+                aiMatrix4x4 m = bone->mOffsetMatrix;
+
+                b.offset_.matrix() << m.a1, m.a2, m.a3, m.a4,
+                        m.b1, m.b2, m.b3, m.b4,
+                        m.c1, m.c2, m.c3, m.c4,
+                        m.d1, m.d2, m.d3, m.d4 ;
+
+                // copy weights
+
+                for( size_t j=0 ; j<bone->mNumWeights ; j++ ) {
+                    aiVertexWeight &weight = bone->mWeights[j] ;
+                    Mesh::BoneWeight &w =   smesh->weights().at(weight.mVertexId) ;
+                    size_t idx ;
+                    for( idx = 0 ; w.bone_[idx] != -1 && idx < Mesh::MAX_BONES_PER_VERTEX ; ++idx ) ;
+                    assert(idx < Mesh::MAX_BONES_PER_VERTEX) ;
+                    w.bone_[idx] = i ;
+                    w.weight_[idx] = weight.mWeight ;
+                }
+
+            }
+
+        }
 
         meshes_[mesh] = smesh ;
     }
@@ -294,9 +331,11 @@ public:
 
                 Affine3f mat(Affine3f::Identity()) ;
 
-    //        mat.scale(tr.scaling_.getValue()) ;
-    //        mat.rotate(tr.rotation_.getValue()) ;
+
+
                 mat.translate(tr.translation_.getValue()) ;
+                 mat.rotate(tr.rotation_.getValue()) ;
+                 mat.scale(tr.scaling_.getValue()) ;
 
                 node->matrix() = mat ;
             }
@@ -378,6 +417,8 @@ bool AssimpImporter::importAnimations(const aiScene *sc)
         }
 
     }
+
+    return true ;
 
 
 }

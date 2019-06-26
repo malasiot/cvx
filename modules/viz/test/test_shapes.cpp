@@ -220,6 +220,9 @@ void main (void)
 
 class PerlinNoiseMaterial: public Material {
 public:
+
+    PerlinNoiseMaterial(): Material(0) {}
+
     OpenGLShaderProgram::Ptr prog()  override {
 
         if ( prog_ ) return prog_ ;
@@ -247,13 +250,9 @@ public:
 
 } ;
 
-class PerlinNoiseMaterialParemeters: MaterialParameters {
-
-};
-
 class PerlinNoiseMaterialInstance: public MaterialInstance {
 public:
-    PerlinNoiseMaterialInstance(): MaterialInstance(PerlinNoiseMaterial::instance(), nullptr)  {}
+    PerlinNoiseMaterialInstance(): MaterialInstance(PerlinNoiseMaterial::instance())  {}
 
     void applyTransform(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) override {
         applyDefaultPerspective(cam, view, model) ;

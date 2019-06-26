@@ -360,7 +360,7 @@ void RendererImpl::renderTextObject(const Text &text, const Vector3f &pos , cons
 }
 
 static const char * line_shader_vertex_ = R"(
-#version 330
+
 uniform mat4 mvp;
 uniform vec4 colour;
 in vec4 position;
@@ -373,7 +373,7 @@ void main (void) {
 )" ;
 
 static const char * line_shader_fragment_ = R"(
-#version 330
+
 in vec4 colourV;
 out vec4 fragColour;
 void main(void) {
