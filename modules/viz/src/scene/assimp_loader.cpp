@@ -31,7 +31,7 @@ namespace cvx { namespace viz { namespace impl {
 
 class AssimpImporter {
 public:
-    AssimpImporter(Scene &sc, bool make_pickable): scene_(sc), make_pickable_(make_pickable) {}
+    AssimpImporter(Scene &sc, int options): scene_(sc), options_(options) {}
 
     MaterialInstancePtr importMaterial(const struct aiMaterial *mtl, const string &model_path) ;
 
@@ -42,7 +42,7 @@ public:
     map<string, LightPtr> lights_ ;
     map<string, CameraPtr> cameras_ ;
     map<string, NodePtr> node_map_ ;
-    bool make_pickable_ ;
+    int options_ ;
 
     bool importMaterials(const string &mpath, const aiScene *sc);
     bool importMeshes(const aiScene *sc);
@@ -50,6 +50,7 @@ public:
     bool importAnimations(const aiScene *sc) ;
     bool importNodes(NodePtr &pnode, const aiScene *sc, const aiNode *nd);
     bool import(const aiScene *sc, const std::string &fname, const NodePtr &parent);
+    bool findSkeletonHierarchies();
 };
 
 static void getPhongMaterial(const struct aiMaterial *mtl,
@@ -76,8 +77,8 @@ static void getPhongMaterial(const struct aiMaterial *mtl,
 
     if ( ret1 == AI_SUCCESS ) {
         max = 1;
-        aiReturn ret2 = aiGetMaterialFloatArray(mtl, AI_MATKEY_SHININESS_STRENGTH, &strength, &max);
-        if(ret2 == AI_SUCCESS) shininess = shininess * strength ;
+     //   aiReturn ret2 = aiGetMaterialFloatArray(mtl, AI_MATKEY_SHININESS_STRENGTH, &strength, &max);
+     //   if(ret2 == AI_SUCCESS) shininess = shininess * strength ;
 
         vshininess = shininess ;
     }
@@ -203,10 +204,10 @@ bool AssimpImporter::importMeshes(const aiScene *sc) {
             }
         }
 
-        if ( smesh->ptype() == Mesh::Triangles && make_pickable_ )
+        if ( smesh->ptype() == Mesh::Triangles && ( options_ & Scene::MAKE_PICKABLE ) )
             smesh->makeOctree() ;
 
-        if ( mesh->HasBones() ) {
+        if ( ( options_ & Scene::IMPORT_SKELETONS ) && mesh->HasBones() ) {
             std::map<string, int> bone_map ;
 
             int num_bones = mesh->mNumBones ;
@@ -216,8 +217,9 @@ bool AssimpImporter::importMeshes(const aiScene *sc) {
 
             for( size_t i=0 ; i<num_bones ; i++ ) {
                 aiBone *bone = mesh->mBones[i] ;
-                Bone &b = smesh->skeleton().at(i) ;
                 string name = bone->mName.C_Str() ;
+
+                Bone &b = smesh->skeleton().at(i) ;
                 b.name_.assign(std::move(name)) ;
 
                 aiMatrix4x4 m = bone->mOffsetMatrix;
@@ -329,18 +331,13 @@ public:
                 const ChannelAffine &tr = *lp.first ;
                 NodePtr node = lp.second ;
 
-                Affine3f mat(Affine3f::Identity()) ;
-
-
-
-                mat.translate(tr.translation_.getValue()) ;
-                 mat.rotate(tr.rotation_.getValue()) ;
-                 mat.scale(tr.scaling_.getValue()) ;
+                Affine3f mat = Translation3f(tr.translation_.getValue()) * tr.rotation_.getValue() * Scaling(tr.scaling_.getValue()) ;
 
                 node->matrix() = mat ;
             }
         }
     }
+
 
     std::vector<ChannelAffine> channels_ ;
     std::map<ChannelAffine *, NodePtr> node_map_ ;
@@ -368,6 +365,7 @@ bool AssimpImporter::importAnimations(const aiScene *sc)
             NodePtr node = it->second ;
 
             ChannelAffine &ca = animation->channels_[j] ;
+
             TimeLineChannel<Vector3f> &translation = ca.translation_ ;
 
             if ( channel->mNumPositionKeys == 1 ) {
@@ -464,8 +462,11 @@ bool AssimpImporter::importNodes(NodePtr &pnode, const struct aiScene *sc, const
 
         MaterialInstancePtr mat ;
 
-        if ( cit != materials_.end() )
+        if ( cit != materials_.end() ) {
             mat = cit->second ;
+            if ( mesh->HasBones() )
+                mat->setFlags(USE_SKINNING) ;
+        }
 
         DrawablePtr dr(new Drawable(geom, mat)) ;
 
@@ -476,8 +477,8 @@ bool AssimpImporter::importNodes(NodePtr &pnode, const struct aiScene *sc, const
     if ( lit != lights_.end() )  // this is a light node
         snode->addLight(lit->second) ;
 
-    auto cit = cameras_.find(nname) ;
-    if ( cit != cameras_.end() )  ;// this is a camera node, no special handling
+    auto camit = cameras_.find(nname) ;
+    if ( camit != cameras_.end() )  ;// this is a camera node, no special handling
 
     if ( pnode ) pnode->addChild(snode) ;
 
@@ -487,29 +488,66 @@ bool AssimpImporter::importNodes(NodePtr &pnode, const struct aiScene *sc, const
             return false ;
     }
 
-    pnode->setPickable(make_pickable_) ;
+    pnode->setPickable(options_ & Scene::MAKE_PICKABLE ) ;
 
     return true ;
 }
 
+// map bone names to nodes in the graph
+
+bool AssimpImporter::findSkeletonHierarchies() {
+    for( auto lp: meshes_ ) {
+        MeshPtr &mesh = lp.second ;
+        if ( mesh->hasSkeleton() ) {
+            auto &skeleton = mesh->skeleton() ;
+            std::set<Node *> nodes ;
+            for ( Bone &b: skeleton ) {
+                auto it = node_map_.find(b.name_) ;
+                if ( it == node_map_.end() ) return false ;
+                NodePtr node = it->second ;
+                b.node_ = node ;
+                nodes.insert(node.get()) ;
+            }
+            // find node parent
+            for( Node *n: nodes ) {
+                Node *parent = n->getParent() ;
+                if ( parent == nullptr ) break ;
+                if ( nodes.count(parent) == 0 ) {
+                    mesh->skeletonInverseGlobalTransform() = parent->globalTransform().inverse() ;
+                    break ;
+                }
+            }
+        }
+
+    }
+
+    return true ;
+}
 
 bool AssimpImporter::import(const aiScene *sc, const std::string &fname, const NodePtr &parent) {
 
     if ( !importMeshes(sc) ) return false ;
     if ( !importMaterials(fname, sc) ) return false ;
-    if ( !importLights(sc) ) return false ;
+
+    if ( options_ & Scene::IMPORT_LIGHTS ) {
+        if ( !importLights(sc) ) return false ;
+    }
 
     NodePtr root = (parent) ? parent : scene_.shared_from_this() ;
     if ( !importNodes(root, sc, sc->mRootNode) ) return false ;
 
-     if ( !importAnimations(sc) ) return false ;
+    if ( options_ & Scene::IMPORT_ANIMATIONS ) {
+        if ( !importAnimations(sc) ) return false ;
+    }
+
+    if ( !findSkeletonHierarchies() ) return false ;
 
     return true ;
 }
 
 }
 
-void Scene::load(const std::string &fname, const NodePtr &parent, bool make_pickable) {
+void Scene::load(const std::string &fname, int options, const NodePtr &parent) {
   //  const aiScene *sc = aiImportFile(fname.c_str(), aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_FlipUVs | aiProcess_TransformUVCoords);
     const aiScene *sc = aiImportFile(fname.c_str(),
     aiProcess_GenNormals
@@ -517,20 +555,21 @@ void Scene::load(const std::string &fname, const NodePtr &parent, bool make_pick
   | aiProcess_JoinIdenticalVertices
   | aiProcess_SortByPType
   | aiProcess_OptimizeMeshes
+  | aiProcess_LimitBoneWeights
   |  aiProcess_FlipUVs | aiProcess_TransformUVCoords
                                      ) ;
     if ( !sc ) {
         throw SceneLoaderException(aiGetErrorString(), fname) ;
     }
 
-    load(sc, fname, parent, make_pickable) ;
+    load(sc, fname, options, parent) ;
 
     aiReleaseImport(sc) ;
 }
 
-void Scene::load(const aiScene *sc, const std::string &fname, const NodePtr &parent, bool make_pickable) {
+void Scene::load(const aiScene *sc, const std::string &fname, int options, const NodePtr &parent) {
 
-    impl::AssimpImporter importer(*this, make_pickable) ;
+    impl::AssimpImporter importer(*this, options) ;
 
     bool res = importer.import(sc, fname, parent) ;
 

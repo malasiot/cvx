@@ -39,6 +39,8 @@ public:
     void setLights(const ScenePtr &scene, const MaterialInstancePtr &mat) ;
     void setLights(const NodePtr &node, const Eigen::Affine3f &parent_tf, const MaterialInstancePtr &mat) ;
 
+    void setPose(const MeshPtr &mesh, const MaterialInstancePtr &material);
+
     void renderText(const std::string &text, float x, float y, const Font &face, const Eigen::Vector3f &clr) ;
     void renderText(const std::string &text, const Eigen::Vector3f &pos, const Font &face, const Eigen::Vector3f &clr) ;
 
@@ -50,7 +52,6 @@ public:
     cv::Mat getColor(bool alpha);
     cv::Mat getColor(cv::Mat &bg, float alpha);
     cv::Mat getDepth();
-
 
 private:
 

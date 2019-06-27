@@ -252,7 +252,11 @@ public:
 
 class PerlinNoiseMaterialInstance: public MaterialInstance {
 public:
-    PerlinNoiseMaterialInstance(): MaterialInstance(PerlinNoiseMaterial::instance())  {}
+    PerlinNoiseMaterialInstance() = default;
+
+    void instantiate() override {
+        material_ = PerlinNoiseMaterial::instance() ;
+    }
 
     void applyTransform(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) override {
         applyDefaultPerspective(cam, view, model) ;

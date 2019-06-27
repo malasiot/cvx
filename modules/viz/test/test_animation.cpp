@@ -201,7 +201,7 @@ void TestAnimation::createScene() {
 
     scene_.reset(new Scene) ;
 
-    scene_->load("/home/malasiot/Downloads/human.fbx") ;
+    scene_->load("/home/malasiot/Downloads/human.fbx", Scene::IMPORT_SKELETONS | Scene::IMPORT_ANIMATIONS) ;
 
     // create new scene and add light
 

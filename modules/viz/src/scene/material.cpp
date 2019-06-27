@@ -28,7 +28,7 @@ static string vertex_shader_code =
         layout (location = 3) in ivec4 boneIDs;
         layout (location = 4) in vec4  boneWeights;
 
-        const int MAX_BONES = 100;
+        const int MAX_BONES = 200;
 
         uniform mat4 g_bones[MAX_BONES];
 #endif
@@ -366,12 +366,11 @@ void PhongMaterialInstance::applyParameters() {
     p->setUniform("g_material.diffuse", diffuse_) ;
     p->setUniform("g_material.specular", specular_) ;
     p->setUniform("g_material.shininess", shininess_) ;
-
 }
 
-PhongMaterialInstance::PhongMaterialInstance(int flags):
-    MaterialInstance(PhongMaterial::instance(flags)) {}
-
+void PhongMaterialInstance::instantiate() {
+    material_ = PhongMaterial::instance(flags_) ;
+}
 
 class DiffuseMapMaterial: public Material {
 public:
@@ -424,10 +423,13 @@ void DiffuseMapMaterialInstance::applyParameters() {
     diffuse_map_.upload() ;
 }
 
-DiffuseMapMaterialInstance::DiffuseMapMaterialInstance(const Texture2D &tex, int flags):
-    MaterialInstance(DiffuseMapMaterial::instance(flags)), diffuse_map_(tex) {
+DiffuseMapMaterialInstance::DiffuseMapMaterialInstance(const Texture2D &tex):
+    diffuse_map_(tex) {
 }
 
+void DiffuseMapMaterialInstance::instantiate() {
+    material_ = DiffuseMapMaterial::instance(flags_) ;
+}
 
 class ConstantMaterial: public Material {
 public:
@@ -462,12 +464,12 @@ OpenGLShaderProgram::Ptr ConstantMaterial::prog() {
     return prog_ ;
 }
 
-ConstantMaterialInstance::ConstantMaterialInstance(const Vector4f &clr, int flags):
-    MaterialInstance(ConstantMaterial::instance(flags)), clr_(clr) {
+ConstantMaterialInstance::ConstantMaterialInstance(const Vector4f &clr):
+    clr_(clr) {
 }
 
-ConstantMaterialInstance::ConstantMaterialInstance(int flags):
-    MaterialInstance(ConstantMaterial::instance(flags)) {
+void ConstantMaterialInstance::instantiate() {
+    material_ = ConstantMaterial::instance(flags_) ;
 }
 
 void ConstantMaterialInstance::applyParameters() {
@@ -512,12 +514,11 @@ OpenGLShaderProgram::Ptr PerVertexColorMaterial::prog()
     return prog_ ;
 }
 
-PerVertexColorMaterialInstance::PerVertexColorMaterialInstance(float op, int flags):
-    MaterialInstance(PerVertexColorMaterial::instance(flags)), opacity_(op) {
+PerVertexColorMaterialInstance::PerVertexColorMaterialInstance(float op): opacity_(op) {
 }
 
-PerVertexColorMaterialInstance::PerVertexColorMaterialInstance(int flags):
-    MaterialInstance(PerVertexColorMaterial::instance(flags)) {
+void PerVertexColorMaterialInstance::instantiate() {
+    material_ = PerVertexColorMaterial::instance(flags_) ;
 }
 
 void PerVertexColorMaterialInstance::applyParameters() {
@@ -541,7 +542,17 @@ MaterialInstancePtr Material::makeConstant(const Eigen::Vector4f &clr) {
 }
 
 void MaterialInstance::use() {
+    if ( !material_ ) instantiate() ;
     material_->prog()->use() ;
+}
+
+void MaterialInstance::applyBoneTransform(uint idx, const Matrix4f &tf)
+{
+    auto p = material_->prog() ;
+
+    ostringstream name ;
+    name << "g_bones[" << idx << "]" ;
+    p->setUniform(name.str(), tf) ;
 }
 
 void MaterialInstance::applyDefaultPerspective(const Matrix4f &cam, const Matrix4f &view, const Matrix4f &model)

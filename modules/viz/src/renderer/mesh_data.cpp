@@ -24,6 +24,7 @@ MeshData::MeshData(const Mesh &mesh)
     const PointList3f &normals = mesh.normals().data() ;
     const PointList3f &colors = mesh.colors().data() ;
 
+
     elem_count_ = mesh.vertices().data().size() ;
     indices_ = mesh.vertices().indices().size() ;
 
@@ -57,6 +58,18 @@ MeshData::MeshData(const Mesh &mesh)
             glEnableVertexAttribArray(UV_LOCATION + t);
             glVertexAttribPointer(UV_LOCATION + t, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
         }
+    }
+
+    const std::vector<Mesh::BoneWeight> weights = mesh.weights() ;
+    if ( !weights.empty() ) {
+        glGenBuffers(1, &weights_);
+        glBindBuffer(GL_ARRAY_BUFFER, weights_);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(weights[0]) * weights.size(), weights.data(), GL_STATIC_DRAW);
+        glEnableVertexAttribArray(BONE_ID_LOCATION);
+        glVertexAttribIPointer(BONE_ID_LOCATION, 4, GL_INT, sizeof(Mesh::BoneWeight), (const GLvoid*)0);
+
+        glEnableVertexAttribArray(BONE_WEIGHT_LOCATION);
+        glVertexAttribPointer(BONE_WEIGHT_LOCATION, 4, GL_FLOAT, GL_FALSE, sizeof(Mesh::BoneWeight), (const GLvoid*)offsetof(Mesh::BoneWeight, weight_));
     }
 
 #if 0

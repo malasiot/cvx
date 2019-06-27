@@ -25,7 +25,7 @@ static NodePtr createLinkGeometry(const urdf::Geometry *urdf_geom, MaterialInsta
         geom->setName(mesh->path_) ;
 
         ScenePtr scene(new Scene) ;
-        scene->load(mesh->path_, geom) ;
+        scene->load(mesh->path_, 0, geom) ;
 
         // replace all materials in loaded model with that provided in urdf
         if ( mat ) {

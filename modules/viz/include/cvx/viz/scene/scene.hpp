@@ -29,8 +29,10 @@ public:
 
     Scene() ;
 
-    void load(const std::string &fname, const NodePtr &parent = nullptr, bool make_pickable = false) ;
-    void load(const aiScene *sc, const std::string &fname, const NodePtr &parent = nullptr, bool make_pickable = false) ;
+    enum { IMPORT_ANIMATIONS = 0x1, IMPORT_SKELETONS = 0x2, IMPORT_LIGHTS = 0x4, MAKE_PICKABLE = 0x8 } ;
+
+    void load(const std::string &fname, int flags = 0, const NodePtr &parent = nullptr ) ;
+    void load(const aiScene *sc, const std::string &fname, int flags = 0, const NodePtr &parent = nullptr) ;
 
     Eigen::Vector3f geomCenter() const ;
     float geomRadius(const Eigen::Vector3f &center) const ;

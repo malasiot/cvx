@@ -46,6 +46,8 @@ public:
         n->parent_ = this ;
     }
 
+    Node *getParent() const { return parent_ ; }
+
     const std::vector<DrawablePtr> &drawables() const { return drawables_ ; }
     const std::vector<NodePtr> &children() const { return children_ ; }
 

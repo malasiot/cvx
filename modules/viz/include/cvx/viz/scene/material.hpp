@@ -60,30 +60,38 @@ class MaterialInstance {
 
 public:
 
+    virtual void instantiate() = 0;
     virtual void use() ;
     virtual void applyParameters() {}
     virtual void applyTransform(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) {}
     virtual void applyLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) {}
+    virtual void applyBoneTransform(uint idx, const Eigen::Matrix4f &tf) ;
+
+    void setFlags(int flags) {
+        flags_ = flags ;
+    }
 
 protected:
-    MaterialInstance(const std::shared_ptr<Material> &material):
-        material_(material) {}
 
     void applyDefaultPerspective(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) ;
     void applyDefaultLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) ;
 
     std::shared_ptr<Material> material_ ;
+    int flags_ ;
 };
 
 
 class ConstantMaterialInstance: public MaterialInstance {
 public:
-    ConstantMaterialInstance(int flags = 0) ;
-    ConstantMaterialInstance(const Eigen::Vector4f &clr, int flags = 0) ;
+
+    ConstantMaterialInstance(const Eigen::Vector4f &clr) ;
 
     void setColor(const Eigen::Vector4f &c) { clr_ = c ; }
 
 protected:
+
+    void instantiate() override ;
+
     void applyParameters() override ;
 
     void applyTransform(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) override {
@@ -101,7 +109,7 @@ private:
 
 class PhongMaterialInstance: public MaterialInstance {
 public:
-    PhongMaterialInstance(int flags = 0 ) ;
+    PhongMaterialInstance() = default ;
 
     void setAmbient(const Eigen::Vector4f &a) { ambient_ = a ; }
     void setDiffuse(const Eigen::Vector4f &d) { diffuse_ = d ; }
@@ -109,6 +117,8 @@ public:
     void setShininess(float s) { shininess_ = s ; }
 
 protected:
+    void instantiate() override ;
+
     void applyParameters() override ;
 
     void applyTransform(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) override {
@@ -129,7 +139,7 @@ protected:
 
 class DiffuseMapMaterialInstance: public MaterialInstance {
 public:
-    DiffuseMapMaterialInstance(const Texture2D &tex, int flags = 0) ;
+    DiffuseMapMaterialInstance(const Texture2D &tex) ;
 
     void setAmbient(const Eigen::Vector4f &a) { ambient_ = a ; }
     void setDiffuse(const Texture2D &t) { diffuse_map_ = t ; }
@@ -139,6 +149,8 @@ public:
     void setTexture(const Texture2D &tex) { diffuse_map_ = tex ; }
 
 protected:
+    void instantiate() override ;
+
     void applyTransform(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) override {
         applyDefaultPerspective(cam, view, model) ;
     }
@@ -160,8 +172,8 @@ private:
 
 class PerVertexColorMaterialInstance: public MaterialInstance {
 public:
-    PerVertexColorMaterialInstance(int flags = 0) ;
-    PerVertexColorMaterialInstance(float opac, int flags = 0) ;
+
+    PerVertexColorMaterialInstance(float opac) ;
 
     void setOpacity(float o) { opacity_ = o ; }
 
@@ -176,6 +188,7 @@ protected:
         applyDefaultLight(idx, light, tf) ;
     }
 
+    void instantiate() override ;
 private:
       float opacity_ = 1.0 ;
 };

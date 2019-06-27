@@ -88,8 +88,12 @@ public:
     const std::vector<Bone> &skeleton() const { return skeleton_ ; }
     std::vector<Bone> &skeleton() { return skeleton_ ; }
 
+    Eigen::Affine3f &skeletonInverseGlobalTransform() { return skeleton_inverse_global_transform_ ; }
+
     const std::vector<BoneWeight> &weights() const { return weights_ ; }
     std::vector<BoneWeight> &weights() { return weights_ ; }
+
+    bool hasSkeleton() const { return !skeleton_.empty() ; }
 
     PrimitiveType ptype() const { return ptype_ ; }
 
@@ -131,6 +135,7 @@ private:
     vb2_t tex_coords_[MAX_TEXTURES] ;
     std::vector<BoneWeight> weights_ ;
     std::vector<Bone> skeleton_ ;
+    Eigen::Affine3f skeleton_inverse_global_transform_ = Eigen::Affine3f::Identity() ;
 
     PrimitiveType ptype_ ;
     detail::Octree *octree_ = nullptr ;

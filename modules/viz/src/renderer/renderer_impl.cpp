@@ -136,6 +136,13 @@ void RendererImpl::setLights(const ScenePtr &scene, const MaterialInstancePtr &m
     setLights(scene, mat, material) ;
 }
 
+void RendererImpl::setPose(const MeshPtr &mesh, const MaterialInstancePtr &material) {
+    const auto &skeleton = mesh->skeleton() ;
+    for( int i=0 ; i<skeleton.size() ; i++ ) {
+        const Bone &b = skeleton[i] ;
+        material->applyBoneTransform(i, ( b.node_->globalTransform() * b.offset_).matrix()) ;
+    }
+}
 
 void RendererImpl::drawMeshData(MeshData &data, GeometryPtr geom) {
     glBindVertexArray(data.vao_);
@@ -186,6 +193,10 @@ void RendererImpl::render(const ScenePtr &scene, const DrawablePtr &geom, const 
     material->applyParameters() ;
     material->applyTransform(perspective_, proj_, mat) ;
     setLights(scene, material) ;
+
+    MeshPtr mesh = std::dynamic_pointer_cast<Mesh>(geom->geometry()) ;
+    if ( mesh && mesh->hasSkeleton() )
+        setPose(mesh, material) ;
 
 #if 0
 
