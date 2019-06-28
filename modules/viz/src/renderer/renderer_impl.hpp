@@ -53,6 +53,8 @@ public:
     cv::Mat getColor(cv::Mat &bg, float alpha);
     cv::Mat getDepth();
 
+    bool setupShadowBuffer();
+
 private:
 
     Eigen::Matrix4f perspective_, proj_ ;
@@ -68,6 +70,7 @@ private:
     OpenGLShaderProgram::Ptr line_shader_ ;
     GLuint line_vao_, line_vbo_, line_idx_vbo_ ;
     GLint line_width_range_[2] ;
+    GLuint shadow_fbo_ = 0, shadow_texture_ = 0 ;
 
 } ;
 

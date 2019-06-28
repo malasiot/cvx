@@ -51,6 +51,7 @@ set(LIB_SOURCES
     scene/camera.cpp
     scene/mesh.cpp
     scene/material.cpp
+    scene/texture.cpp
     scene/geometry.cpp
     scene/intersect.cpp
     scene/intersect.hpp

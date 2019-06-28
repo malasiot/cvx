@@ -322,6 +322,34 @@ cv::Mat RendererImpl::getDepth() {
 
 }
 
+#define SHADOW_SIZE  1024
+
+bool RendererImpl::setupShadowBuffer()
+{
+    glGenFramebuffers(1, &shadow_fbo_ );
+    glBindFramebuffer(GL_FRAMEBUFFER, shadow_fbo_);
+
+    glGenTextures(1, &shadow_texture_);
+    glBindTexture(GL_TEXTURE_2D, shadow_texture_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, SHADOW_SIZE, SHADOW_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadow_texture_, 0);
+
+    // No color output in the bound framebuffer, only depth.
+    glDrawBuffer(GL_NONE);
+
+    // Always check that our framebuffer is ok
+    if ( glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE ) return false;
+
+    return true ;
+}
+
 
 void RendererImpl::renderText(const string &text, float x, float y, const Font &font, const Vector3f &clr) {
     using namespace detail ;

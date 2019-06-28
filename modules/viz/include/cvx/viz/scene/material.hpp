@@ -1,9 +1,10 @@
-#ifndef __CVX_VIZ_MATERIAL_HPP__
-#define __CVX_VIZ_MATERIAL_HPP__
+#ifndef CVX_VIZ_MATERIAL_HPP
+#define CVX_VIZ_MATERIAL_HPP
 
 #include <Eigen/Geometry>
 #include <cvx/viz/renderer/ogl_shaders.hpp>
 #include <cvx/viz/scene/light.hpp>
+#include <cvx/viz/scene/texture.hpp>
 #include <opencv2/opencv.hpp>
 
 namespace cvx { namespace viz {
@@ -11,24 +12,6 @@ namespace cvx { namespace viz {
 class Material ;
 using MaterialPtr = std::shared_ptr<Material> ;
 
-// texture and its parameters
-
-class Texture2D {
-public:
-
-    Texture2D(const std::string &url): image_url_(url) {}
-    Texture2D(const cv::Mat &im): im_(im) {}
-
-    void read() ;
-    void upload() ;
-
-private:
-    std::string image_url_ ;       // url should be file://<absolute path>
-    std::string wrap_s_, wrap_t_ ;
-    cv::Mat im_ ;
-
-    uint texture_id_ = 0 ;
-};
 
 class MaterialInstance ;
 using MaterialInstancePtr = std::shared_ptr<MaterialInstance> ;
