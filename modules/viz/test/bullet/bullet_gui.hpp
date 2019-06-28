@@ -7,6 +7,7 @@
 
 #include <QOpenGLWidget>
 #include <QMouseEvent>
+#include <QElapsedTimer>
 
 #include "physics.hpp"
 
@@ -43,9 +44,12 @@ protected:
     void resizeGL(int width, int height) override;
 
     virtual void onAnimationUpdate() {
-        physics_.stepSimulation(1/60.);
+        qint64 elapsed = timer_.elapsed() ;
+        physics_.stepSimulation(elapsed/1000.0f);
+        timer_.restart() ;
     }
 
+    QElapsedTimer timer_ ;
     cvx::viz::Renderer rdr_ ;
     cvx::viz::CameraPtr camera_ ;
     cvx::viz::TrackBall trackball_ ;

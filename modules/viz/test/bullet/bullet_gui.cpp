@@ -55,6 +55,8 @@ TestAnimation::TestAnimation(ScenePtr scene, Physics &physics): scene_(scene), p
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(updateAnimation()));
     timer->start(30);
+
+    timer_.start() ;
 }
 
 void TestAnimation::mousePressEvent(QMouseEvent *event)
@@ -79,6 +81,7 @@ void TestAnimation::mousePressEvent(QMouseEvent *event)
             break ;
         }
         trackball_.setClickPoint(event->x(), event->y()) ;
+        trackball_.update() ;
     }
 
 

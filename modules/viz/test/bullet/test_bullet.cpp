@@ -160,6 +160,7 @@ int main(int argc, char **argv)
 
     QMainWindow window ;
     window.setCentralWidget(new TestAnimation(scene, physics)) ;
+    window.resize(512, 512) ;
     window.show() ;
 
     return app.exec();
