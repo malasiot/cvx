@@ -9,7 +9,7 @@ using namespace std ;
 using namespace Eigen ;
 using namespace cvx::util ;
 
-static string vertex_shader_code =
+string vertex_shader_code =
         R"(
         layout (location = 0) in vec3 vposition;
         out vec3 position;
@@ -309,18 +309,6 @@ namespace cvx { namespace viz {
 
 using MaterialPtr = std::shared_ptr<Material> ;
 
-
-template<class T>
-MaterialPtr materialSingleton(std::map<int, MaterialPtr> &instances, int flags) {
-    auto it = instances.find(flags) ;
-    if ( it == instances.end() ) {
-        std::shared_ptr<T> instance(new T(flags)) ;
-        instances.emplace(flags, instance) ;
-        return instance ;
-    } else {
-        return it->second ;
-    }
-}
 
 class PhongMaterial: public Material {
 public:

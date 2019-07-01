@@ -95,7 +95,7 @@ void TestAnimation::paintGL()
     rdr_.circle({0, 0, 0}, {0, 1, 0}, 5.0, {0, 1, 0, 1}) ;
 }
 
-TestAnimation::TestAnimation() {
+TestAnimation::TestAnimation(): rdr_(Renderer::RENDER_SHADOWS) {
 
     createScene() ;
 
@@ -212,17 +212,17 @@ void TestAnimation::createScene() {
     scene_->setPickable(true);
 
     box_ = scene_ ;
-    return ;
+
     {
         Affine3f tr ;
         tr.setIdentity() ;
-        tr.translate(Vector3f(0, -50, 0)) ;
+        tr.translate(Vector3f(0, 0, 0)) ;
 
-        NodePtr node = makeBox("ground", Vector3f{50., 50., 50.}, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
+        NodePtr node = makeBox("ground", Vector3f{50., 0., 50.}, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
 
         scene_->addChild(node) ;
     }
-
+ return ;
     {
         GeometryPtr geom(new BoxGeometry(.5, .5, .5)) ;
 

@@ -43,6 +43,8 @@ set(LIB_SOURCES
     renderer/text_item.hpp
     renderer/mesh_data.cpp
     renderer/mesh_data.hpp
+    renderer/shadow_map.cpp
+    renderer/shadow_map.hpp
     renderer/text.cpp
     renderer/gl3w.c
 

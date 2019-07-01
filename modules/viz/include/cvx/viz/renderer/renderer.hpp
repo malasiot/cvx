@@ -18,7 +18,9 @@ namespace detail {
 class Renderer {
 public:
 
-    Renderer() ;
+    enum { RENDER_SHADOWS = 1 };
+
+    Renderer(int flags = 0) ;
     ~Renderer() ;
 
     // init renderer

@@ -24,7 +24,7 @@ void Renderer::render(const ScenePtr &scene) {
     impl_->renderScene(scene) ;
 }
 
-Renderer::Renderer(): impl_(new detail::RendererImpl()) {
+Renderer::Renderer(int flags): impl_(new detail::RendererImpl(flags)) {
 }
 
 Renderer::~Renderer() {

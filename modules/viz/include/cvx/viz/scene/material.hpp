@@ -37,6 +37,18 @@ protected:
 } ;
 
 
+template<class T>
+MaterialPtr materialSingleton(std::map<int, MaterialPtr> &instances, int flags) {
+    auto it = instances.find(flags) ;
+    if ( it == instances.end() ) {
+        std::shared_ptr<T> instance(new T(flags)) ;
+        instances.emplace(flags, instance) ;
+        return instance ;
+    } else {
+        return it->second ;
+    }
+}
+
 enum { USE_SKINNING = 1 } ;
 
 class MaterialInstance {
@@ -53,6 +65,8 @@ public:
     void setFlags(int flags) {
         flags_ = flags ;
     }
+
+    int getFlags() const { return flags_ ; }
 
 protected:
 
