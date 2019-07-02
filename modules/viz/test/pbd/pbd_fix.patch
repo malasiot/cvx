@@ -1,0 +1,11 @@
+--- CMakeLists.txt	2019-07-02 09:22:58.866828080 +0300
++++ CMakeLists.txt.new	2019-07-02 09:22:27.366967832 +0300
+@@ -12,6 +12,8 @@
+ 
+ add_definitions(-DPBD_DATA_PATH="../data")
+ 
++set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
++
+ if (DEFINED PBD_EXTERNALINSTALLDIR)
+ 	set(ExternalInstallDir "${PBD_EXTERNALINSTALLDIR}" CACHE INTERNAL "External install directory")	
+ else()

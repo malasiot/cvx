@@ -64,6 +64,7 @@ set(LIB_SOURCES
     gui/trackball.cpp
     gui/glfw_window.cpp
     gui/offscreen.cpp
+    gui/simple_qt_viewer.cpp
     
     3rdparty/pugixml/pugixml.cpp
     3rdparty/pugixml/pugixml.hpp
@@ -89,6 +90,7 @@ set(LIB_SOURCES
     ${LIBRARY_INCLUDE_DIR}/gui/trackball.hpp
     ${LIBRARY_INCLUDE_DIR}/gui/glfw_window.hpp
     ${LIBRARY_INCLUDE_DIR}/gui/offscreen.hpp
+    ${LIBRARY_INCLUDE_DIR}/gui/simple_qt_viewer.hpp
    
     ${LIBRARY_INCLUDE_DIR}/robot/robot_scene.hpp
 
