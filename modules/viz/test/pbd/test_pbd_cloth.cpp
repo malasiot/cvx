@@ -7,6 +7,8 @@
 #include <iostream>
 #include "Utils/Timing.h"
 #include "Simulation/Simulation.h"
+#include "Utils/OBJLoader.h"
+#include "Simulation/DistanceFieldCollisionDetection.h"
 
 #include <QApplication>
 #include <QMainWindow>
@@ -31,11 +33,11 @@ using namespace cvx::util ;
 INIT_TIMING
 INIT_LOGGING
 
-const int nRows = 15;
-const int nCols = 15;
+const int nRows = 50;
+const int nCols = 50;
 const Real width = 10.0;
 const Real height = 10.0;
-short simulationMethod = 1;
+short simulationMethod = 2;
 short bendingMethod = 2;
 
 void createMesh()
@@ -107,8 +109,8 @@ void createMesh()
     }
 
     // Set mass of points to zero => make it static
-    pd.setMass(0, 0.0);
-    pd.setMass((nRows-1)*nCols, 0.0);
+  //  pd.setMass(0, 0.0);
+ //   pd.setMass((nRows-1)*nCols, 0.0);
 
     // init constraints
     for (unsigned int cm = 0; cm < model->getTriangleModels().size(); cm++)
@@ -217,22 +219,144 @@ void updateScene(const PBD::ParticleData &particles, int offset, const PBD::Tria
 
     PointList3f vtx, normals ;
 
-    MeshPtr mesh(new Mesh(Mesh::Triangles)) ;
+    MeshPtr mesh = dynamic_pointer_cast<Mesh>(dr->geometry()) ;
 
     for( uint i=0 ; i<pmesh.numVertices() ; i++ ) {
         Vector3d pp = particles.getPosition(offset + i) ;
-        mesh->vertices().data().push_back(pp.cast<float>()) ;
-        mesh->normals().data().push_back(pmesh.getVertexNormals().at(i).cast<float>());
+        mesh->vertices().data().at(i) = pp.cast<float>() ;
+        mesh->normals().data().at(i) = pmesh.getVertexNormals().at(i).cast<float>();
     }
 
-    for(uint i=0 ; i<pmesh.numFaces() * 3; i++ ) {
-        mesh->vertices().indices().push_back(pmesh.getFaces().at(i)) ;
-    }
 
-    dr->setGeometry(mesh) ;
 }
 
-const int NUM_STEPS_PER_RENDER = 5 ;
+void loadObj(const std::string &filename, PBD::VertexData &vd, Utilities::IndexedFaceMesh &mesh, const Vector3r &scale)
+{
+    using namespace PBD ;
+    using namespace Utilities ;
+
+    std::vector<OBJLoader::Vec3f> x;
+    std::vector<OBJLoader::Vec3f> normals;
+    std::vector<OBJLoader::Vec2f> texCoords;
+    std::vector<MeshFaceIndices> faces;
+    OBJLoader::Vec3f s = { (float)scale[0], (float)scale[1], (float)scale[2] };
+    OBJLoader::loadObj(filename, &x, &faces, &normals, &texCoords, s);
+
+    mesh.release();
+    const unsigned int nPoints = (unsigned int)x.size();
+    const unsigned int nFaces = (unsigned int)faces.size();
+    const unsigned int nTexCoords = (unsigned int)texCoords.size();
+    mesh.initMesh(nPoints, nFaces * 2, nFaces);
+    vd.reserve(nPoints);
+    for (unsigned int i = 0; i < nPoints; i++)
+    {
+        vd.addVertex(Vector3r(x[i][0], x[i][1], x[i][2]));
+    }
+    for (unsigned int i = 0; i < nTexCoords; i++)
+    {
+        mesh.addUV(texCoords[i][0], texCoords[i][1]);
+    }
+    for (unsigned int i = 0; i < nFaces; i++)
+    {
+        // Reduce the indices by one
+        int posIndices[3];
+        int texIndices[3];
+        for (int j = 0; j < 3; j++)
+        {
+            posIndices[j] = faces[i].posIndices[j] - 1;
+            if (nTexCoords > 0)
+            {
+                texIndices[j] = faces[i].texIndices[j] - 1;
+                mesh.addUVIndex(texIndices[j]);
+            }
+        }
+
+        mesh.addFace(&posIndices[0]);
+    }
+    mesh.buildNeighbors();
+
+    mesh.updateNormals(vd, 0);
+    mesh.updateVertexNormals(vd);
+
+    LOG_INFO << "Number of triangles: " << nFaces;
+    LOG_INFO << "Number of vertices: " << nPoints;
+}
+
+Vector3r computeInertiaTensorBox(const Real mass, const Real width, const Real height, const Real depth)
+{
+    const Real Ix = (mass / static_cast<Real>(12.0)) * (height*height + depth*depth);
+    const Real Iy = (mass / static_cast<Real>(12.0)) * (width*width + depth*depth);
+    const Real Iz = (mass / static_cast<Real>(12.0)) * (width*width + height*height);
+    return Vector3r(Ix, Iy, Iz);
+}
+
+PBD::DistanceFieldCollisionDetection cd;
+
+NodePtr makeBox(const string &name, const Vector3f &hs, const Matrix4f &tr, const Vector4f &clr) {
+
+    NodePtr box_node(new Node) ;
+    box_node->setName(name) ;
+
+    GeometryPtr geom(new BoxGeometry(hs)) ;
+
+    MaterialInstancePtr material(new ConstantMaterialInstance(clr)) ;
+
+    DrawablePtr dr(new Drawable(geom, material)) ;
+
+    box_node->addDrawable(dr) ;
+
+    box_node->matrix() = tr ;
+
+    return box_node ;
+}
+
+void createWorld() {
+    using namespace PBD ;
+    using namespace Utilities ;
+
+   SimulationModel *model = Simulation::getCurrent()->getModel();
+   SimulationModel::RigidBodyVector &rb = model->getRigidBodies();
+
+   string fileName = "/home/malasiot/Downloads/cube.obj";
+
+   IndexedFaceMesh mesh;
+   VertexData vd;
+   loadObj(fileName, vd, mesh, Vector3r(1, 1, 1));
+
+    rb.resize(1);
+
+
+    rb[0] = new RigidBody() ;
+    rb[0]->initBody(0.0,
+            Vector3r(3.5, -3.5, 3.5),
+            computeInertiaTensorBox(1.0, 0.2, 0.2, 0.2),
+            Quaternionr(1.0, 0.0, 0.0, 0.0),
+            vd, mesh);
+
+    rb[0]->setMass(0.0);
+
+
+
+    Simulation::getCurrent()->getTimeStep()->setCollisionDetection(*model, &cd);
+    cd.setTolerance(static_cast<Real>(0.005));
+
+    const std::vector<Vector3r> *vertices1 = rb[0]->getGeometry().getVertexDataLocal().getVertices();
+    const unsigned int nVert1 = static_cast<unsigned int>(vertices1->size());
+    cd.addCollisionBox(0, CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices1)[0], nVert1, Vector3r(1, 1, 1));
+
+    SimulationModel::TriangleModelVector &tm = model->getTriangleModels();
+    ParticleData &pd = model->getParticles();
+    for (unsigned int i = 0; i < tm.size(); i++)
+    {
+        const unsigned int nVert = tm[i]->getParticleMesh().numVertices();
+        unsigned int offset = tm[i]->getIndexOffset();
+        tm[i]->setFrictionCoeff(static_cast<Real>(0.1));
+        cd.addCollisionObjectWithoutGeometry(i, CollisionDetection::CollisionObject::TriangleModelCollisionObjectType, &pd.getPosition(offset), nVert, true);
+    }
+
+
+}
+const int NUM_STEPS_PER_RENDER = 1 ;
 
 void timeStep ()
 {
@@ -256,7 +380,7 @@ void timeStep ()
 }
 
 
-ScenePtr createScene() {
+ScenePtr createScene(PBD::SimulationModel *model) {
 
     ScenePtr scene(new Scene) ;
 
@@ -269,7 +393,33 @@ ScenePtr createScene() {
 
     node->addDrawable(dr) ;
 
+    MeshPtr mesh(new Mesh(Mesh::Triangles)) ;
+
+    const PBD::TriangleModel::ParticleMesh &pmesh = model->getTriangleModels()[0]->getParticleMesh() ;
+    const PBD::ParticleData &particles = model->getParticles() ;
+    uint offset = model->getTriangleModels()[0]->getIndexOffset() ;
+    for( uint i=0 ; i<pmesh.numVertices() ; i++ ) {
+        Vector3d pp = particles.getPosition(offset + i) ;
+        mesh->vertices().data().push_back(pp.cast<float>()) ;
+        mesh->normals().data().push_back(pmesh.getVertexNormals().at(i).cast<float>());
+    }
+
+    mesh->vertices().setDynamicData(true) ;
+    mesh->normals().setDynamicData(true) ;
+
+    for(uint i=0 ; i<pmesh.numFaces() * 3; i++ ) {
+         mesh->vertices().indices().push_back(pmesh.getFaces().at(i)) ;
+    }
+
+    dr->setGeometry(mesh) ;
+
     scene->addChild(node) ;
+
+    Affine3f tr ;
+    tr.setIdentity() ;
+    tr.translate(Vector3f(3.5, -3.5, 3.5)) ;
+
+    scene->addChild(makeBox("box", {0.5, 0.5, 0.5},tr.matrix(), {1, 0, 0, 1} )) ;
 
 
     // create new scene and add light
@@ -292,14 +442,15 @@ int main(int argc, char *argv[]) {
     model->init();
     Simulation::getCurrent()->setModel(model);
 
-    TimeManager::getCurrent()->setTimeStepSize(static_cast<Real>(0.05)) ;
+    TimeManager::getCurrent()->setTimeStepSize(static_cast<Real>(0.005)) ;
     createMesh() ;
+    createWorld() ;
 
     QApplication app(argc, argv);
 
     SimpleQtViewer *viewer = new SimpleQtViewer();
 
-    g_scene = createScene() ;
+    g_scene = createScene(model) ;
     viewer->setScene(g_scene) ;
     viewer->initCamera({0, 0, 0}, 10.0f) ;
 

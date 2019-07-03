@@ -32,6 +32,13 @@ public:
     VertexBuffer() = default ;
     VertexBuffer(std::initializer_list<T> &vdata, std::initializer_list<T> &indices = {}): data_(data), indices_(indices) {}
 
+    // indicates that the attribute is dynamically updated
+    void setDynamicData(bool d) {
+        is_dynamic_ = d ;
+    }
+
+    bool isDynamic() const { return is_dynamic_ ; }
+
     data_container_t &data() { return data_ ; }
     index_container_t &indices() { return indices_ ; }
 
@@ -42,6 +49,7 @@ public:
 
 protected:
 
+    bool is_dynamic_ = false ;
     data_container_t data_ ;
     index_container_t indices_ ;
 };
@@ -131,6 +139,7 @@ public:
     void makeMeshData() override ;
 
 private:
+
     vb3_t vertices_, normals_, colors_ ;
     vb2_t tex_coords_[MAX_TEXTURES] ;
     std::vector<BoneWeight> weights_ ;

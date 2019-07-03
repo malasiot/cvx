@@ -149,6 +149,7 @@ void RendererImpl::drawMeshData(MeshData &data, GeometryPtr geom) {
 
     MeshPtr mesh = std::dynamic_pointer_cast<Mesh>(geom) ;
 
+    if ( mesh ) data.update(*mesh) ;
 
     if ( mesh ) {
         if ( mesh->ptype() == Mesh::Triangles ) {

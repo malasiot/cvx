@@ -30,14 +30,14 @@ MeshData::MeshData(const Mesh &mesh)
 
     glGenBuffers(1, &pos_);
     glBindBuffer(GL_ARRAY_BUFFER, pos_);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat) * 3, &vertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat) * 3, &vertices[0], mesh.normals().isDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
     glEnableVertexAttribArray(POSITION_LOCATION);
     glVertexAttribPointer(POSITION_LOCATION, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
     if ( !normals.empty() ) {
         glGenBuffers(1, &normals_);
         glBindBuffer(GL_ARRAY_BUFFER, normals_);
-        glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(GLfloat) * 3, (GLfloat *)normals.data(), GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(GLfloat) * 3, (GLfloat *)normals.data(), mesh.normals().isDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW );
         glEnableVertexAttribArray(NORMALS_LOCATION);
         glVertexAttribPointer(NORMALS_LOCATION, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     }
@@ -45,7 +45,7 @@ MeshData::MeshData(const Mesh &mesh)
     if ( !colors.empty() ) {
         glGenBuffers(1, &colors_);
         glBindBuffer(GL_ARRAY_BUFFER, colors_);
-        glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(GLfloat) * 3, (GLfloat *)colors.data(), GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(GLfloat) * 3, (GLfloat *)colors.data(), mesh.colors().isDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
         glEnableVertexAttribArray(COLORS_LOCATION);
         glVertexAttribPointer(COLORS_LOCATION, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     }
@@ -88,6 +88,38 @@ MeshData::MeshData(const Mesh &mesh)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+}
+
+void MeshData::update(const Mesh &mesh) {
+
+    const PointList3f &vertices = mesh.vertices().data() ;
+    const PointList3f &normals = mesh.normals().data() ;
+    const PointList3f &colors = mesh.colors().data() ;
+
+    elem_count_ = mesh.vertices().data().size() ;
+    indices_ = mesh.vertices().indices().size() ;
+
+    if ( mesh.vertices().isDynamic() ) {
+        glBindBuffer(GL_ARRAY_BUFFER, pos_);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(GLfloat) * 3, &vertices[0]);
+        glEnableVertexAttribArray(POSITION_LOCATION);
+        glVertexAttribPointer(POSITION_LOCATION, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    }
+
+    if ( !normals.empty() && mesh.normals().isDynamic()) {
+        glBindBuffer(GL_ARRAY_BUFFER, normals_);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, normals.size() * sizeof(GLfloat) * 3, &normals[0]);
+        glEnableVertexAttribArray(NORMALS_LOCATION);
+        glVertexAttribPointer(NORMALS_LOCATION, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    }
+
+    if ( !colors.empty() && mesh.colors().isDynamic()) {
+        glBindBuffer(GL_ARRAY_BUFFER, colors_);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, colors.size() * sizeof(GLfloat) * 3, &colors[0]);
+        glEnableVertexAttribArray(NORMALS_LOCATION);
+        glVertexAttribPointer(NORMALS_LOCATION, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    }
+
 }
 
 MeshData::~MeshData()
