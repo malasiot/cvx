@@ -454,7 +454,7 @@ bool AssimpImporter::importNodes(NodePtr &pnode, const struct aiScene *sc, const
 
         if ( mit == meshes_.end() ) continue ;
 
-        GeometryPtr geom  =  std::static_pointer_cast<Geometry>(mit->second) ;
+        GeometryPtr geom(new MeshGeometry(mit->second)) ;
 
         const aiMaterial* material = sc->mMaterials[mesh->mMaterialIndex];
 

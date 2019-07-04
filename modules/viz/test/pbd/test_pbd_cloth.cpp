@@ -37,7 +37,7 @@ const int nRows = 50;
 const int nCols = 50;
 const Real width = 10.0;
 const Real height = 10.0;
-short simulationMethod = 2;
+short simulationMethod = 1;
 short bendingMethod = 2;
 
 void createMesh()
@@ -109,8 +109,8 @@ void createMesh()
     }
 
     // Set mass of points to zero => make it static
-  //  pd.setMass(0, 0.0);
- //   pd.setMass((nRows-1)*nCols, 0.0);
+    pd.setMass(0, 0.0);
+    pd.setMass((nRows-1)*nCols, 0.0);
 
     // init constraints
     for (unsigned int cm = 0; cm < model->getTriangleModels().size(); cm++)
@@ -219,7 +219,7 @@ void updateScene(const PBD::ParticleData &particles, int offset, const PBD::Tria
 
     PointList3f vtx, normals ;
 
-    MeshPtr mesh = dynamic_pointer_cast<Mesh>(dr->geometry()) ;
+    MeshPtr mesh = dr->geometry()->getMesh() ;
 
     for( uint i=0 ; i<pmesh.numVertices() ; i++ ) {
         Vector3d pp = particles.getPosition(offset + i) ;
@@ -292,14 +292,14 @@ Vector3r computeInertiaTensorBox(const Real mass, const Real width, const Real h
 
 PBD::DistanceFieldCollisionDetection cd;
 
-NodePtr makeBox(const string &name, const Vector3f &hs, const Matrix4f &tr, const Vector4f &clr) {
+NodePtr makeSphere(const string &name, float r, const Matrix4f &tr, const Vector4f &clr) {
 
     NodePtr box_node(new Node) ;
     box_node->setName(name) ;
 
-    GeometryPtr geom(new BoxGeometry(hs)) ;
+    GeometryPtr geom(new SphereGeometry(r)) ;
 
-    MaterialInstancePtr material(new ConstantMaterialInstance(clr)) ;
+    MaterialInstancePtr material(new PhongMaterialInstance()) ;
 
     DrawablePtr dr(new Drawable(geom, material)) ;
 
@@ -317,32 +317,32 @@ void createWorld() {
    SimulationModel *model = Simulation::getCurrent()->getModel();
    SimulationModel::RigidBodyVector &rb = model->getRigidBodies();
 
-   string fileName = "/home/malasiot/Downloads/cube.obj";
+   string fileName = "/home/malasiot/Downloads/sphere.obj";
 
    IndexedFaceMesh mesh;
    VertexData vd;
-   loadObj(fileName, vd, mesh, Vector3r(1, 1, 1));
+   loadObj(fileName, vd, mesh, Vector3r(5, 5, 5));
 
     rb.resize(1);
 
 
     rb[0] = new RigidBody() ;
     rb[0]->initBody(0.0,
-            Vector3r(3.5, -3.5, 3.5),
-            computeInertiaTensorBox(1.0, 0.2, 0.2, 0.2),
+            Vector3r(3.5, -5, 3.5),
             Quaternionr(1.0, 0.0, 0.0, 0.0),
             vd, mesh);
 
     rb[0]->setMass(0.0);
+    rb[0]->setFrictionCoeff(static_cast<Real>(0.01));
 
 
 
     Simulation::getCurrent()->getTimeStep()->setCollisionDetection(*model, &cd);
-    cd.setTolerance(static_cast<Real>(0.005));
+    cd.setTolerance(static_cast<Real>(0.05));
 
     const std::vector<Vector3r> *vertices1 = rb[0]->getGeometry().getVertexDataLocal().getVertices();
     const unsigned int nVert1 = static_cast<unsigned int>(vertices1->size());
-    cd.addCollisionBox(0, CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices1)[0], nVert1, Vector3r(1, 1, 1));
+    cd.addCollisionSphere(0, CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices1)[0], nVert1, 5.0);
 
     SimulationModel::TriangleModelVector &tm = model->getTriangleModels();
     ParticleData &pd = model->getParticles();
@@ -411,16 +411,15 @@ ScenePtr createScene(PBD::SimulationModel *model) {
          mesh->vertices().indices().push_back(pmesh.getFaces().at(i)) ;
     }
 
-    dr->setGeometry(mesh) ;
+    dr->setGeometry(std::make_shared<MeshGeometry>(mesh)) ;
 
     scene->addChild(node) ;
 
     Affine3f tr ;
     tr.setIdentity() ;
-    tr.translate(Vector3f(3.5, -3.5, 3.5)) ;
+    tr.translate(Vector3f(3.5, -5, 3.5)) ;
 
-    scene->addChild(makeBox("box", {0.5, 0.5, 0.5},tr.matrix(), {1, 0, 0, 1} )) ;
-
+    scene->addChild(makeSphere("sphere", 5.0,tr.matrix(), {1, 0, 0, 1} )) ;
 
     // create new scene and add light
 
@@ -438,9 +437,15 @@ int main(int argc, char *argv[]) {
     using namespace PBD ;
     using namespace Utilities ;
 
+
+
+
     SimulationModel *model = new SimulationModel();
     model->init();
     Simulation::getCurrent()->setModel(model);
+
+    Simulation::getCurrent()->reset();
+    Simulation::getCurrent()->getModel()->cleanup();
 
     TimeManager::getCurrent()->setTimeStepSize(static_cast<Real>(0.005)) ;
     createMesh() ;

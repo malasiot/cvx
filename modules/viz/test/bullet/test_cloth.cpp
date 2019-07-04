@@ -54,7 +54,7 @@ public:
             vtx.push_back(v) ;
             colors.push_back({1, 0, 0}) ;
         }
-        dr->setGeometry(Mesh::makePointCloud(vtx, colors)) ;
+        dr->setGeometry(make_shared<MeshGeometry>(Mesh::makePointCloud(vtx, colors))) ;
     }
 
     btSoftBody *cloth_ ;

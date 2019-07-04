@@ -54,7 +54,7 @@ protected:
     index_container_t indices_ ;
 };
 
-class Mesh: public Geometry, public std::enable_shared_from_this<Mesh> {
+class Mesh: public std::enable_shared_from_this<Mesh> {
 public:
 
     enum PrimitiveType { Triangles, Lines, Points } ;
@@ -131,12 +131,21 @@ public:
     void computeBoundingBox(Eigen::Vector3f &bmin, Eigen::Vector3f &bmax) const ;
     void makeOctree() ;
 
-    bool intersect(const cvx::viz::Ray &ray, float &t) const override ;
+//    bool intersect(const cvx::viz::Ray &ray, float &t) const override ;
 
     // create a new mesh without indices
     static MeshPtr flatten(const MeshPtr &src) ;
 
-    void makeMeshData() override ;
+    // get underlying OpenGL buffer data
+
+    detail::MeshData* getMeshData() {
+        if ( !data_ )
+            makeMeshData() ;
+        return data_.get() ;
+    }
+
+     bool intersect(const Ray &ray, float &t) const;
+
 
 private:
 
@@ -148,6 +157,10 @@ private:
 
     PrimitiveType ptype_ ;
     detail::Octree *octree_ = nullptr ;
+
+    void makeMeshData()  ;
+
+    std::shared_ptr<detail::MeshData> data_ = nullptr ;
 
 };
 

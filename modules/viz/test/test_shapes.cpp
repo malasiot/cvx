@@ -294,7 +294,7 @@ int main(int argc, char *argv[]) {
     }
 */
     MeshPtr sphere = Mesh::createSolidSphere(0.1, 16, 16) ;
-    scene->addSimpleShapeNode(sphere, custom_material) ;
+    scene->addSimpleShapeNode(make_shared<MeshGeometry>(sphere), custom_material) ;
         // add a light source
 
     DirectionalLight *dl = new DirectionalLight(Vector3f(0.5, 0.5, 1)) ;

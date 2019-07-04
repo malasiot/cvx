@@ -387,6 +387,8 @@ void Mesh::makeOctree()
     octree_ = new detail::Octree(*this, 5) ;
 }
 
+
+
 bool Mesh::intersect(const Ray &ray, float &t) const
 {
     if ( octree_ == nullptr ) return false ;
@@ -396,8 +398,6 @@ bool Mesh::intersect(const Ray &ray, float &t) const
 
     return true ;
 }
-
-
 MeshPtr Mesh::createWireCylinder(float radius, float height, size_t slices, size_t stacks)
 {
     MeshPtr m(new Mesh(Lines)) ;
@@ -564,7 +564,7 @@ MeshPtr Mesh::createSolidSphere(float radius, size_t slices, size_t stacks) {
     indices[idx++] = offset ;
     indices[idx++] = n_vertices-1 ;
 
- //   exportToObj("/tmp/mesh.obj", vertices, normals, indices) ;
+//    exportToObj("/tmp/mesh.obj", vertices, normals, indices) ;
 
     return m ;
 }

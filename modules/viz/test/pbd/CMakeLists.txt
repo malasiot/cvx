@@ -37,17 +37,17 @@ ExternalProject_Add(
 
 ADD_LIBRARY( pbd SHARED IMPORTED )
 SET_TARGET_PROPERTIES( pbd PROPERTIES
-                                  IMPORTED_LOCATION "${ExternalInstallDir}/PositionBasedDynamics/lib/libPositionBasedDynamics_d.so"
+                                  IMPORTED_LOCATION "${ExternalInstallDir}/PositionBasedDynamics/lib/libPositionBasedDynamics.so"
                                   LINKER_LANGUAGE "CXX")
 
 ADD_LIBRARY( pbdSimulation SHARED IMPORTED )
 SET_TARGET_PROPERTIES( pbdSimulation PROPERTIES
-              IMPORTED_LOCATION "${ExternalInstallDir}/PositionBasedDynamics/lib/libSimulation_d.so"
+              IMPORTED_LOCATION "${ExternalInstallDir}/PositionBasedDynamics/lib/libSimulation.so"
             LINKER_LANGUAGE "CXX")
 
         ADD_LIBRARY( pbdUtils SHARED IMPORTED )
         SET_TARGET_PROPERTIES( pbdUtils PROPERTIES
-                      IMPORTED_LOCATION "${ExternalInstallDir}/PositionBasedDynamics/lib/libUtils_d.so"
+                      IMPORTED_LOCATION "${ExternalInstallDir}/PositionBasedDynamics/lib/libUtils.so"
                     LINKER_LANGUAGE "CXX")
 
 include_directories(${ExternalInstallDir}/PositionBasedDynamics/include/

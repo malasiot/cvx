@@ -132,7 +132,7 @@ int main(int argc, char *argv[]) {
         }
 
 
-    scene->addSimpleShapeNode(Mesh::makePointCloud(coords, clrs), MaterialInstancePtr(new PerVertexColorMaterialInstance(1))) ;
+    scene->addSimpleShapeNode(make_shared<MeshGeometry>(Mesh::makePointCloud(coords, clrs)), MaterialInstancePtr(new PerVertexColorMaterialInstance(1))) ;
 
   /*
     DirectionalLight *dl = new DirectionalLight(Vector3f(0.5, 0.5, 1)) ;

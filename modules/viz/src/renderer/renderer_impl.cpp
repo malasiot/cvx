@@ -147,7 +147,7 @@ void RendererImpl::setPose(const MeshPtr &mesh, const MaterialInstancePtr &mater
 void RendererImpl::drawMeshData(MeshData &data, GeometryPtr geom) {
     glBindVertexArray(data.vao_);
 
-    MeshPtr mesh = std::dynamic_pointer_cast<Mesh>(geom) ;
+    MeshPtr mesh = geom->getMesh() ;
 
     if ( mesh ) data.update(*mesh) ;
 
@@ -183,7 +183,9 @@ void RendererImpl::render(const ScenePtr &scene, const DrawablePtr &geom, const 
 {
     if ( !geom->geometry() ) return ;
 
-    MeshData *data = geom->geometry()->getMeshData() ;
+    MeshPtr mesh = geom->geometry()->getMesh() ;
+
+    MeshData *data = mesh->getMeshData() ;
 
     if ( !data ) return ;
 
@@ -195,7 +197,6 @@ void RendererImpl::render(const ScenePtr &scene, const DrawablePtr &geom, const 
     material->applyTransform(perspective_, proj_, mat) ;
     setLights(scene, material) ;
 
-    MeshPtr mesh = std::dynamic_pointer_cast<Mesh>(geom->geometry()) ;
     if ( mesh && mesh->hasSkeleton() )
         setPose(mesh, material) ;
 
