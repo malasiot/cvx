@@ -58,7 +58,7 @@ static Vector2f toVector2(JSONReader &r) {
 static Matrix4f toMatrix4(JSONReader &r) {
 
     Matrix4f m ;
-
+// order?
     r.beginArray() ;
     for( size_t row = 0 ; row < 4 ; row ++ ) {
         r.beginArray() ;
