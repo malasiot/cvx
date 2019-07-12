@@ -38,4 +38,5 @@ target_link_libraries(test_logger  cvx_util )
 add_executable(test_geometry test_geometry.cpp)
 target_link_libraries(test_geometry cvx_util )
 
-
+add_executable(test_json test_json.cpp mhx2_importer.cpp)
+target_link_libraries(test_json cvx_util )
