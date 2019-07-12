@@ -1,4 +1,5 @@
 #include <cvx/util/misc/json_reader.hpp>
+#include <cvx/util/misc/json_writer.hpp>
 #include <iostream>
 #include "mhx2_importer.hpp"
 
@@ -81,8 +82,22 @@ void test2() {
     importer.load("/home/malasiot/Downloads/human.mhx2", "");
 }
 
+void test3() {
+    JSONWriter writer(cout) ;
+    writer.setIndent("   ") ;
+    writer.beginObject() ;
+    writer.name("field1").value(std::string("string")) ; cout.flush() ;
+    writer.name("field2") ;
+    writer.beginArray() ;
+    writer.value((int64_t)10) ;
+    writer.value((int64_t)20) ;
+    writer.value((int64_t)30) ;
+    writer.endArray();
+    writer.name("field3").value((double)1.0) ;
+    writer.endObject() ;
+}
 int main(int argc, char *argv[]) {
 
-    test2() ;
+    test3() ;
 
 }

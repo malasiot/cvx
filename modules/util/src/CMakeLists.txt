@@ -34,6 +34,7 @@ set ( LIB_SOURCES
     misc/filesystem.cpp
     misc/xml_pull_parser.cpp
     misc/json_reader.cpp
+    misc/json_writer.cpp
 
     geometry/trimesh_topology.cpp
     3rdparty/triangle.c
@@ -82,6 +83,7 @@ set ( LIB_HEADERS
     misc/optional.hpp
     misc/xml_pull_parser.hpp
     misc/json_reader.hpp
+    misc/json_writer.hpp
 
     geometry/point.hpp
     geometry/point_list.hpp
