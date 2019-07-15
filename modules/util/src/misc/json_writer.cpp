@@ -1,6 +1,42 @@
 #include <cvx/util/misc/json_writer.hpp>
+#include <iomanip>
+
+using namespace std ;
 
 namespace cvx { namespace  util {
+
+// Original: https://gist.github.com/kevinkreiser/bee394c60c615e0acdad
+
+void JSONWriter::escapeString(const std::string &str) {
+    strm_ << '"';
+
+    for (const auto& c : str) {
+        switch (c) {
+        case '\\': strm_ << "\\\\"; break;
+        case '"': strm_ << "\\\""; break;
+        case '/': strm_ << "\\/"; break;
+        case '\b': strm_ << "\\b"; break;
+        case '\f': strm_ << "\\f"; break;
+        case '\n': strm_ << "\\n"; break;
+        case '\r': strm_ << "\\r"; break;
+        case '\t': strm_ << "\\t"; break;
+        default:
+            if(c >= 0 && c < 32) {
+                //format changes for json hex
+                strm_.setf(std::ios::hex, std::ios::basefield);
+                strm_.setf(std::ios::uppercase);
+                strm_.fill('0');
+                //output hex
+                strm_ << "\\u" << std::setw(4) << static_cast<int>(c);
+            }
+            else
+                strm_ << c;
+            break;
+        }
+    }
+    strm_ << '"';
+}
+
 
 JSONWriter::JSONWriter(std::ostream &strm): strm_(strm) {
     stack_.push_back(EMPTY_DOCUMENT) ;
@@ -44,32 +80,32 @@ JSONWriter &JSONWriter::endArray() {
     return *this;
 }
 
-JSONWriter &JSONWriter::value(bool v) {
+JSONWriter &JSONWriter::booleanValue(bool v) {
     beforeValue(false) ;
     if ( v ) strm_ << "true" ;
     else strm_ << "false" ;
     return *this ;
 }
 
-JSONWriter &JSONWriter::value(int64_t v) {
+JSONWriter &JSONWriter::integerValue(int64_t v) {
     beforeValue(false) ;
     strm_ << v ;
     return *this ;
 }
 
-JSONWriter &JSONWriter::value(double v) {
+JSONWriter &JSONWriter::floatValue(double v) {
     beforeValue(false) ;
     strm_ << v ;
     return *this ;
 }
 
-JSONWriter &JSONWriter::value(const std::string &v) {
+JSONWriter &JSONWriter::stringValue(const std::string &v) {
     beforeValue(false) ;
     escapeString(v) ;
     return *this ;
 }
 
-JSONWriter &JSONWriter::null() {
+JSONWriter &JSONWriter::nullValue() {
     beforeValue(false) ;
     strm_ << "null" ;
     return *this ;
@@ -98,9 +134,6 @@ void JSONWriter::indent() {
     }
 }
 
-void JSONWriter::escapeString(const std::string &str) {
-    strm_ << '"' << str <<'"' ;
-}
 
 JSONWriter &JSONWriter::beginArray() {
     beforeValue(true) ;

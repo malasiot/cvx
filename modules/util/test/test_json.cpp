@@ -86,14 +86,14 @@ void test3() {
     JSONWriter writer(cout) ;
     writer.setIndent("   ") ;
     writer.beginObject() ;
-    writer.name("field1").value(std::string("string")) ; cout.flush() ;
+    writer.name("field1").stringValue("string") ; cout.flush() ;
     writer.name("field2") ;
     writer.beginArray() ;
-    writer.value((int64_t)10) ;
-    writer.value((int64_t)20) ;
-    writer.value((int64_t)30) ;
+    writer.integerValue((int)10) ;
+    writer.integerValue(20) ;
+    writer.stringValue("30hello") ;
     writer.endArray();
-    writer.name("field3").value((double)1.0) ;
+    writer.name("field3").floatValue(1.0) ;
     writer.endObject() ;
 }
 int main(int argc, char *argv[]) {

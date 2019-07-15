@@ -27,19 +27,20 @@ public:
     JSONWriter &endArray() ;
 
     // write a boolean value
-    JSONWriter &value(bool v) ;
+    JSONWriter &booleanValue(bool v) ;
 
-    // write a double value
-    JSONWriter &value(double v) ;
+    // write a floating point value
+
+    JSONWriter &floatValue(double v) ;
 
     // write integer
-    JSONWriter &value(int64_t v) ;
+    JSONWriter &integerValue( int64_t  v ) ;
 
     // write null value
-    JSONWriter &null() ;
+    JSONWriter &nullValue() ;
 
     // write string literal (it will be escaped as needed)
-    JSONWriter &value(const std::string &str) ;
+    JSONWriter &stringValue(const std::string &str) ;
 
     // write string literal without escaping
     JSONWriter &jsonValue(const std::string &str) ;
@@ -50,6 +51,7 @@ public:
     // Sets the indentation string to be repeated for each level of indentation in the encoded document.
     JSONWriter &setIndent(const char *indent) {
         indent_.assign(indent) ;
+        return *this ;
     }
 
 private:
@@ -60,8 +62,9 @@ private:
     std::string indent_ ;
 
     void indent() ;
-    void escapeString(const std::string &str) ;
     void beforeValue(bool root);
+    void escapeString(const std::string &str);
+    void writeInt(int64_t v) ;
 };
 
 class JSONWriterException: public std::runtime_error {
