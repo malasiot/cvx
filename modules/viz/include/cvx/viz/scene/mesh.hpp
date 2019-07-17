@@ -91,6 +91,29 @@ public:
             std::fill(bone_, bone_ + MAX_BONES_PER_VERTEX, -1) ;
             std::fill(weight_, weight_ + MAX_BONES_PER_VERTEX, 0.f) ;
         }
+
+        void add(int bone, float w) {
+            int idx = 0 ;
+            while ( bone_[idx] != -1 && idx < MAX_BONES_PER_VERTEX ) ++idx ;
+            bone_[idx] = bone ;
+            weight_[idx] = w ;
+        }
+
+        void normalize() {
+            float w = 0.0 ;
+
+               for(int i=0 ; i<MAX_BONES_PER_VERTEX ; i++) {
+                   if ( bone_[i] < 0 ) break ;
+                   w += weight_[i] ;
+               }
+
+               if ( w == 0.0 ) return ;
+
+               for(int i=0 ; i<MAX_BONES_PER_VERTEX ; i++) {
+                   if ( bone_[i] < 0 ) break ;
+                   weight_[i] /= w  ;
+               }
+        }
     };
 
     const std::vector<Bone> &skeleton() const { return skeleton_ ; }
