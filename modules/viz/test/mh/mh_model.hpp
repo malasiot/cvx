@@ -43,9 +43,41 @@ struct MHMesh {
     std::map<std::string, MHVertexGroup> groups_ ;
 };
 
+struct MHGeometry {
+    Eigen::Vector3f offset_ ;
+    float scale_ ;
+    std::string material_ ;
+    MHMesh mesh_ ;
+};
+
+struct MHMaterial {
+    Eigen::Vector3f diffuse_color_ ;
+    float diffuse_map_intensity_ ;
+    Eigen::Vector3f specular_color_ ;
+    float specular_map_intensity_ ;
+    float shininess_ ;
+    float opacity_ ;
+    float translucency_ ;
+    Eigen::Vector3f emissive_color_ ;
+    Eigen::Vector3f ambient_color_ ;
+    float transparency_map_intensity_ ;
+    bool shadeless_ ;
+    bool wireframe_ ;
+    bool transparent_ ;
+    bool alpha_to_coverage_  ;
+    bool backface_cull_ ;
+    bool depthless_ ;
+    bool cast_shadows_ ;
+    bool recieve_shadows_ ;
+    bool sss_enabled_ ;
+    float sss_R_scale_, sss_G_scale_, sss_B_scale_ ;
+};
+
 struct MHModel {
     std::map<std::string, MHBone> bones_ ;
-    std::map<std::string, MHMesh> meshes_ ;
+    std::map<std::string, MHGeometry> geometries_ ;
+    std::map<std::string, MHMaterial> materials_ ;
 };
+
 
 #endif

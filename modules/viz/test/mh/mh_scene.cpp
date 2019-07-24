@@ -77,8 +77,9 @@ void MHNode::createGeometry(const MHModel &model)
 
     // iterate over all meshes
 
-    for( const auto &mesh_kv: model.meshes_) {
-        const MHMesh &mesh = mesh_kv.second ;
+    for( const auto &geom_kv: model.geometries_) {
+        const MHGeometry &geom = geom_kv.second ;
+        const MHMesh &mesh = geom.mesh_ ;
 
         std::shared_ptr<Mesh> m(new Mesh(Mesh::Triangles)) ;
 
@@ -87,7 +88,10 @@ void MHNode::createGeometry(const MHModel &model)
         vector<int> face_vertices ;
         vector<Vector2f> face_tcoords ;
 
-        m->vertices().data().insert( m->vertices().data().end(), mesh.vertices_.begin(), mesh.vertices_.end()  ) ;
+        for( const Vector3f &v: mesh.vertices_ ) {
+            m->vertices().data().push_back(v + geom.offset_) ;
+        }
+
 
         // add faces
 
@@ -222,13 +226,25 @@ void MHNode::createGeometry(const MHModel &model)
         m->computeNormals();
 
         auto *material = new PhongMaterialInstance() ;
-        material->setDiffuse({0, 1.0, 0.0, 1.0}) ;
-       material->setFlags(USE_SKINNING) ;
+        material->setFlags(USE_SKINNING) ;
+
+        auto matit = model.materials_.find(geom.material_) ;
+        if ( matit == model.materials_.end() ) {
+            material->setDiffuse({0.5, 0.5, 0.5, 1.0}) ;
+        } else {
+            const MHMaterial &mat = matit->second ;
+            material->setAmbient(Vector4f(mat.ambient_color_.x(), mat.ambient_color_.y(), mat.ambient_color_.z(), mat.opacity_));
+            material->setDiffuse(Vector4f(mat.diffuse_color_.x(), mat.diffuse_color_.y(), mat.diffuse_color_.z(), mat.opacity_));
+            material->setSpecular(Vector4f(mat.specular_color_.x(), mat.specular_color_.y(), mat.specular_color_.z(), mat.opacity_));
+            material->setShininess(mat.shininess_) ;
+
+        }
+
         MaterialInstancePtr material_instance(material) ;
 
-        std::shared_ptr<MeshGeometry> geom(new MeshGeometry(m)) ;
+        std::shared_ptr<MeshGeometry> geometry(new MeshGeometry(m)) ;
 
-        std::shared_ptr<Drawable> drawable(new Drawable(geom, material_instance)) ;
+        std::shared_ptr<Drawable> drawable(new Drawable(geometry, material_instance)) ;
         addDrawable(drawable);
     }
 

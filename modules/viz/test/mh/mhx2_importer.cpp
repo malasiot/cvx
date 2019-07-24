@@ -21,9 +21,11 @@ bool Mhx2Importer::load(const string &fname, const string &mesh)
         while ( reader.hasNext() ) {
             string name = reader.nextName() ;
             if ( name == "geometries" ) {
-                parseGeometries(reader, mesh) ;
+                parseGeometries(reader) ;
             } else if ( name == "skeleton" ) {
                 parseSkeleton(reader) ;
+            } else if ( name == "materials" ) {
+                parseMaterials(reader) ;
             } else {
                 reader.skipValue() ;
             }
@@ -67,11 +69,49 @@ static Matrix4f toMatrix4(JSONReader &r) {
         for( size_t col = 0 ; col < 4 ; col ++ ) {
             m(row, col) = (float)r.nextDouble() ;
         }
-       r.endArray() ;
+        r.endArray() ;
     }
     r.endArray() ;
 
     return m ;
+}
+
+bool Mhx2Importer::parseMaterials(JSONReader &reader) {
+
+    reader.beginArray() ;
+
+    while ( reader.hasNext() ) {
+
+        string materialName ;
+        MHMaterial current ;
+
+        reader.beginObject() ;
+        while ( reader.hasNext() ) {
+            string name = reader.nextName() ;
+            if ( name == "name")
+                materialName = reader.nextString() ;
+            else if ( name == "diffuse_color" )
+                current.diffuse_color_ = toVector3(reader) ;
+            else if ( name == "ambient_color" )
+                current.ambient_color_ = toVector3(reader) ;
+            else if ( name == "specular_color" )
+                current.specular_color_ = toVector3(reader) ;
+            else if ( name == "shininess" )
+                current.shininess_ = (float)reader.nextDouble() ;
+            else if ( name == "opacity" )
+                current.opacity_ = (float)reader.nextDouble() ;
+            else reader.skipValue() ;
+        }
+
+        if ( !materialName.empty() )
+            model_.materials_[materialName] = current ;
+
+        reader.endObject() ;
+    }
+
+    reader.endArray() ;
+
+    return true ;
 }
 
 extern float angle_normalized_v3v3(const Vector3f &v1, const Vector3f &v2) ;
@@ -145,30 +185,35 @@ bool Mhx2Importer::parseSkeleton(JSONReader &reader) {
     return true ;
 }
 
-bool Mhx2Importer::parseGeometries(JSONReader &reader, const string &meshName)
+bool Mhx2Importer::parseGeometries(JSONReader &reader)
 {
     reader.beginArray() ;
 
     while ( reader.hasNext() ) {
-        reader.beginObject() ;
 
         string geomName ;
-        Vector3f offset ;
-        float scale = 1.0 ;
+        MHGeometry current ;
+
+        reader.beginObject() ;
 
         while ( reader.hasNext() ) {
             string name = reader.nextName() ;
             if ( name == "name" )
                 geomName = reader.nextString() ;
             else if ( name == "offset" )
-                offset = toVector3(reader) ;
+                current.offset_ = toVector3(reader) ;
             else if ( name == "scale" )
-                scale = (float)reader.nextDouble() ;
+                current.scale_ = (float)reader.nextDouble() ;
             else if ( name == "mesh" )
-                parseMesh(geomName, reader, offset, scale) ;
+                parseMesh(current.mesh_, reader) ;
+            else if ( name == "material" )
+                current.material_ = reader.nextString() ;
             else
                 reader.skipValue() ;
         }
+
+        if ( !geomName.empty() )
+            model_.geometries_.emplace(geomName, std::move(current)) ;
 
         reader.endObject() ;
     }
@@ -179,9 +224,9 @@ bool Mhx2Importer::parseGeometries(JSONReader &reader, const string &meshName)
     return true ;
 }
 
-bool Mhx2Importer::parseMesh(const string &name, JSONReader &reader, const Vector3f &offset, float scale)
+bool Mhx2Importer::parseMesh(MHMesh &mesh, JSONReader &reader)
 {
-    MHMesh &mesh = model_.meshes_[name] ;
+
 
     reader.beginObject() ;
 
@@ -191,7 +236,7 @@ bool Mhx2Importer::parseMesh(const string &name, JSONReader &reader, const Vecto
             reader.beginArray() ;
             while ( reader.hasNext() ) {
                 Vector3f v = toVector3(reader) ;
-                mesh.vertices_.emplace_back(v + offset) ;
+                mesh.vertices_.emplace_back(v) ;
             }
             reader.endArray() ;
         } else if ( name == "uv_coords" ) {

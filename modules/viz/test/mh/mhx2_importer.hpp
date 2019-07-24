@@ -20,9 +20,10 @@ private:
     using JSONReader = cvx::util::JSONReader ;
 
     bool parseSkeleton(JSONReader &r) ;
-    bool parseGeometries(JSONReader &v, const std::string &meshName) ;
-    bool parseMesh(const std::string &name, JSONReader &v, const Eigen::Vector3f &of, float scale) ;
+    bool parseGeometries(JSONReader &v) ;
+    bool parseMesh(MHMesh &geom, JSONReader &v) ;
     bool parseVertexGroups(MHMesh &mesh, JSONReader &v) ;
+    bool parseMaterials(JSONReader &reader) ;
 
     MHModel model_ ;
 
