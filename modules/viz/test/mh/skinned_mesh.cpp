@@ -415,9 +415,6 @@ void MakeHumanSkinnedMesh::createMesh(const MHModel &model) {
 
         // normalize
 
-        if ( i == 8872 ) {
-            cout << "break" << endl ;
-        }
         float w = 0.0 ;
         for ( float weight: weights ) w += weight ;
         for ( float &weight: weights ) weight /= w ;
