@@ -26,6 +26,8 @@ public:
     PointList(uint n):
         Base(n) {}
 
+    PointList(Base &&b): Base(b) {}
+
     PointList(const std::initializer_list<Point> &data) {
         this->resize(data.size()) ;
         std::copy(data.begin(), data.end(), this->begin()) ;
