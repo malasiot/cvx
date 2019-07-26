@@ -15,6 +15,13 @@ public:
 
     using PointList3f = cvx::util::PointList3f ;
 
+
+    struct Part {
+        Bone *bone_ ;
+        std::vector<uint> indices_ ;
+    };
+
+
     SkinnedMesh() {}
 
 
@@ -39,6 +46,8 @@ public:
     uint getDominantBone(const uint vtx_idx) const ;
 
     void computeWeights() ;
+
+    Part makePart(const std::string &controlBone, const std::vector<std::string> &bones) const ;
 
 public:
 

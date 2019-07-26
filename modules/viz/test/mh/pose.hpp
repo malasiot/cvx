@@ -7,6 +7,7 @@
 class Pose {
 public:
 
+    Pose() = default ;
     Pose(const std::map<std::string, Eigen::Matrix4f> &channels): channels_(channels) {}
 
     void setBoneTransform(const std::string &name, const Eigen::Matrix4f &t) ;

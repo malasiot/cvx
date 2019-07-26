@@ -298,6 +298,48 @@ uint SkinnedMesh::getDominantBone(const uint vtx_idx) const
     return bone_idx ;
 }
 
+SkinnedMesh::Part SkinnedMesh::makePart(const string &controlBone, const std::vector<string> &bones) const
+{
+    set<uint> vtx_set, bone_set ;
+    Part part ;
+
+
+    for( const string &b: bones ) {
+         int tidx = skeleton_.getBoneIndex(b) ;
+         bone_set.insert(tidx) ;
+    }
+
+
+    for ( size_t i = 0 ; i<positions_.size() ; i++ ) {
+
+        const VertexBoneData &bdata = bone_weights_[i] ;
+
+        for( size_t k = 0 ; k<bdata.id_.size() ; k++ ) {
+            auto it = bone_set.find(bdata.id_[k]) ;
+            if ( it == bone_set.end() ) continue ;
+
+            if ( bdata.weight_[k] > 0.25 ) vtx_set.insert(i) ;
+
+        }
+    }
+
+    for( size_t i = 0 ; i<indices_.size() ; ) {
+        uint v1 = indices_[i++] ;
+        uint v2 = indices_[i++] ;
+        uint v3 = indices_[i++] ;
+
+        if ( vtx_set.find(v1) == vtx_set.end()) continue ;
+        if ( vtx_set.find(v2) == vtx_set.end()) continue ;
+        if ( vtx_set.find(v3) == vtx_set.end()) continue ;
+
+        part.indices_.push_back(v1) ;
+        part.indices_.push_back(v2) ;
+        part.indices_.push_back(v3) ;
+    }
+
+    return part ;
+}
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
