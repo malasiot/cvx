@@ -84,6 +84,7 @@ set ( LIB_HEADERS
     misc/xml_pull_parser.hpp
     misc/json_reader.hpp
     misc/json_writer.hpp
+    misc/variant.hpp
 
     geometry/point.hpp
     geometry/point_list.hpp

@@ -68,8 +68,6 @@ Isometry3f getRandTransform(double d)
 
 static string vs_shader =
 R"(
-#version 330
-
 layout (location = 0) in vec3 vposition;
 layout (location = 5) in vec2 vuv;
 
@@ -89,8 +87,6 @@ void main()
 
 string fs_shader =
 R"(
-#version 330
-
 in vec2 uv;
 
 out vec4 FragColor;
@@ -293,7 +289,10 @@ int main(int argc, char *argv[]) {
                                   Vector4f(0.5, g_rng.uniform(0.0, 1.0), g_rng.uniform(0.0, 1.0), 1.0))) ;
     }
 */
-    MeshPtr sphere = Mesh::createSolidSphere(0.1, 16, 16) ;
+    MeshPtr sphere = Mesh::flatten(Mesh::createCapsule(0.1, 0.5, 9, 2, 16)) ;
+
+    //MeshPtr sphere = Mesh::createSolidSphere(0.1, 16, 16) ;
+
     scene->addSimpleShapeNode(make_shared<MeshGeometry>(sphere), custom_material) ;
         // add a light source
 

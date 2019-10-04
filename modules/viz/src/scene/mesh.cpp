@@ -306,6 +306,65 @@ MeshPtr Mesh::createSolidCylinder(float radius, float height, size_t slices, siz
     return m ;
 }
 
+MeshPtr Mesh::createCapsule(float radius, float height, size_t slices, size_t head_stacks, size_t body_stacks)
+{
+    MeshPtr m(new Mesh(Triangles)) ;
+
+    // make cylinder
+
+    float z0,z1;
+
+    const float zStep = (height - 2*radius) / std::max(body_stacks, (size_t)1) ;
+
+    vector<float> sint, cost;
+    makeCircleTable( sint, cost, slices);
+
+    z0 = -height/2.0f - radius ;
+    z1 = z0 + zStep;
+
+    for( uint i=0 ; i<slices ; i++ ) {
+        m->vertices().data().push_back({cost[i]*radius, sint[i]*radius, z0}) ;
+    }
+
+    // normals shared by all side vertices
+
+    for( uint i=0 ; i<slices ; i++ ) {
+        m->normals().data().push_back({cost[i], sint[i], 1.0}) ;
+    }
+
+    for( size_t j = 1;  j <= body_stacks; j++ ) {
+
+        for( uint i=0 ; i<slices ; i++ ) {
+            m->vertices().data().push_back({cost[i]*radius, sint[i]*radius, z1}) ;
+        }
+
+        for( uint i=0 ; i<slices ; i++ ) {
+            size_t pn = ( i == slices - 1 ) ? 0 : i+1 ;
+            m->vertices().indices().push_back((j-1)*slices + i) ;
+            m->vertices().indices().push_back((j-1)*slices + pn) ;
+            m->vertices().indices().push_back((j)*slices + pn) ;
+
+            m->vertices().indices().push_back((j-1)*slices + i) ;
+            m->vertices().indices().push_back((j)*slices + pn) ;
+            m->vertices().indices().push_back((j)*slices + i) ;
+
+            m->normals().indices().push_back(i) ;
+            m->normals().indices().push_back(pn) ;
+            m->normals().indices().push_back(pn) ;
+
+            m->normals().indices().push_back(i) ;
+            m->normals().indices().push_back(pn) ;
+            m->normals().indices().push_back(i) ;
+
+        }
+
+        z1 += zStep;
+    }
+
+    return m ;
+
+}
+
 MeshPtr Mesh::makePointCloud(const PointList3f &pts) {
 
      MeshPtr m(new Mesh(Points)) ;

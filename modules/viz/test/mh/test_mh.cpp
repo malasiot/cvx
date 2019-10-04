@@ -10,6 +10,9 @@
 #include "mhx2_importer.hpp"
 #include "mh_scene.hpp"
 #include "skinned_mesh.hpp"
+#include "mesh_utils.hpp"
+
+#include "vcg/complex/algorithms/convex_hull.h"
 
 using namespace cvx::util ;
 using namespace cvx::viz ;
@@ -141,15 +144,19 @@ void make_part(const SkinnedMesh &orig, const string &part_name, const Part &par
            indices.push_back(index_map[i2]) ;
        }
 
+       vector<Vector3f> out_pts, out_normals ;
+       vector<uint> out_indices ;
+       convex_hull(pts, normals, indices, out_pts, out_normals, out_indices) ;
+
        ofstream strm( "/home/malasiot/Downloads/" + part_name + ".obj") ;
-       for( size_t i=0 ; i<pts.size() ; i++ ) {
-           strm << "v " << pts[i].adjoint() << endl ;
+       for( size_t i=0 ; i<out_pts.size() ; i++ ) {
+           strm << "v " << out_pts[i].adjoint() << endl ;
        }
 
-       for (size_t i=0 ; i<indices.size() ;  ) {
-           uint v1 = indices[i++] + 1;
-           uint v2 = indices[i++] + 1;
-           uint v3 = indices[i++] + 1;
+       for (size_t i=0 ; i<out_indices.size() ;  ) {
+           uint v1 = out_indices[i++] + 1;
+           uint v2 = out_indices[i++] + 1;
+           uint v3 = out_indices[i++] + 1;
            strm << "f " << v1 << ' ' << v2 << ' ' << v3 << endl ;
        }
 
@@ -188,7 +195,7 @@ int main(int argc, char *argv[]) {
 
     MakeHumanSkinnedMesh sk(importer.getModel()) ;
 
-    make_parts(sk, "/home/malasiot/Downloads/parts.json", 1000) ;
+  //  make_parts(sk, "/home/malasiot/Downloads/parts.json", 1000) ;
 
     Pose p({{"upperarm01.L", m.matrix()}}) ;
 
@@ -197,11 +204,12 @@ int main(int argc, char *argv[]) {
 
     for( auto c: coords ) clrs.push_back(Vector3f(1, 0, 0)) ;
 
+    g_scene->addSimpleShapeNode(make_shared<MeshGeometry>(Mesh::flatten(Mesh::createCapsule(0.1, 0.5, 9, 2, 10))), MaterialInstancePtr(new PhongMaterialInstance())) ;
 
     g_scene->addSimpleShapeNode(make_shared<MeshGeometry>(Mesh::makePointCloud(coords, clrs)), MaterialInstancePtr(new PerVertexColorMaterialInstance(1))) ;
 
     std::shared_ptr<MHNode> mh_node(new MHNode(importer.getModel())) ;
-    mh_node->setVisible(false) ;
+   // mh_node->setVisible(false) ;
     g_scene->addChild(mh_node) ;
 
     DirectionalLight *dl = new DirectionalLight(Vector3f(0.5, 0.5, 1)) ;

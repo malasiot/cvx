@@ -1,5 +1,7 @@
 #include <cvx/util/misc/json_reader.hpp>
 #include <cvx/util/misc/json_writer.hpp>
+
+#include <cvx/util/misc/variant.hpp>
 #include <iostream>
 #include "mhx2_importer.hpp"
 
@@ -96,8 +98,20 @@ void test3() {
     writer.name("field3").floatValue(1.0) ;
     writer.endObject() ;
 }
+
+void test_variant() {
+    Variant v(Variant::Object{{"properties",
+                               Variant::Object{
+                                   {"name", Variant("test")},
+                                   { "value", Variant("ok")}}
+                              }}) ;
+    v.at("properties.name") = Variant(45) ;
+
+    cout << v.toJSON() << endl ;
+
+}
 int main(int argc, char *argv[]) {
 
-    test3() ;
+    test_variant() ;
 
 }
