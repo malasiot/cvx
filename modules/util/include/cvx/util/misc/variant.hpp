@@ -22,17 +22,7 @@
 //                }) ;
 //       cout << v.toJSON() << endl ;
 
-
-class KeyNotFoundException: public std::out_of_range {
-public:
-    KeyNotFoundException(std::string key): std::out_of_range(formatMessage(key)) {}
-private:
-
-    static std::string formatMessage(const std::string &key) {
-        return cvx::util::format("object key '%s' not found", key) ;
-    }
-};
-
+namespace cvx { namespace util {
 class Variant {
 
 public:
@@ -507,43 +497,29 @@ public:
         }
     }
 
+    // export as JSON string
+
     std::string toJSON() const {
         std::ostringstream strm ;
         toJSON(strm) ;
         return strm.str() ;
     }
 
-   static Variant fromJSON(std::istream &strm) {
-       using JSONReader = cvx::util::JSONReader ;
-       using JSONToken = cvx::util::JSONToken ;
 
-       JSONReader reader(strm) ;
+    // import from JSON stream
 
-       Variant result, value ;
-       std::string key ;
+    static Variant fromJSON(std::istream &strm) {
 
-       try {
+        JSONReader reader(strm) ;
 
-           while ( reader.hasNext() ) {
-               JSONToken tk = reader.peek() ;
-               if ( tk == JSONToken::BEGIN_OBJECT ) {
-                   result = Variant::Object() ;
-               } else if ( tk == JSONToken::END_OBJECT ) {
-
-               } else if ( tk == JSONToken::BEGIN_ARRAY ) {
-                   result = Variant::Array() ;
-               }
-           }
-
-
-       }
-       catch ( cvx::util::JSONParseException &e ) {
-           std::cerr << e.what() << ")" ;
-           return Variant() ;
-       }
-
-       return result ;
-   }
+        try {
+            return parseJSONValue(reader) ;
+        }
+        catch ( cvx::util::JSONParseException &e ) {
+            std::cerr << e.what() << ")" ;
+            return Variant() ;
+        }
+    }
 
 
     // iterates dictionaries or arrays
@@ -666,6 +642,58 @@ public:
 
 private:
 
+    static Variant parseJSONValue(JSONReader &reader) {
+
+        JSONToken tk = reader.peek() ;
+        if ( tk == JSONToken::BEGIN_OBJECT ) {
+            return parseJSONObject(reader) ;
+        }
+        else if ( tk == JSONToken::BEGIN_ARRAY ) {
+            return parseJSONArray(reader) ;
+        }  else if ( tk == JSONToken::STRING ) {
+            return Variant(reader.nextString()) ;
+
+        } else if ( tk == JSONToken::BOOLEAN ) {
+            return Variant(reader.nextBoolean()) ;
+        } else if ( tk == JSONToken::JSON_NULL ) {
+            return Variant::null() ;
+        } else if ( tk == JSONToken::NUMBER ) {
+            return Variant(reader.nextDouble()) ;
+        }
+
+    }
+
+    static Variant parseJSONObject(JSONReader &reader) {
+
+        Variant result{Variant::Object()};
+
+        reader.beginObject() ;
+        std::string key ;
+        while ( reader.hasNext() ) {
+            key = reader.nextName() ;
+            Variant value = parseJSONValue(reader) ;
+            result.append(key, value) ;
+        }
+        reader.endObject() ;
+
+        return result ;
+
+    }
+
+    static Variant parseJSONArray(JSONReader &reader) {
+
+        Variant result{Variant::Array()} ;
+
+        reader.beginArray() ;
+
+        while ( reader.hasNext() ) {
+            result.append(parseJSONValue(reader)) ;
+        }
+
+        reader.endArray() ;
+        return result ;
+
+    }
 
     // Original: https://gist.github.com/kevinkreiser/bee394c60c615e0acdad
 
@@ -712,11 +740,11 @@ private:
     }
 
     Variant &fetchKey(const std::string &key) {
-       if (!isObject() ) throw std::runtime_error("Trying to index an object which is not dictionary") ;
+        if (!isObject() ) throw std::runtime_error("Trying to index an object which is not dictionary") ;
 
-       auto it = data_.o_.find(key) ;
-       if ( it == data_.o_.end() ) throw std::out_of_range( cvx::util::format("key '%s' not found", key));
-       else return it->second ; // return reference
+        auto it = data_.o_.find(key) ;
+        if ( it == data_.o_.end() ) throw std::out_of_range( cvx::util::format("key '%s' not found", key));
+        else return it->second ; // return reference
     }
 
     const Variant &fetchIndex(uint idx) const {
@@ -811,6 +839,7 @@ private:
 
 };
 
+}}
 
 #endif
 

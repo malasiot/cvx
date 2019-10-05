@@ -12,7 +12,7 @@ static string json_src = R"(
                          {
                       "glossary": {
                           "numEntries": 100.4,
-                           "values": ["GML", "XML",
+                           "values": ["GML", "XML"],
                           "title": "example glossary",
                           "GlossDiv": {
                               "title": "S",
@@ -109,9 +109,13 @@ void test_variant() {
 
     cout << v.toJSON() << endl ;
 
+    istringstream strm(json_src) ;
+    auto r = Variant::fromJSON(strm) ;
+    cout << r.toJSON() << endl ;
+
 }
 int main(int argc, char *argv[]) {
-
+    test1() ;
     test_variant() ;
 
 }
