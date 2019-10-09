@@ -100,12 +100,25 @@ void test3() {
 }
 
 void test_variant() {
-    Variant v(Variant::Object{{"properties",
-                               Variant::Object{
-                                   {"name", Variant("test")},
-                                   { "value", Variant("ok")}}
-                              }}) ;
-    v.at("properties.name") = Variant(45) ;
+    Variant v = {
+    {"pi", 3.141},
+    {"happy", true},
+    {"name", "Niels"},
+    {"nothing", nullptr},
+    {"answer", {
+      {"everything", 42}
+    }},
+    {"list", {1, 0, 2}},
+    {"object", {
+      {"currency", "USD"},
+      {"value", 42.99}
+    }}
+  };
+
+    Variant array_not_object = Variant::array({ {"currency", "USD"}, {"value", 42.99} });
+
+     cout << array_not_object.toJSON() << endl ;
+    cout << v.value("answer.everything", nullptr).toJSON() << endl ;
 
     cout << v.toJSON() << endl ;
 

@@ -14,7 +14,7 @@
 #include <cvx/util/misc/strings.hpp>
 #include <cvx/util/misc/json_reader.hpp>
 
-// very lighweight write-only variant class e.g. to enable json object parsing
+// very lighweight variant class e.g. to enable json object parsing
 //
 // e.g.  Variant v(Variant::Object{
 //                              {"name", 3},
@@ -47,6 +47,7 @@ public:
 
     Variant(): tag_(Type::Undefined) {}
 
+    Variant(std::nullptr_t): tag_(Type::Null) {}
     Variant(boolean_t v) noexcept : tag_(Type::Boolean) { data_.b_ = v ; }
 
     Variant(int v) noexcept: Variant((signed_integer_t)v) {}
@@ -90,6 +91,45 @@ public:
     Variant(Array&& value): tag_(Type::Array) {
         new (&data_.a_) Array(std::move(value)) ;
     }
+
+    Variant(std::initializer_list<Variant> values, bool auto_type = true, Type t = Type::Array) {
+        bool is_an_object = std::all_of(values.begin(), values.end(),
+                                        [](const Variant& element) {
+            return element.isArray() && element.length() == 2 && element[0].isString() ;
+        });
+
+        if ( !auto_type ) {
+            if ( t == Type::Array ) is_an_object = false ;
+            else if ( t == Type::Object && !is_an_object)
+                throw std::runtime_error("cannot create object from initializer list");
+        }
+
+        if (is_an_object) {
+            Object result ;
+
+            std::for_each(values.begin(), values.end(), [&](const Variant& element)
+            {
+                result.emplace(element.data_.a_[0].data_.s_,
+                        element.data_.a_[1]) ;
+            });
+            tag_ = Type::Object ;
+            new (&data_.o_) Object(result) ;
+        }
+        else {
+            tag_ = Type::Array ;
+            new (&data_.o_) Array(values) ;
+        }
+
+    }
+
+    static Variant array(std::initializer_list<Variant> values) {
+        return Variant(values, false, Type::Array) ;
+    }
+
+    static Variant object(std::initializer_list<Variant> values) {
+        return Variant(values, false, Type::Object) ;
+    }
+
 
     ~Variant() {
         destroy() ;
@@ -196,8 +236,17 @@ public:
     bool isNumber() const {
         return ( tag_ == Type::UnsignedInteger ) ||
                 ( tag_ == Type::SignedInteger ) ||
-                ( tag_ == Type::Float ) ||
-                ( tag_ == Type::Boolean );
+                ( tag_ == Type::Float )
+                ;
+    }
+
+    bool isNumberInteger() const {
+        return ( tag_ == Type::UnsignedInteger ) ||
+                ( tag_ == Type::SignedInteger ) ;
+    }
+
+    bool isNumberFloat() const {
+        return ( tag_ == Type::Float ) ;
     }
 
     // check if variant stores simple type string, number, integer or boolean
@@ -354,14 +403,14 @@ public:
     }
 
     // Returns a member value given the key. The key is of the form <member1>[.<member2>. ... <memberN>]
-    // If this is not an object or the key is not found it returns an undefined
+    // If this is not an object or the key is not found it returns the default value
 
-    const Variant &at(const std::string &key) const {
+    const Variant &value(const std::string &key, const Variant &defaultValue) const {
 
-        if ( key.empty() ) return Variant::undefined() ;
+        if ( key.empty() ) return defaultValue ;
 
         const Variant *current = this ;
-        if ( !current->isObject() ) return undefined() ;
+        if ( !current->isObject() ) return defaultValue ;
 
         size_t start = 0, end = 0;
 
@@ -369,43 +418,32 @@ public:
             end = key.find('.', start) ;
             std::string subkey = key.substr(start, end == std::string::npos ? std::string::npos : end - start) ;
 
-            const Variant &val = current->fetchKey(subkey) ;
-            if ( val.isUndefined() ) return val ;
+            try {
+                const Variant &val = current->fetchKey(subkey) ;
 
-            if ( end != std::string::npos ) {
-                current = &val ;
-                start = end+1 ;
+                if ( end != std::string::npos ) {
+                    current = &val ;
+                    start = end+1 ;
+                }
+                else return val ;
+
+            } catch ( std::exception & ) {
+                return defaultValue ;
             }
-            else return val ;
+
         }
 
-        return Variant::undefined() ;
+        return defaultValue ;
+    }
+
+    const Variant &at(const std::string &key) const {
+        return fetchKey(key) ;
+
     }
 
     // same as above but it returns a non-const reference or throws exception if not found or item is not an object
     Variant &at(const std::string &key)  {
-
-        if ( key.empty() ) throw std::runtime_error("empty key") ;
-
-        Variant *current = this ;
-        if ( !current->isObject() ) throw std::runtime_error("Trying to index an object which is not dictionary") ;
-
-        size_t start = 0, end = 0;
-
-        while ( end != std::string::npos) {
-            end = key.find('.', start) ;
-            std::string subkey = key.substr(start, end == std::string::npos ? std::string::npos : end - start) ;
-
-            Variant &val = current->fetchKey(subkey) ;
-
-            if ( end != std::string::npos ) {
-                current = &val ;
-                start = end+1 ;
-            }
-            else return val ;
-        }
-
-        throw cvx::util::format("key '%s' not found", key) ;
+        return fetchKey(key) ;
     }
 
 
@@ -419,7 +457,7 @@ public:
     }
 
     Variant &operator [] (const std::string &key) {
-        return fetchKey(key) ;
+        return fetchKey(key, false) ;
     }
 
     const Variant &operator [] (uint idx) const {
@@ -427,7 +465,7 @@ public:
     }
 
     Variant &operator [] (uint idx) {
-        return fetchIndex(idx) ;
+        return fetchIndex(idx, false) ;
     }
 
     Type type() const { return tag_ ; }
@@ -732,39 +770,69 @@ private:
 
 
     const Variant &fetchKey(const std::string &key) const {
-        if (!isObject() ) return undefined();
+            if (!isObject() ) throw std::runtime_error("Trying to index an object which is not dictionary") ;
 
-        auto it = data_.o_.find(key) ;
-        if ( it == data_.o_.end() ) return undefined() ; // return undefined
-        else return it->second ; // return reference
+            auto it = data_.o_.find(key) ;
+            if ( it == data_.o_.end() ) throw std::out_of_range( cvx::util::format("key '%s' not found", key));
+            else return it->second ; // return reference
     }
 
-    Variant &fetchKey(const std::string &key) {
-        if (!isObject() ) throw std::runtime_error("Trying to index an object which is not dictionary") ;
+    Variant &fetchKey(const std::string &key, bool safe = true ) {
+        if ( safe ) {
+            if (!isObject() ) throw std::runtime_error("Trying to index an object which is not dictionary") ;
 
-        auto it = data_.o_.find(key) ;
-        if ( it == data_.o_.end() ) throw std::out_of_range( cvx::util::format("key '%s' not found", key));
-        else return it->second ; // return reference
+            auto it = data_.o_.find(key) ;
+            if ( it == data_.o_.end() ) throw std::out_of_range( cvx::util::format("key '%s' not found", key));
+            else return it->second ; // return reference
+        } else {
+            if ( isNull() || isUndefined() ) {
+                *this = std::move(Object());
+                return data_.o_[key] ;
+            } else if ( isObject() ) {
+               return data_.o_[key] ;
+            }
+            else throw std::runtime_error("Trying to index an object which is not dictionary") ;
+        }
     }
 
     const Variant &fetchIndex(uint idx) const {
-        if (!isArray()) return undefined() ;
+        if (!isArray()) throw std::runtime_error("Trying to index an object which is not array") ;
 
         if ( idx < data_.a_.size() ) {
             const Variant &v = (data_.a_)[idx] ;
             return v ; // reference to item
         }
-        else return undefined() ;
+        else
+            throw std::out_of_range( cvx::util::format("index '%d' not in array of size %d", idx, data_.a_.size()));
     }
 
-    Variant &fetchIndex(uint idx)  {
-        if (!isArray()) throw std::runtime_error("trying to index an object which is not array") ;
+    Variant &fetchIndex(uint idx, bool safe = true)  {
+        if ( safe ) {
+            if (!isArray()) throw std::runtime_error("Trying to index an object which is not array") ;
 
-        if ( idx < data_.a_.size() ) {
-            Variant &v = (data_.a_)[idx] ;
-            return v ; // reference to item
+            if ( idx < data_.a_.size() ) {
+                Variant &v = (data_.a_)[idx] ;
+                return v ; // reference to item
+            }
+            else
+                throw std::out_of_range( cvx::util::format("index '%d' not in array of size %d", idx, data_.a_.size()));
+        } else {
+            if ( isNull() || isUndefined() ) {
+                *this = std::move(Array()) ;
+                data_.a_.insert(data_.a_.end(), idx - data_.a_.size()+1, Variant()) ;
+                return  (data_.a_)[idx] ;
+            } else if ( isArray() ) {
+                if ( idx < data_.a_.size() ) {
+                    Variant &v = (data_.a_)[idx] ;
+                    return v ; // reference to item
+                } else {
+                    data_.a_.insert(data_.a_.end(), idx - data_.a_.size()+1, Variant()) ;
+                    return  (data_.a_)[idx] ;
+                }
+            }
+            else
+                throw std::runtime_error("Trying to index an object which is not dictionary") ;
         }
-        else throw std::out_of_range( cvx::util::format("index '%d' not in array of size %d", idx, data_.a_.size()));
     }
 
     void destroy() {
