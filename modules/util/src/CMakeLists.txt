@@ -33,6 +33,7 @@ set ( LIB_SOURCES
     misc/sequence.cpp
     misc/filesystem.cpp
     misc/xml_pull_parser.cpp
+     misc/xml_sax_parser.cpp
     misc/json_reader.cpp
     misc/json_writer.cpp
 

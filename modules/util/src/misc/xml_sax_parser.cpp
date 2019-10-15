@@ -5,6 +5,9 @@
 
 using namespace std ;
 
+namespace cvx { namespace util {
+
+
 class XMLSAXException {
 public:
     XMLSAXException(XMLSAXParser::ErrorCode code, uint line, uint col): code_(code), line_(line), column_(col) {}
@@ -404,3 +407,6 @@ bool XMLSAXParser::parse() {
         return false ;
     }
 }
+
+
+}}

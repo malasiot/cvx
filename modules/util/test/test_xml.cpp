@@ -9,6 +9,7 @@
 #include "kml.hpp"
 
 using namespace std ;
+using namespace cvx::util ;
 
 static string trim(const string &src) {
     std::string::const_iterator it = src.begin();

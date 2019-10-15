@@ -11,6 +11,7 @@
 
 // Very simple SAX like XML parser
 
+namespace cvx { namespace util {
 
 class XMLStreamWrapper ;
 
@@ -65,6 +66,8 @@ private:
 };
 
 
+}
+}
 
 
 
