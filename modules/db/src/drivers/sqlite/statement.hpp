@@ -12,7 +12,7 @@ public:
     SQLiteStatementHandle(sqlite3_stmt *handle): handle_(handle) {}
 
     ~SQLiteStatementHandle() {
-        finalize() ;
+   //     finalize() ;
     }
 
     void clear() override ;

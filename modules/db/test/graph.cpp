@@ -5,6 +5,11 @@
 
 #include <cvx/util/misc/xml_writer.hpp>
 #include <cvx/util/misc/strings.hpp>
+#include <cvx/util/misc/path.hpp>
+
+
+#include <sqlite3.h>
+#include <spatialite.h>
 
 using namespace std ;
 using namespace cvx::util ;
@@ -219,17 +224,20 @@ void Graph::exportToOSM(const string &path) {
     }
 
     for( const auto &edge: edges_ ) {
-        for( const auto &node_id: edge.nodes_) {
+        for ( int i=0 ; i<edge.nodes_.size() ; i++ ) {
+            const string &node_id = edge.nodes_[i] ;
+            const Coord &coord = edge.coords_[i] ;
+
             auto it = nodes_.find(node_id) ;
-            if ( it != nodes_.end() ) {
-                const Node &node = (*it).second ;
-                writer.startTag("node")
-                        .attribute("id", node.id_)
-                        .attribute("lat", format("%.7f", node.lat_))
-                        .attribute("lon", format("%.7f", node.lon_))
+                if ( it == nodes_.end() ) {
+
+                    writer.startTag("node")
+                        .attribute("id", node_id)
+                        .attribute("lat", format("%.7f", coord.lat_))
+                        .attribute("lon", format("%.7f", coord.lon_))
                         .attribute("version", "1")
                         .endTag("node");
-            }
+                }
         }
     }
 
@@ -264,4 +272,127 @@ void Graph::exportToOSM(const string &path) {
     writer.endDocument() ;
 
 
+}
+
+class SpatialLiteSingleton
+{
+public:
+
+    static SpatialLiteSingleton instance_;
+
+    static SpatialLiteSingleton& instance() {
+        return instance_;
+    }
+
+private:
+
+    SpatialLiteSingleton () {
+        spatialite_init(false);
+    }
+
+    ~SpatialLiteSingleton () {
+        spatialite_cleanup();
+    }
+
+    SpatialLiteSingleton( SpatialLiteSingleton const & );
+
+    void operator = ( SpatialLiteSingleton const & );
+};
+
+SpatialLiteSingleton SpatialLiteSingleton::instance_ ;
+
+void Graph::write(const string &path) {
+    using namespace cvx::db ;
+
+    Path p(path) ;
+    Path::remove(p) ;
+
+    Connection con("sqlite:db=" + path + ";mode=rc") ;
+
+    con.execute("SELECT load_extension(\"libSqliteIcu\")") ;
+    con.execute("SELECT InitSpatialMetaData(1);");
+
+    writeNodes(con) ;
+    writeEdges(con) ;
+}
+
+void Graph::writeNodes(cvx::db::Connection &con)
+{
+    using namespace cvx::db ;
+
+    con.execute("DROP TABLE IF EXISTS `nodes`");
+
+    con.execute(R"(
+                CREATE TABLE IF NOT EXISTS `nodes` (
+            `id` INTEGER NOT NULL,
+            `lat` DOUBLE NOT NULL,
+            `lon` DOUBLE NOT NULL,
+            `ele` INTEGER NOT NULL,
+             PRIMARY KEY (`id`)
+            )
+    )") ;
+
+    Transaction trans = con.transaction() ;
+
+    Statement stmt = con.prepareStatement("INSERT INTO `nodes` (`id`, `lat`, `lon`, `ele`) VALUES ( ?, ?, ?, ? )");
+
+    for( const auto &np: nodes_ ) {
+        const Node &node = np.second ;
+        stmt.clear() ;
+        stmt(node.id_, node.lat_, node.lon_, node.ele_) ;
+
+    }
+
+    trans.commit() ;
+}
+
+void Graph::writeEdges(cvx::db::Connection &con)
+{
+    using namespace cvx::db ;
+
+    con.execute("DROP TABLE IF EXISTS `edges`");
+
+    con.execute(R"(
+                CREATE TABLE IF NOT EXISTS `edges` (
+                    id INTEGER NOT NULL,
+                    start INTEGER NOT NULL,
+                    stop INTEGER NOT NULL,
+                    dist DOUBLE NOT NULL,
+                    gain DOUBLE NOT NULL,
+                    loss DOUBLE NOT NULL,
+                    type INTEGER NOT NULL
+            )
+    )") ;
+
+    con.execute("SELECT AddGeometryColumn('edges', 'geom', 4326, 'MULTIPOINT', 'XYM')");
+    con.execute("SELECT CreateSpatialIndex('edges', 'geom')");
+
+    Statement stmt = con.prepareStatement(R"(INSERT INTO `edges` (`id`, `start`, `stop`, `dist`, `gain`, `loss`, `type`, `geom`) VALUES
+                     ( ?, ?, ?, ?, ?, ?, ?, ST_GeomFromText(?, 4326)) )") ;
+
+    int count = 0 ;
+
+    Transaction trans = con.transaction() ;
+
+    for ( Edge &e: edges_ ) {
+        string highway = e.tags_.get("highway") ;
+        string track_type = e.tags_.get("tracktype", "grade1") ;
+        int edge_type ;
+
+        if ( highway == "track" && ( track_type == "grade1" || track_type == "grade2" || track_type == "grade3"))
+            edge_type = 1 ;
+        else if ( highway == "track" && ( track_type == "grade4" || track_type == "grade5" ))
+            edge_type = 0 ;
+        else if ( highway == "path" || highway == "footway" || highway == "bridleway" || highway == "steps" || highway == "cycleway")
+            edge_type = 0 ;
+        else
+            edge_type = 2 ;
+
+    }
+
+    trans.commit() ;
+/*
+                        ocursor.execute(sql, (count, edge['start'], edge['stop'], elen, egain, eloss, edge_type, self.makeWKTMultiPointString(edge['pts'])))  ;
+                        count = count + 1 ;
+*/
 }

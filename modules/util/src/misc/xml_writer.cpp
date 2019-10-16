@@ -34,8 +34,9 @@ void XmlWriter::endDocument() {
 }
 
 void XmlWriter::indent() {
+     strm_ << "\n" ;
     if (! element_stack_.empty() ) {
-        strm_ << "\n" ;
+
 
         for( auto &e: element_stack_ )
             strm_ << "  " ;
@@ -87,6 +88,7 @@ XmlWriter &XmlWriter::endTag(const std::string &name) {
             if ( e.is_open_ )
                 strm_ << "/>";
             else {
+
                 indent() ;
                 strm_ << "</" << name << ">" ;
             }

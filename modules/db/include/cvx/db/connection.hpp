@@ -54,7 +54,8 @@ public:
 
     template<typename ...Args>
     void execute(const std::string &sql, Args... args) {
-        Statement(*this, sql)(args...) ;
+        Statement stmt(*this, sql) ;
+        stmt(args...) ;
     }
 
     Transaction transaction() ;
