@@ -1,6 +1,8 @@
 #include "osm_parser.hpp"
+#include "dem.hpp"
 
 #include <cvx/util/misc/xml_pull_parser.hpp>
+#include <cmath>
 
 using namespace cvx::util ;
 using namespace std ;
@@ -40,7 +42,7 @@ bool OSMParser::parse(std::istream &strm, OSMDocument &doc, Filter nodeFilter, F
                   } else if ( tagName == "way" ) {
                       OSMWay *way = dynamic_cast<OSMWay *>(current.get())   ;
                       if ( wayFilter == nullptr || wayFilter(way->tags_) )
-                        doc.ways_.emplace(way->id_, std::move(*way)) ;
+                        doc.ways_.emplace_back(*way) ;
                   }
 
               } else if ( et == XmlPullParser::TEXT ) {
@@ -52,4 +54,29 @@ bool OSMParser::parse(std::istream &strm, OSMDocument &doc, Filter nodeFilter, F
           return false ;
       }
 
+}
+
+
+void OSMDocument::fillInElevationsFromDEM(DEM &dem) {
+    for ( auto &lp: nodes_ ) {
+        OSMNode &node = lp.second ;
+        node.ele_ = dem.getElevation(node.lat_, node.lon_) ;
+    }
+
+
+}
+
+vector<Coord> OSMDocument::getLineString(const OSMWay &way) const
+{
+    vector<Coord> coords ;
+
+    for ( const auto &ref: way.nodes_ ) {
+        auto it = nodes_.find(ref) ;
+        if ( it != nodes_.end() ) {
+            const OSMNode &node = (*it).second ;
+            coords.emplace_back(node.lat_, node.lon_, node.ele_) ;
+        }
+    }
+
+    return coords ;
 }

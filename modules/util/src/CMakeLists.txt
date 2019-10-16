@@ -33,7 +33,8 @@ set ( LIB_SOURCES
     misc/sequence.cpp
     misc/filesystem.cpp
     misc/xml_pull_parser.cpp
-     misc/xml_sax_parser.cpp
+    misc/xml_sax_parser.cpp
+    misc/xml_writer.cpp
     misc/json_reader.cpp
     misc/json_writer.cpp
 
@@ -83,6 +84,7 @@ set ( LIB_HEADERS
     misc/filesystem.hpp
     misc/optional.hpp
     misc/xml_pull_parser.hpp
+    misc/xml_writer.hpp
     misc/json_reader.hpp
     misc/json_writer.hpp
     misc/variant.hpp
