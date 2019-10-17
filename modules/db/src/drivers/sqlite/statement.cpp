@@ -150,10 +150,10 @@ int SQLiteStatementHandle::placeholderNameToIndex(const std::string &name) {
 
 void SQLiteStatementHandle::exec()
 {
+    check() ;
 
-        check() ;
-
-        sqlite3_step(handle_) ;
+    if ( sqlite3_step(handle_) == SQLITE_ERROR )
+        throw SQLiteException(sqlite3_db_handle(handle_));
 
 }
 

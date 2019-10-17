@@ -204,23 +204,23 @@ void Graph::exportToOSM(const string &path) {
 
     writer.startDocument() ;
 
-    writer.startTag("osm")
+    writer.startElement("osm")
             .attribute("version", "0.6");
 
     for( const auto &np: nodes_ ) {
         const Node &node = np.second ;
-        writer.startTag("node")
+        writer.startElement("node")
                 .attribute("id", node.id_)
                 .attribute("lat", format("%.7f", node.lat_))
                 .attribute("lon", format("%.7f", node.lon_))
                 .attribute("version", "1") ;
 
-        writer.startTag("tag")
+        writer.startElement("tag")
                 .attribute("k", "place")
                 .attribute("v", "locality")
-                .endTag("tag") ;
+                .endElement() ;
 
-        writer.endTag("node") ;
+        writer.endElement() ;
     }
 
     for( const auto &edge: edges_ ) {
@@ -231,12 +231,12 @@ void Graph::exportToOSM(const string &path) {
             auto it = nodes_.find(node_id) ;
                 if ( it == nodes_.end() ) {
 
-                    writer.startTag("node")
+                    writer.startElement("node")
                         .attribute("id", node_id)
                         .attribute("lat", format("%.7f", coord.lat_))
                         .attribute("lon", format("%.7f", coord.lon_))
                         .attribute("version", "1")
-                        .endTag("node");
+                        .endElement();
                 }
         }
     }
@@ -244,30 +244,30 @@ void Graph::exportToOSM(const string &path) {
     int counter = 1000000 ;
 
     for( const auto &edge: edges_ ) {
-        writer.startTag("way")
+        writer.startElement("way")
                 .attribute("id", format("%d", counter++))
                 .attribute("version", "1");
 
-        writer.startTag("tag")
+        writer.startElement("tag")
                 .attribute("k", "gain")
                 .attribute("v", format("%.1f", edge.gain_))
-                .endTag("tag") ;
+                .endElement() ;
 
-        writer.startTag("tag")
+        writer.startElement("tag")
                 .attribute("k", "loss")
                 .attribute("v", format("%.1f", edge.loss_))
-                .endTag("tag") ;
+                .endElement() ;
 
         for( const auto &node_id: edge.nodes_) {
-            writer.startTag("nd")
+            writer.startElement("nd")
                  .attribute("ref", node_id)
-                 .endTag("nd") ;
+                 .endElement() ;
         }
 
-        writer.endTag("way") ;
+        writer.endElement() ;
     }
 
-    writer.endTag("osm") ;
+    writer.endElement() ;
 
     writer.endDocument() ;
 
@@ -309,7 +309,7 @@ void Graph::write(const string &path) {
 
     Connection con("sqlite:db=" + path + ";mode=rc") ;
 
-    con.execute("SELECT load_extension(\"libSqliteIcu\")") ;
+  //  con.execute("SELECT load_extension(\"libSqliteIcu\")") ;
     con.execute("SELECT InitSpatialMetaData(1);");
 
     writeNodes(con) ;
@@ -344,6 +344,22 @@ void Graph::writeNodes(cvx::db::Connection &con)
     }
 
     trans.commit() ;
+}
+
+static string makeWKTMultiPointString(const vector<Coord> &coords) {
+    string ptstring ;
+
+    for( const Coord &c: coords ) {
+        if ( ptstring.empty() )
+            ptstring = "MULTIPOINTM(" ;
+        else
+            ptstring += ',' ;
+        ptstring += format("%f %f %f", c.lon_, c.lat_, c.ele_) ;
+    }
+
+    ptstring += ')';
+
+    return ptstring;
 }
 
 void Graph::writeEdges(cvx::db::Connection &con)
@@ -388,11 +404,9 @@ void Graph::writeEdges(cvx::db::Connection &con)
         else
             edge_type = 2 ;
 
+        stmt.clear() ;
+        stmt(count++, e.start_, e.stop_, e.length_, e.gain_, e.loss_, edge_type, makeWKTMultiPointString(e.coords_)) ;
     }
 
     trans.commit() ;
-/*
-                        ocursor.execute(sql, (count, edge['start'], edge['stop'], elen, egain, eloss, edge_type, self.makeWKTMultiPointString(edge['pts'])))  ;
-                        count = count + 1 ;
-*/
 }

@@ -8,6 +8,8 @@
 
 namespace cvx { namespace util {
 
+// Minimal XML serializer class
+
 class XmlWriter {
 public:
     XmlWriter(std::ostream &strm): strm_(strm) {}
@@ -15,34 +17,52 @@ public:
     void startDocument (const std::string &encoding = "utf-8", bool standalone = true);
     void endDocument () ;
 
-    void setPrefix (const std::string &prefix, const std::string &ns) ;
 
-    XmlWriter &startTag (const std::string &name) ;
-    XmlWriter &startTagNS (const std::string &ns, const std::string &name) ;
+    XmlWriter &startElement (const std::string &name) ;
 
     XmlWriter &attribute(const std::string &name, const std::string &value);
-    XmlWriter &attributeNS(const std::string &ns, const std::string &name, const std::string &value);
 
-    XmlWriter &endTag (const std::string &name);
-    XmlWriter &endTagNS (const std::string &ns, const std::string &name);
+    XmlWriter &attributes(const std::map<std::string, std::string> &attrs) ;
+
+    XmlWriter &endElement ();
 
     XmlWriter &text(const std::string &txt);
 
+    // write a single element with associated text
+    XmlWriter &element(const std::string &tag, const std::string &value) {
+        return startElement(tag).text(value).endElement() ;
+    }
 
+
+    // enable/disable identation
+    XmlWriter &setIndent(bool indent) {
+        indent_ = indent ;
+        return *this ;
+    }
+
+    // set characters used for indentation
+    XmlWriter &setIndentChars(const std::string &s) {
+        indent_chars_ = s ;
+        return *this ;
+    }
+
+    XmlWriter &setIndentAttributes(bool ia) {
+        indent_attrs_ = ia ;
+        return *this ;
+    }
 
 private:
     std::ostream &strm_ ;
-    int depth = 0 ;
     std::string encoding_ ;
 
     struct Element {
-        std::string ns_ ;
         std::string name_ ;
         bool is_open_ ;
      };
 
     std::deque<Element> element_stack_ ;
-    std::string pendingText ;
+    std::string indent_chars_= "  ";
+    bool indent_ = true, indent_attrs_ = false ;
 
 private:
     void indent();
