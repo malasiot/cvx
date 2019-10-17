@@ -220,6 +220,11 @@ void Graph::exportToOSM(const string &path) {
                 .attribute("v", "locality")
                 .endElement() ;
 
+        writer.startElement("tag")
+                .attribute("k", "ele")
+                .attribute("v", format("%.1f", node.ele_))
+                .endElement() ;
+
         writer.endElement() ;
     }
 

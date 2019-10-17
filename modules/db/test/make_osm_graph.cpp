@@ -27,8 +27,8 @@ int main(int argc, char *argv[]) {
 
     Graph graph(doc) ;
     graph.computeEdgeStats(dem) ;
-    graph.exportToOSM("/home/malasiot/tmp/graph.osm") ;
-    graph.write("/home/malasiot/tmp/athos.sqlite");
+    graph.exportToOSM("/home/malasiot/Downloads/graph.osm") ;
+    graph.write("/home/malasiot/Downloads/routing.sqlite");
 
 
 }
