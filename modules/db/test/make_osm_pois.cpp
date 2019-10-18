@@ -14,7 +14,10 @@ int main(int argc, char *argv[]) {
     OSMParser parser ;
     OSMDocument doc ;
 
-    parser.parse(strm, doc, nullptr,
+    parser.parse(strm, doc, [](const Dictionary &tags)->bool {
+        if ( tags.empty() ) return false ;
+        return true ;
+    },
                  [](const Dictionary &)->bool {
           return false ;
     }) ;

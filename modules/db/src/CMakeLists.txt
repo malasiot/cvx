@@ -1,5 +1,4 @@
 SET( SOURCES
-
     
     connection.cpp
     driver_factory.cpp
@@ -15,7 +14,11 @@ SET( SOURCES
     drivers/sqlite/exceptions.cpp
     drivers/sqlite/statement.cpp
     drivers/sqlite/query_result.cpp
+
+    3rdparty/sqlite3/sqlite3.c
 )
+
+set_source_files_properties(3rdparty/sqlite3/sqlite3.c PROPERTIES COMPILE_FLAGS "-DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_ICU -DSQLITE_ENABLE_RTREE")
 
 IF ( PostgreSQL_FOUND )
     ADD_DEFINITIONS("-DHAS_PGSQL_DRIVER")
@@ -29,7 +32,8 @@ IF ( PostgreSQL_FOUND )
 )
 ENDIF ( PostgreSQL_FOUND )
 
+
 ADD_LIBRARY(cvx_db SHARED ${SOURCES})
-TARGET_LINK_LIBRARIES(cvx_db ${SQLITE3_LIBRARY} ${PostgreSQL_LIBRARIES} dl z pthread )
+TARGET_LINK_LIBRARIES(cvx_db ${SQLITE3_LIBRARY} ${PostgreSQL_LIBRARIES} ICU::uc ICU::i18n dl z pthread )
 
 

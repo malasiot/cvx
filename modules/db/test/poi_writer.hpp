@@ -16,7 +16,7 @@ public:
 private:
 
     void writeNodes(cvx::db::Connection &con, const POIConfig &cfg) ;
-    void makeNames(const std::string &lang, cvx::db::Connection &con);
+    void makeNames(const std::string &lang, cvx::db::Connection &con, const POIConfig &cfg);
     std::string getPOIName(const OSMNode &node, const std::string &lang) ;
     std::string getPOItype(const OSMNode &node, const POIConfig &cfg);
 

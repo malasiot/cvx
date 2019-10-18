@@ -1,4 +1,4 @@
-FIND_PACKAGE(Sqlite3 REQUIRED)
+FIND_PACKAGE(ICU  COMPONENTS uc i18n data REQUIRED)
 
 set(PostgreSQL_ADDITIONAL_VERSIONS "9.3")
 FIND_PACKAGE(PostgreSQL)
@@ -6,7 +6,7 @@ FIND_PACKAGE(PostgreSQL)
 INCLUDE_DIRECTORIES(
        ${CVX_INCLUDE_DIRS}
         include
-        ${SQLITE3_INCLUDE_DIR}
+        src/3rdparty/sqlite3
         ${PostgreSQL_INCLUDE_DIRS}
 )
 

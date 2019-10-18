@@ -73,11 +73,11 @@ void POIWriter::write(const std::string &db_path, const POIConfig &cfg) {
 
         Connection ldb_con("sqlite:db=" + localized_db_path.absolute() + ";mode=rc") ;
 
-        makeNames(lang, ldb_con) ;
+        makeNames(lang, ldb_con, cfg) ;
     }
 }
 
-void POIWriter::makeNames(const string &lang, Connection &con) {
+void POIWriter::makeNames(const string &lang, Connection &con, const POIConfig &config) {
     con.execute("DROP TABLE IF EXISTS `names`") ;
     con.execute(R"(  CREATE TABLE IF NOT EXISTS `names` (
                     `id` INTEGER NOT NULL,
@@ -87,7 +87,7 @@ void POIWriter::makeNames(const string &lang, Connection &con) {
     con.execute("CREATE INDEX `names_osm_id` ON `names` (`id`)") ;
 
     Transaction trans(con) ;
-    Statement stmt = con.prepareStatement("INSERT INTO `names` (`id`, `name`) VALUES ( ?, ? ))") ;
+    Statement stmt = con.prepareStatement("INSERT INTO `names` (`id`, `name`) VALUES ( ?, ? )") ;
 
     for ( const auto &np: doc_.nodes_ ) {
         const OSMNode &node = np.second ;
@@ -99,6 +99,23 @@ void POIWriter::makeNames(const string &lang, Connection &con) {
 
     con.execute("CREATE VIRTUAL TABLE `names_idx` USING FTS3 (id, content)");
     con.execute("INSERT INTO `names_idx` SELECT id, upper(name, '" + lang + "') as content FROM `names`") ;
+
+    con.execute("DROP TABLE IF EXISTS `categories`") ;
+    con.execute(R"(  CREATE TABLE IF NOT EXISTS `categories` (
+                    `id` TEXT NOT NULL,
+                    `name` TEXT NOT NULL,
+                    PRIMARY KEY(id) )
+                )");
+    trans = con.transaction() ;
+    stmt = con.prepareStatement("INSERT INTO `categories` (`id`, `name`) VALUES ( ?, ? )") ;
+
+    for ( const auto &cat: config.categories_ ) {
+        stmt.clear() ;
+        auto it = cat.lnames_.find(lang) ;
+        if ( it != cat.lnames_.end() )
+            stmt(cat.id_, (*it).second) ;
+    }
+    trans.commit() ;
 }
 
 string POIWriter::getPOIName(const OSMNode &node, const string &lang)
@@ -107,10 +124,10 @@ string POIWriter::getPOIName(const OSMNode &node, const string &lang)
         const string &tag_key = np.first ;
         const string &tag_value = np.second ;
         if ( startsWith(tag_key, "name") ) {
-            string tag_lang = tag_key.substr(5) ;
-            if ( tag_lang.empty() )
-                tag_lang = "el" ;
-            if ( lang == tag_lang ) return tag_value ;
+            string tag_lang ;
+            if ( tag_key.size() > 5 ) tag_lang = tag_key.substr(5) ;
+
+            if ( tag_lang.empty() || lang == tag_lang ) return tag_value ;
         }
     }
 
@@ -159,7 +176,7 @@ void POIWriter::writeNodes(cvx::db::Connection &con, const POIConfig &config)
                 )");
 
     Transaction trans =con.transaction() ;
-    Statement stmt = con.prepareStatement("INSERT INTO `poi_categories` (`id`, `name`) VALUES ( ?, ? ))") ;
+    Statement stmt = con.prepareStatement("INSERT INTO `poi_categories` (`id`, `key`) VALUES ( ?, ? )") ;
 
     int count = 0 ;
     std::map<string, int> categoryIndex ;
