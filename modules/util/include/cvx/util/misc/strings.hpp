@@ -1,5 +1,5 @@
-#ifndef __STRINGS_HPP__
-#define __STRINGS_HPP__
+#ifndef CVX_UTIL_STRINGS_HPP
+#define CVX_UTIL_STRINGS_HPP
 
 #include <string>
 #include <sstream>
