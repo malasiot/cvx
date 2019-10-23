@@ -128,7 +128,7 @@ void createScene() {
                 tr.translate(Vector3f{tx, ty, tz}) ;
                 node->matrix() = tr.matrix() ;
 
-                scene->addChild(node) ;
+               scene->addChild(node) ;
 
                 physics.createRigidBody(mass, node, colShape, localInertia);
             }

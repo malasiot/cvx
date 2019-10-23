@@ -31,11 +31,11 @@ MeshGeometry::MeshGeometry(const MeshPtr &mesh) {
 
 
 void BoxGeometry::makeMesh() {
-    mesh_ = Mesh::createSolidCube(halfExtents()) ;
+    mesh_ = Mesh::flatten(Mesh::createSolidCube(halfExtents())) ;
 }
 
 void CylinderGeometry::makeMesh() {
-    mesh_ = Mesh::createSolidCylinder(radius_, height_, 12, 10) ;
+    mesh_ = Mesh::flatten(Mesh::createSolidCylinder(radius_, height_, 12, 10)) ;
 }
 
 void SphereGeometry::makeMesh() {
