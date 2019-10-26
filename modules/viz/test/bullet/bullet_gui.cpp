@@ -61,7 +61,7 @@ TestAnimation::TestAnimation(ScenePtr scene, Physics &physics): scene_(scene), p
 
 void TestAnimation::mousePressEvent(QMouseEvent *event)
 {
-    if ( event->modifiers() & Qt::AltModifier ) {
+    if ( event->modifiers() & Qt::ControlModifier ) {
         Ray ray = camera_->getRay(event->x(), event->y()) ;
 
         physics_.pickBody(eigenVectorToBullet(ray.getOrigin()), eigenVectorToBullet(ray.getDir()*10000));
@@ -89,7 +89,7 @@ void TestAnimation::mousePressEvent(QMouseEvent *event)
 
 void TestAnimation::mouseReleaseEvent(QMouseEvent *event)
 {
-    if ( event->modifiers() & Qt::AltModifier ) {
+    if ( event->modifiers() & Qt::ControlModifier ) {
         physics_.removePickingConstraint();
         picking_ = false ;
     } else {

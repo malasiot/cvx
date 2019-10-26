@@ -669,7 +669,7 @@ MeshPtr Mesh::flatten(const MeshPtr &src) {
             const Vector3f &color = src_colors.data()[vidx] ;
             dst_colors.push_back(color) ;
         }
-
+/*
         for( uint t=0 ; t<MAX_TEXTURES ; t++ ) {
             auto uvs = src->texCoords(t) ;
             if ( uvs.hasIndices() ) {
@@ -682,7 +682,7 @@ MeshPtr Mesh::flatten(const MeshPtr &src) {
             }
 
         }
-
+*/
 
     }
 

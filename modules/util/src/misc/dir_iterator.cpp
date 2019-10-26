@@ -2,6 +2,8 @@
 #include <cvx/util/misc/strings.hpp>
 #include <cvx/util/misc/path.hpp>
 
+#include <cstring>
+
 using namespace std ;
 
 namespace cvx { namespace util {

@@ -32,8 +32,7 @@ IF ( PostgreSQL_FOUND )
 )
 ENDIF ( PostgreSQL_FOUND )
 
-
 ADD_LIBRARY(cvx_db SHARED ${SOURCES})
-TARGET_LINK_LIBRARIES(cvx_db ${SQLITE3_LIBRARY} ${PostgreSQL_LIBRARIES} ICU::uc ICU::i18n dl z pthread )
+TARGET_LINK_LIBRARIES(cvx_db ${SQLITE3_LIBRARY} ${PostgreSQL_LIBRARIES} ${ICU_LIBRARIES} ICU::uc ICU::i18n ICU::data dl z pthread )
 
 

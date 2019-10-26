@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.0.0)
 
 project(cvx)
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/CMake/ ${CMAKE_MODULE_PATH} )
+set(CMAKE_MODULE_PATH ${CMAKE_ROOT}/Modules ${CMAKE_CURRENT_SOURCE_DIR}/CMake/)
+message(${CMAKE_MODULE_PATH})
 
 include(Setup)
 include(CMakeDependentOption)

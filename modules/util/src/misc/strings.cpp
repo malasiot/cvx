@@ -1,6 +1,7 @@
 #include <cvx/util/misc/strings.hpp>
 
 #include <iostream>
+#include <cstring>
 
 using namespace std ;
 
