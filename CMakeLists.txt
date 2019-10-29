@@ -50,5 +50,12 @@ DeclareModule(NAME db BUILD "OFF" DEPENDS util)
 DeclareModule(NAME calib BUILD "OFF" DEPENDS util)
 DeclareModule(NAME stereo BUILD "OFF" DEPENDS util)
 
+option(BUILD_APPLICATIONS "build application" OFF)
+
+if ( BUILD_APPLICATIONS )
+    include(Applications)
+endif()
+
+
 include(${CMAKE_SOURCE_DIR}/CMake/Install.cmake)
 
