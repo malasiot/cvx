@@ -6,6 +6,7 @@
 #include <cvx/util/misc/path.hpp>
 #include <cvx/util/misc/strings.hpp>
 
+#include <cvx/db/exception.hpp>
 using namespace cvx::db ;
 using namespace cvx::util ;
 using namespace std ;
@@ -46,7 +47,7 @@ void POIWriter::write(const std::string &db_path, const POIConfig &cfg) {
     Path::remove(p) ;
 
     Connection con("sqlite:db=" + db_path + ";mode=rc") ;
-
+/*
     con.execute("SELECT InitSpatialMetaData('WGS84');");
 
     string greek_grid_srs_sql = R"(INSERT INTO spatial_ref_sys (srid, auth_name, auth_srid, ref_sys_name, proj4text, srtext) VALUES (2100, 'epsg', 2100, 'GGRS 87 / Greek Grid',
@@ -59,6 +60,10 @@ void POIWriter::write(const std::string &db_path, const POIConfig &cfg) {
             )";
 
     con.execute(greek_grid_srs_sql) ;
+*/
+
+    try {
+    con.execute("SELECT InitSpatialMetaData(1);");
 
     con.execute(R"(CREATE TABLE IF NOT EXISTS `metadata` ( `key` TEXT NOT NULL,
                 `value` TEXT NULL);)");
@@ -73,18 +78,30 @@ void POIWriter::write(const std::string &db_path, const POIConfig &cfg) {
 
         Connection ldb_con("sqlite:db=" + localized_db_path.absolute() + ";mode=rc") ;
 
+        ldb_con.execute("ATTACH DATABASE '"+ db_path + "' as pois") ;
+
         makeNames(lang, ldb_con, cfg) ;
+    }
+
+    } catch ( cvx::db::Exception &e ) {
+        cout << e.what() << endl ;
     }
 }
 
 void POIWriter::makeNames(const string &lang, Connection &con, const POIConfig &config) {
+
     con.execute("DROP TABLE IF EXISTS `names`") ;
     con.execute(R"(  CREATE TABLE IF NOT EXISTS `names` (
                     `id` INTEGER NOT NULL,
-                    `name` TEXT NOT NULL )
+                    `name` TEXT NOT NULL
+                     )
                 )");
 
     con.execute("CREATE INDEX `names_osm_id` ON `names` (`id`)") ;
+
+    con.execute("CREATE VIRTUAL TABLE `names_idx` USING FTS3 (content)");
+
+    con.execute("CREATE TRIGGER `after_names_insert` AFTER INSERT ON `names` BEGIN INSERT INTO names_idx (docid, content) VALUES ( new.id, upper(new.name, '" + lang + "') ) ; END") ;
 
     Transaction trans(con) ;
     Statement stmt = con.prepareStatement("INSERT INTO `names` (`id`, `name`) VALUES ( ?, ? )") ;
@@ -92,13 +109,12 @@ void POIWriter::makeNames(const string &lang, Connection &con, const POIConfig &
     for ( const auto &np: doc_.nodes_ ) {
         const OSMNode &node = np.second ;
         string name = getPOIName(node, lang) ;
-        stmt.clear() ;
-        stmt(node.id_, name) ;
+
+            stmt.clear() ;
+            stmt(node.id_, name) ;
+
     }
     trans.commit() ;
-
-    con.execute("CREATE VIRTUAL TABLE `names_idx` USING FTS3 (id, content)");
-    con.execute("INSERT INTO `names_idx` SELECT id, upper(name, '" + lang + "') as content FROM `names`") ;
 
     con.execute("DROP TABLE IF EXISTS `categories`") ;
     con.execute(R"(  CREATE TABLE IF NOT EXISTS `categories` (
@@ -106,6 +122,7 @@ void POIWriter::makeNames(const string &lang, Connection &con, const POIConfig &
                     `name` TEXT NOT NULL,
                     PRIMARY KEY(id) )
                 )");
+
     trans = con.transaction() ;
     stmt = con.prepareStatement("INSERT INTO `categories` (`id`, `name`) VALUES ( ?, ? )") ;
 
@@ -116,6 +133,7 @@ void POIWriter::makeNames(const string &lang, Connection &con, const POIConfig &
             stmt(cat.id_, (*it).second) ;
     }
     trans.commit() ;
+
 }
 
 string POIWriter::getPOIName(const OSMNode &node, const string &lang)
