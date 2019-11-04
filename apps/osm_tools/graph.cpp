@@ -381,15 +381,16 @@ void Graph::writeEdges(cvx::db::Connection &con)
                     dist DOUBLE NOT NULL,
                     gain DOUBLE NOT NULL,
                     loss DOUBLE NOT NULL,
-                    type INTEGER NOT NULL
+                    type INTEGER NOT NULL,
+                    state INTEGER NOT NULL
             )
     )") ;
 
     con.execute("SELECT AddGeometryColumn('edges', 'geom', 4326, 'MULTIPOINT', 'XYM')");
     con.execute("SELECT CreateSpatialIndex('edges', 'geom')");
 
-    Statement stmt = con.prepareStatement(R"(INSERT INTO `edges` (`id`, `start`, `stop`, `dist`, `gain`, `loss`, `type`, `geom`) VALUES
-                     ( ?, ?, ?, ?, ?, ?, ?, ST_GeomFromText(?, 4326)) )") ;
+    Statement stmt = con.prepareStatement(R"(INSERT INTO `edges` (`id`, `start`, `stop`, `dist`, `gain`, `loss`, `type`, `state`, `geom`) VALUES
+                     ( ?, ?, ?, ?, ?, ?, ?, ?, ST_GeomFromText(?, 4326)) )") ;
 
     int count = 0 ;
 
@@ -398,7 +399,8 @@ void Graph::writeEdges(cvx::db::Connection &con)
     for ( Edge &e: edges_ ) {
         string highway = e.tags_.get("highway") ;
         string track_type = e.tags_.get("tracktype", "grade1") ;
-        int edge_type ;
+        string state = e.tags_.get("state", "good") ;
+        int edge_type, way_state ;
 
         if ( highway == "track" && ( track_type == "grade1" || track_type == "grade2" || track_type == "grade3"))
             edge_type = 1 ;
@@ -409,8 +411,17 @@ void Graph::writeEdges(cvx::db::Connection &con)
         else
             edge_type = 2 ;
 
+        if ( state == "good" )
+            way_state = 0 ;
+        else if ( state == "intermediate" )
+            way_state = 1 ;
+        else if ( state == "bad" )
+            way_state = 2 ;
+        else if ( state == "unknown" )
+            way_state = -1 ;
+
         stmt.clear() ;
-        stmt(count++, e.start_, e.stop_, e.length_, e.gain_, e.loss_, edge_type, makeWKTMultiPointString(e.coords_)) ;
+        stmt(count++, e.start_, e.stop_, e.length_, e.gain_, e.loss_, edge_type, way_state, makeWKTMultiPointString(e.coords_)) ;
     }
 
     trans.commit() ;

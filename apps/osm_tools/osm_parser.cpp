@@ -20,13 +20,16 @@ bool OSMParser::parse(std::istream &strm, OSMDocument &doc, Filter nodeFilter, F
               if ( et == XmlPullParser::START_TAG ) {
                   auto attributes = parser.getAttributes() ;
                   string id = attributes.get("id") ;
+                  string action = attributes.get("action") ;
 
                   if ( tagName == "node" ) {
                       double lat = attributes.value<double>("lat") ;
                       double lon = attributes.value<double>("lon") ;
                       current.reset(new OSMNode(id, lat, lon)) ;
+                      current->setDeleted(action == "delete") ;
                   } else if ( tagName == "way" ) {
                       current.reset(new OSMWay(id)) ;
+                      current->setDeleted(action == "delete") ;
                   } else if ( tagName == "tag" ) {
                       current->tags_.add(attributes.get("k"), attributes.get("v")) ;
                   } else if ( tagName == "nd" ) {
@@ -36,13 +39,21 @@ bool OSMParser::parse(std::istream &strm, OSMDocument &doc, Filter nodeFilter, F
                   }
               } else if ( et == XmlPullParser::END_TAG ) {
                   if ( tagName == "node" ) {
-                      OSMNode *node = dynamic_cast<OSMNode *>(current.get())   ;
-                      if ( nodeFilter == nullptr || nodeFilter(node->tags_) )
-                         doc.nodes_.emplace(node->id_, std::move(*node)) ;
+                      if ( !current->isDeleted() ) {
+                        OSMNode *node = dynamic_cast<OSMNode *>(current.get())   ;
+                        if ( nodeFilter == nullptr || nodeFilter(node->tags_) )
+                             doc.nodes_.emplace(node->id_, std::move(*node)) ;
+                      }
                   } else if ( tagName == "way" ) {
+
+                      if ( !current->isDeleted() ) {
                       OSMWay *way = dynamic_cast<OSMWay *>(current.get())   ;
+                      if ( way->id_ == "82514026" ) {
+                          cout << "ok" << endl ;
+                      }
                       if ( wayFilter == nullptr || wayFilter(way->tags_) )
                         doc.ways_.emplace_back(*way) ;
+                      }
                   }
 
               } else if ( et == XmlPullParser::TEXT ) {

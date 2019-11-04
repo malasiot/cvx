@@ -9,9 +9,15 @@ class OSMFeature {
 public:
     std::string id_ ;
     Dictionary tags_ ;
+    bool is_deleted_ = false ;
 
     OSMFeature() = default ;
     OSMFeature(const std::string &id): id_(id) {}
+
+    bool isDeleted() const { return is_deleted_ ; }
+    void setDeleted(bool d) {
+        is_deleted_ = d ;
+    }
 
     virtual ~OSMFeature() {}
 };
