@@ -9,7 +9,7 @@ set(@PROJECT_NAME_UPPERCASE@_INCLUDE_DIRS "@INSTALL_INCLUDE_DIR@")
 # Import the exported targets
 include("@INSTALL_CMAKE_DIR@/@PROJECT_NAME@Targets.cmake")
 
-find_package(OpenCV 3 REQUIRED)
+find_package(OpenCV REQUIRED)
 
 IF( @PROJECT_NAME@_FIND_COMPONENTS )
   FOREACH(comp ${@PROJECT_NAME@_FIND_COMPONENTS})
