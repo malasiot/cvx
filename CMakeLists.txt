@@ -38,7 +38,7 @@ SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
 # the RPATH to be used when installing
-SET(CMAKE_INSTALL_RPATH "")
+SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
 # don't add the automatically determined parts of the RPATH
 # which point to directories outside the build tree to the install RPATH
@@ -49,6 +49,13 @@ DeclareModule(NAME viz BUILD "OFF" DEPENDS util)
 DeclareModule(NAME db BUILD "OFF" DEPENDS util)
 DeclareModule(NAME calib BUILD "OFF" DEPENDS util)
 DeclareModule(NAME stereo BUILD "OFF" DEPENDS util)
+
+option(BUILD_APPLICATIONS "build application" OFF)
+
+if ( BUILD_APPLICATIONS )
+    include(Applications)
+endif()
+
 
 include(${CMAKE_SOURCE_DIR}/CMake/Install.cmake)
 

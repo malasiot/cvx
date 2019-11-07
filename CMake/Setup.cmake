@@ -68,6 +68,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
 
+set(CVX_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
 # Create 'version.h'
 configure_file(${CMAKE_SOURCE_DIR}/CMake/version.h.in  "${CMAKE_CURRENT_BINARY_DIR}/version.h" @ONLY)
 

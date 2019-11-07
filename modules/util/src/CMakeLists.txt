@@ -5,8 +5,6 @@ find_package(ZLIB REQUIRED)
 find_package(F2C REQUIRED)
 find_package(LAPACK REQUIRED)
 
-message(${LAPACK_LIBRARIES})
-
 include_directories(
    ${CMAKE_CURRENT_SOURCE_DIR}/../include/
    ${EIGEN3_INCLUDE_DIR}
@@ -141,11 +139,12 @@ set_source_files_properties(rgbd/depth_filter/jointNearest.cpp
 add_library(cvx_util ${LIBRARY_TYPE} ${LIB_SOURCES} ${LIB_HEADERS_ABS})
 
 TARGET_LINK_LIBRARIES(cvx_util
-    levmar
-    ${OpenCV_LIBS}
-    ${LAPACK_LIBRARIES}
-    ${F2C_LIBRARIES}
-    ${ZLIB_LIBRARIES}
+    PUBLIC
+        ${OpenCV_LIBS}
+        levmar
+        ${LAPACK_LIBRARIES}
+        ${F2C_LIBRARIES}
+        ${ZLIB_LIBRARIES}
 )
 
 # Install library
