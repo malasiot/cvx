@@ -9,7 +9,8 @@ include_directories(
 
 ADD_DEFINITIONS(-DBT_USE_DOUBLE_PRECISION=1)
 
-add_executable(test_bullet test_bullet.cpp bullet_gui.cpp bullet_gui.hpp)
+add_executable(test_bullet test_bullet.cpp bullet_gui.cpp bullet_gui.hpp
+body.cpp body.hpp)
 target_link_libraries(test_bullet cvx_viz ${BULLET_LIBRARIES})
 
 add_executable(test_rope test_rope.cpp bullet_gui.cpp bullet_gui.hpp)
