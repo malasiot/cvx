@@ -24,6 +24,7 @@ set ( LIB_SOURCES
     misc/arg_parser.cpp
     misc/dir_iterator.cpp
     misc/path.cpp
+    misc/base64.cpp
 
     misc/strings.cpp
     misc/zstream.cpp
@@ -86,6 +87,7 @@ set ( LIB_HEADERS
     misc/json_reader.hpp
     misc/json_writer.hpp
     misc/variant.hpp
+    misc/base64.hpp
 
     geometry/point.hpp
     geometry/point_list.hpp

@@ -103,6 +103,49 @@ set(LIB_SOURCES
     ${LIBRARY_INCLUDE_DIR}/image/view.hpp
 )
 
+SET ( GFX_SOURCES
+    gfx/path.cpp
+    gfx/pen.cpp
+    gfx/color.cpp
+    gfx/image.cpp
+    gfx/text_layout.cpp
+
+    gfx/backends/cairo/canvas.cpp
+    gfx/backends/cairo/text_layout_engine.cpp
+    gfx/backends/cairo/text_layout_engine.hpp
+    gfx/backends/cairo/font_manager.cpp
+    gfx/backends/cairo/font_manager.hpp
+    gfx/backends/cairo/scrptrun.cpp
+    gfx/backends/cairo/text_path.cpp
+
+    gfx/svg/svg_parser.cpp
+    gfx/svg/svg_document.cpp
+    gfx/svg/svg_dom.cpp
+    gfx/svg/svg_length.cpp
+    gfx/svg/svg_parser.hpp
+    gfx/svg/svg_length.hpp
+    gfx/svg/svg_style.cpp
+    gfx/svg/svg_style.hpp
+    gfx/svg/svg_style_attributes.hpp
+    gfx/svg/svg_parse_util.cpp
+    gfx/svg/svg_parse_util.hpp
+    gfx/svg/svg_render_context.cpp
+    gfx/svg/svg_render_context.hpp
+
+    ${LIBRARY_INCLUDE_DIR}/gfx/backends/cairo/canvas.hpp
+
+    ${LIBRARY_INCLUDE_DIR}/gfx/font.hpp
+    ${LIBRARY_INCLUDE_DIR}/gfx/path.hpp
+    ${LIBRARY_INCLUDE_DIR}/gfx/canvas.hpp
+    ${LIBRARY_INCLUDE_DIR}/gfx/image.hpp
+    ${LIBRARY_INCLUDE_DIR}/gfx/vector.hpp
+    ${LIBRARY_INCLUDE_DIR}/gfx/rectangle.hpp
+    ${LIBRARY_INCLUDE_DIR}/gfx/xform.hpp
+    ${LIBRARY_INCLUDE_DIR}/gfx/text_layout.hpp
+    ${LIBRARY_INCLUDE_DIR}/gfx/glyph.hpp
+    ${LIBRARY_INCLUDE_DIR}/gfx/svg_document.hpp
+)
+
 QT5_ADD_RESOURCES(RCC_SRCS "image/mdi.qrc")
 
 add_library(cvx_viz ${LIBRARY_TYPE} ${LIB_SOURCES} ${RCC_SRCS})

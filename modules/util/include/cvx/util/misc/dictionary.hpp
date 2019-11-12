@@ -24,6 +24,12 @@ class Dictionary
     // remove all items
     void clear() ;
 
+    // if key exists run the given callback with corresponding value
+    void visit(const std::string &key, std::function<void(const std::string &val)> cb) const {
+        ContainerType::const_iterator it = container_.find(key) ;
+        if ( it != end() ) cb(it->second) ;
+    }
+
     // get a the value of the given key if exists. Otherwise return defaultValue
 
     std::string get(const std::string &key, const std::string &defaultVal = std::string()) const ;

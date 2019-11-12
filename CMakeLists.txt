@@ -45,6 +45,7 @@ SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 
 DeclareModule(NAME util BUILD "ON")
+DeclareModule(NAME gfx BUILD "ON" DEPENDS util)
 DeclareModule(NAME viz BUILD "OFF" DEPENDS util)
 DeclareModule(NAME db BUILD "OFF" DEPENDS util)
 DeclareModule(NAME calib BUILD "OFF" DEPENDS util)
