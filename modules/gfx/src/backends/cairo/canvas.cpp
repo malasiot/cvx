@@ -26,7 +26,7 @@ using namespace std;
 namespace cvx { namespace gfx {
 namespace detail {
 
-Backend::State::State(): font_("Arial", 10) {
+State::State(): font_("Arial", 10), pen_(new EmptyPen), brush_(new EmptyBrush) {
 
 }
 
@@ -174,8 +174,7 @@ void Backend::fill_stroke_shape() {
     const State &state = state_.top();
 
 
-    if ( state.brush_ )  {
-        const auto &br = state.brush_ ;
+    if ( Brush *br = dynamic_cast<Brush *>(state.brush_.get()) )  {
 
         set_cairo_fill(br) ;
 
@@ -183,35 +182,32 @@ void Backend::fill_stroke_shape() {
         else cairo_fill (cr());
     }
 
-    if ( state.pen_ )  {
-        const Pen &pen = *state.pen_ ;
-        set_cairo_stroke(pen) ;
-        cairo_stroke(cr()) ;
+    if ( Pen *pen = dynamic_cast<Pen *>(state.pen_.get()) )  {
+            set_cairo_stroke(*pen) ;
+            cairo_stroke(cr()) ;
+
     }
-
-
-
 }
 
-void Backend::set_cairo_fill(const std::shared_ptr<Brush> &br) {
+void Backend::set_cairo_fill(const Brush *br) {
 
     if ( br->fillRule() == FillRule::EvenOdd)
         cairo_set_fill_rule (cr(), CAIRO_FILL_RULE_EVEN_ODD);
     else if ( br->fillRule() == FillRule::NonZero )
         cairo_set_fill_rule (cr(), CAIRO_FILL_RULE_WINDING);
 
-    if ( const auto &brush = dynamic_cast<SolidBrush *>(br.get()) )
+    if ( const SolidBrush *brush = dynamic_cast<const SolidBrush *>(br) )
     {
         const Color &clr = brush->color() ;
 
         if ( clr.a() * br->fillOpacity()  == 1.0 ) cairo_set_source_rgb(cr(), clr.r(), clr.g(), clr.b()) ;
         else cairo_set_source_rgba(cr(), clr.r(), clr.g(), clr.b(), clr.a() * br->fillOpacity() ) ;
     }
-    else if ( const auto &brush = dynamic_cast<LinearGradientBrush *>(br.get()) )
+    else if ( const LinearGradientBrush *brush = dynamic_cast<const LinearGradientBrush *>(br) )
         cairo_apply_linear_gradient(*brush) ;
-    else if ( const auto &brush = dynamic_cast<RadialGradientBrush *>(br.get()) )
+    else if ( const RadialGradientBrush *brush = dynamic_cast<const RadialGradientBrush *>(br) )
         cairo_apply_radial_gradient(*brush) ;
-    else if ( const auto &brush = dynamic_cast<PatternBrush *>(br.get()) )
+    else if ( const PatternBrush *brush = dynamic_cast<const PatternBrush *>(br) )
         cairo_apply_pattern(*brush) ;
 }
 
@@ -371,30 +367,19 @@ Backend::~Backend() {
 
 } // namespace detail
 
-void Canvas::setPen(const Pen &pen) {
-    state_.top().pen_ = std::make_shared<Pen>(pen) ;
+void Canvas::setPen(const PenBase &pen) {
+    state_.top().pen_ = pen.clone() ;
 }
 
-void Canvas::setBrush(const SolidBrush &br) {
-    state_.top().brush_ = std::make_shared<SolidBrush>(br) ;
-}
-
-void Canvas::setBrush(const LinearGradientBrush &br) {
-    state_.top().brush_ = std::make_shared<LinearGradientBrush>(br) ;
-}
-
-
-void Canvas::setBrush(const RadialGradientBrush &br) {
-    state_.top().brush_ = std::make_shared<RadialGradientBrush>(br) ;
-}
-
-void Canvas::setBrush(const PatternBrush &br) {
-    state_.top().brush_ = std::make_shared<PatternBrush>(br) ;
+void Canvas::setBrush(const BrushBase &br) {
+    state_.top().brush_ = br.clone() ;
 }
 
 void Canvas::save() {
     cairo_save(cr()) ;
-    state_.push(state_.top()) ;
+
+    detail::State inherited(state_.top()) ;
+    state_.emplace(inherited) ;
 }
 
 void Canvas::restore() 	{

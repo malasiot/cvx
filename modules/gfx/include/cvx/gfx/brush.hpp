@@ -13,7 +13,12 @@ enum class FillRule { EvenOdd, NonZero } ;
 
 // abstract class for all brush type
 
-class Brush {
+class BrushBase {
+public:
+    virtual std::unique_ptr<BrushBase> clone() const = 0 ;
+};
+
+class Brush: public BrushBase {
 public:
 
     virtual ~Brush() = default;
@@ -36,6 +41,11 @@ public:
 } ;
 
 
+class EmptyBrush: public BrushBase {
+public:
+    std::unique_ptr<BrushBase> clone() const override { return std::unique_ptr<BrushBase>(new EmptyBrush(*this)) ; }
+};
+
 class SolidBrush: public Brush {
 
 public:
@@ -43,6 +53,8 @@ public:
     SolidBrush(const Color &clr): clr_(clr) {}
 
     const Color color() const { return clr_ ; }
+
+    std::unique_ptr<BrushBase> clone() const override { return std::unique_ptr<BrushBase>(new SolidBrush(*this)) ; }
 
 private:
 
@@ -74,6 +86,8 @@ public:
     const Matrix2d &transform() const { return tr_ ; }
     const std::vector<Stop> &stops() const { return stops_ ; }
 
+    std::unique_ptr<BrushBase> clone() const  override { return std::unique_ptr<BrushBase>(new GradientBrush(*this)) ; }
+
 protected:
 
     GradientBrush(): sm_(SpreadMethod::Pad) {}
@@ -93,10 +107,13 @@ public:
     LinearGradientBrush(double x0, double y0, double x1, double y1):
         x0_(x0), y0_(y0), x1_(x1), y1_(y1) {}
 
+    std::unique_ptr<BrushBase> clone() const override { return std::unique_ptr<BrushBase>(new LinearGradientBrush(*this)) ; }
+
     double x0() const { return x0_ ; }
     double y0() const { return y0_ ; }
     double x1() const { return x1_ ; }
     double y1() const { return y1_ ; }
+
 
 private:
 
@@ -109,6 +126,8 @@ public:
 
     RadialGradientBrush(double cx, double cy, double r, double fx = 0, double fy = 0):
         cx_(cx), cy_(cy), fx_(fx), fy_(fy), r_(r)  {}
+
+    std::unique_ptr<BrushBase> clone() const override { return std::unique_ptr<BrushBase>(new RadialGradientBrush(*this)) ; }
 
     double cx() const { return cx_ ; }
     double cy() const { return cy_ ; }
@@ -128,6 +147,8 @@ class PatternBrush: public Brush {
 public:
 
     PatternBrush(const std::shared_ptr<Canvas> &pattern):  pattern_(pattern), sm_(SpreadMethod::Pad)  {}
+
+    std::unique_ptr<BrushBase> clone() const override { return std::unique_ptr<BrushBase>(new PatternBrush(*this)) ; }
 
     void setTransform(const Matrix2d &trans) { tr_ = trans ; }
     void setSpread(SpreadMethod method) { sm_ = method ; }

@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
 
     ImageCanvas canvas(1024, 512) ;
 
-    canvas.setClipMask(mask) ;
+   // canvas.setClipMask(mask) ;
 
     canvas.setBrush(SolidBrush(Color(1, 1, 1, 1))) ;
     canvas.drawRect(0, 0, 1024, 512) ;
@@ -44,6 +44,8 @@ int main(int argc, char *argv[]) {
     Rectangle2d rect(0, 0, 100, 100) ;
 
     canvas.setTransform(Matrix2d::translation({50, 50})) ;
+
+     canvas.setBrush(SolidBrush({0.1, 0.3, 0.5})) ;
 
     double angle = 0 ;
     for( double x = 0 ; x < 1024 ; x += 200 )
@@ -59,11 +61,13 @@ int main(int argc, char *argv[]) {
 
             canvas.setTransform(tr) ;
 
-            canvas.setBrush(SolidBrush({0.1, 0.3, 0.5})) ;
+
 
             drawShape(canvas, rect) ;
 
             canvas.restore() ;
+
+            break ;
         }
 
 

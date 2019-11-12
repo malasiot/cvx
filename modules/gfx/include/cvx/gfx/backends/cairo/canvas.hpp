@@ -15,6 +15,21 @@
 namespace cvx { namespace gfx {
 namespace detail {
 
+struct State {
+     State() ;
+     State(const State &other):
+            pen_(other.pen_->clone()),
+            brush_(other.brush_->clone()),
+            font_(other.font_),
+            trans_(other.trans_){}
+
+     std::unique_ptr<PenBase> pen_;
+     std::unique_ptr<BrushBase> brush_ ;
+
+     Font font_ ;
+     Matrix2d trans_ ;
+ };
+
 class Backend {
 public:
     cairo_t *source_cr_ = nullptr, *cr_ = nullptr;
@@ -24,15 +39,7 @@ public:
     Backend() ;
     ~Backend() ;
 
-    struct State {
-         State() ;
 
-         std::shared_ptr<Pen> pen_ ;
-         std::shared_ptr<Brush> brush_ ;
-
-         Font font_ ;
-         Matrix2d trans_ ;
-     };
 
     std::stack<State> state_ ;
 
@@ -45,7 +52,7 @@ protected:
     void cairo_apply_radial_gradient(const RadialGradientBrush &rg);
     void cairo_apply_pattern(const PatternBrush &pat);
     void fill_stroke_shape();
-    void set_cairo_fill(const std::shared_ptr<Brush> &br);
+    void set_cairo_fill(const Brush *br);
     void line_path(double x0, double y0, double x1, double y1) ;
     void rect_path(double x0, double y9, double w, double h) ;
     void path(const Path &path) ;

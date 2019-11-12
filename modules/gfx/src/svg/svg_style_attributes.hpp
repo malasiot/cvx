@@ -6,6 +6,7 @@
 #include "svg_parse_util.hpp"
 
 #include <cvx/gfx/color.hpp>
+#include <cvx/util/misc/optional.hpp>
 
 namespace svg {
 
@@ -97,17 +98,16 @@ struct StrokePaint: public Paint {
     StrokePaint(const CSSColor &clr): Paint(clr) {}
 } ;
 
+
 #define SVG_STYLE_ATTRIBUTE(aname, atype, avar, adef)\
     protected:\
-    std::shared_ptr<atype> avar ;\
+    cvx::util::optional<atype> avar ;\
     public:\
     void set##aname(const atype &v) {\
-    if ( !avar ) avar.reset(new atype(v)) ;\
-    else *avar = v ;\
+    avar = v ;\
 }\
     atype get##aname() const {\
-    if ( !avar ) return adef ;\
-    else return *avar ;\
+    return avar.value_or(adef) ;\
 }\
 
 

@@ -9,6 +9,8 @@
 
 #include "svg_style_attributes.hpp"
 
+#include <cvx/util/misc/optional.hpp>
+
 namespace svg {
 
 class Element ;
@@ -60,12 +62,12 @@ public:
 private:
 
     template<typename T>
-    void parseAttribute(const std::string &name, const std::string &val, std::shared_ptr<T> &a) {
+    void parseAttribute(const std::string &name, const std::string &val, cvx::util::optional<T> &a) {
         T tmp ;
         if ( !tmp.parse(val) )
             throw SVGDOMAttributeValueException(name, val) ;
         else
-            a.reset(new T(tmp)) ;
+            a = tmp ;
     }
 
     static bool parseOpacity(const std::string &str, float &v);
@@ -73,7 +75,7 @@ private:
 } ;
 
 template<>
-void Style::parseAttribute(const std::string &name, const std::string &val, std::shared_ptr<CSSColor> &a) ;
+void Style::parseAttribute(const std::string &name, const std::string &val, cvx::util::optional<CSSColor> &a) ;
 
 } // namespace svg
 

@@ -3,6 +3,7 @@
 
 #include <cvx/gfx/color.hpp>
 #include <vector>
+#include <memory>
 
 namespace cvx { namespace gfx {
 
@@ -14,9 +15,8 @@ class PenBase {
 
 public:
 
-    enum Type { None, Cosmetic } ;
+    virtual std::unique_ptr<PenBase> clone() const = 0 ;
 
-    virtual Type type() const = 0 ;
 } ;
 
 class Pen: public PenBase {
@@ -24,6 +24,7 @@ class Pen: public PenBase {
 public:
 
     Pen( const Color &clr = Color(0, 0, 0), double line_width = 1.0, LineStyle style = SolidLine ) ;
+    std::unique_ptr<PenBase> clone() const override { return std::unique_ptr<Pen>(new Pen(*this)) ; }
 
     Pen &setColor(const Color &brush) ;
     Pen &setLineWidth(double width) ;
@@ -45,8 +46,6 @@ public:
 
 private:
 
-    Type type() const override { return PenBase::Cosmetic ; }
-
     double line_width_, miter_limit_ = 0 ;
     LineJoin line_join_ = LineJoin::Round ;
     LineCap line_cap_ = LineCap::Round ;
@@ -59,7 +58,7 @@ private:
 class EmptyPen: public PenBase {
 public:
     EmptyPen() {}
-    Type type() const { return PenBase::None ; }
+    std::unique_ptr<PenBase> clone() const override { return std::unique_ptr<PenBase>(new EmptyPen(*this)) ; }
 };
 
 

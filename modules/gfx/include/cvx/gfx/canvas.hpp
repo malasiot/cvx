@@ -39,11 +39,8 @@ public:
 
     void setTransform(const Matrix2d &tr) ;
 
-    void setPen(const Pen &pen) ;
-    void setBrush(const SolidBrush &brush) ;
-    void setBrush(const LinearGradientBrush &brush) ;
-    void setBrush(const RadialGradientBrush &brush) ;
-    void setBrush(const PatternBrush &brush) ;
+    void setPen(const PenBase &pen) ;
+    void setBrush(const BrushBase &brush) ;
     void setFont(const Font &font) ;
 
     void clearBrush()  ;

@@ -375,11 +375,10 @@ bool FontSize::parse(const string &val) {
 }
 
 template<>
-void Style::parseAttribute(const std::string &name, const std::string &val, std::shared_ptr<CSSColor> &a) {
+void Style::parseAttribute(const std::string &name, const std::string &val, cvx::util::optional<CSSColor> &a) {
 
     try {
-        CSSColor clr(val) ;
-        a.reset(new CSSColor(clr)) ;
+        a.emplace(val) ;
     }
     catch ( cvx::gfx::CSSColorParseException & ) {
         throw SVGDOMAttributeValueException(name, val) ;
