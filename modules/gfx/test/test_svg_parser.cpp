@@ -16,13 +16,15 @@ int main(int argc, char *argv[]) {
     try {
         doc.readStream(strm) ;
 
-        ImageCanvas canvas(1024, 512, 96) ;
+        ImageSurface is(1025, 512, 96, 96) ;
+        Canvas canvas(is) ;
 
-       canvas.setBrush(SolidBrush(Color(NamedColor::white(), 0))) ;
+        canvas.setBrush(SolidBrush(Color(NamedColor::white(), 0))) ;
         canvas.drawRect(0, 0, 1024, 512) ;
         canvas.drawSVG(doc) ;
 
-        canvas.getImage().saveToPNG("/tmp/oo.png") ;
+        is.flush() ;
+        is.getImage().saveToPNG("/tmp/oo.png") ;
 
     }
     catch ( SVGLoadException &e ) {

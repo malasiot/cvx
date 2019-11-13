@@ -13,9 +13,10 @@ class RenderingContext {
 public:
 
       RenderingContext(cvx::gfx::Canvas &canvas, RenderingMode m = RenderingMode::Display): canvas_(canvas), rendering_mode_(m) {
-          view_boxes_.push_back({0, 0, (float)canvas.width(), (float)canvas.height()}) ;
-          dpi_x_ = canvas_.dpiX() ;
-          dpi_y_ = canvas_.dpiY() ;
+          const cvx::gfx::Surface &s = canvas.surface() ;
+          view_boxes_.push_back({0, 0, (float)s.width(), (float)s.height()}) ;
+          dpi_x_ = s.dpiX() ;
+          dpi_y_ = s.dpiY() ;
           font_sizes_.push_back(12) ;
       }
 

@@ -7,16 +7,20 @@ using namespace std ;
 
 int main(int argc, char *argv[]) {
 
-    auto pattern = std::make_shared<PatternCanvas>(64, 64) ;
+    RecordingSurface pattern(64, 64) ;
 
-    pattern->setPen(Pen()) ;
-    pattern->setBrush(SolidBrush(NamedColor::blue())) ;
+    Canvas pc(pattern) ;
 
-    pattern->drawCircle(32, 32, 32) ;
+    pc.setPen(Pen()) ;
+    pc.setBrush(SolidBrush(NamedColor::blue())) ;
 
-  //  pattern.getImage().saveToPNG("/tmp/pattern.png") ;
+    pc.drawCircle(32, 32, 32) ;
 
-    ImageCanvas canvas(512, 512) ;
+    pattern.flush() ;
+
+    ImageSurface is(512, 512, 92, 92) ;
+
+    Canvas canvas(is) ;
 
     PatternBrush brush(pattern) ;
     brush.setSpread(SpreadMethod::Repeat) ;
@@ -24,6 +28,8 @@ int main(int argc, char *argv[]) {
     canvas.setBrush(brush) ;
     canvas.drawRect(10, 10, 500, 500) ;
 
-    canvas.getImage().saveToPNG("/tmp/canvas.png") ;
+    is.flush() ;
+
+    is.getImage().saveToPNG("/tmp/canvas.png") ;
 
 }

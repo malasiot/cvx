@@ -76,4 +76,5 @@ void Canvas::drawSVG(const SVGDocument &doc)
     ctx.render(*root) ;
 }
 
+
 }}

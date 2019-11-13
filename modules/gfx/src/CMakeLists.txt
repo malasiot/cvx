@@ -29,6 +29,8 @@ set(LIB_SOURCES
     backends/cairo/font_manager.hpp
     backends/cairo/scrptrun.cpp
     backends/cairo/text_path.cpp
+    backends/cairo/surface.cpp
+    backends/cairo/text.cpp
 
     ${LIBRARY_INCLUDE_DIR}/backends/cairo/canvas.hpp
 

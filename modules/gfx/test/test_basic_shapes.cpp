@@ -18,35 +18,43 @@ void drawShape(Canvas &canvas, const Rectangle2d &rect) {
 
 int main(int argc, char *argv[]) {
 
-    std::shared_ptr<ImageCanvas> mask(new ImageCanvas(400, 400)) ;
+    ImageSurface ms(400, 400) ;
+    Canvas mask(ms) ;
 
-    mask->setBrush(SolidBrush(Color(0, 0, 0, 0))) ;
-    mask->drawRect(0, 0, 400, 400) ;
-    mask->setBrush(SolidBrush(NamedColor::white())) ;
-    mask->drawCircle(100, 100, 250) ;
+    mask.fill(Color(0, 0, 0, 0));
+    mask.setBrush(SolidBrush(NamedColor::white())) ;
+    mask.drawCircle(100, 100, 250) ;
+
+    ms.flush() ;
+    ms.getImage().saveToPNG("/tmp/mask.png") ;
+
+    ImageSurface is(1024, 512) ;
+    Canvas canvas(is) ;
 
 
-    mask->getImage().saveToPNG("/tmp/mask.png") ;
-
-    ImageCanvas canvas(1024, 512) ;
-
-   // canvas.setClipMask(mask) ;
-
-    canvas.setBrush(SolidBrush(Color(1, 1, 1, 1))) ;
-    canvas.drawRect(0, 0, 1024, 512) ;
+    canvas.fill(NamedColor::white()) ;
 
     canvas.setPen(Pen()) ;
     canvas.setBrush(SolidBrush(NamedColor::blue())) ;
 
     canvas.save() ;
 
-
     Rectangle2d rect(0, 0, 100, 100) ;
 
-    canvas.setTransform(Matrix2d::translation({50, 50})) ;
+ //   canvas.setTransform(Matrix2d::translation({50, 50})) ;
 
-     canvas.setBrush(SolidBrush({0.1, 0.3, 0.5})) ;
+    canvas.setBrush(SolidBrush({0.1, 0.3, 0.5})) ;
 
+    Path clipPath ;
+
+    clipPath.addRect(0, 0, 1024, 512) ;
+    clipPath.addArc(100, 100, 50, 50, 0, 360) ;
+    clipPath.closePath() ;
+
+    // https://www.cairographics.org/cookbook/outside_clipping/
+    canvas.setClipPath(clipPath, FillRule::EvenOdd) ;
+
+    canvas.setBlendMode(BlendMode::XOR) ;
     double angle = 0 ;
     for( double x = 0 ; x < 1024 ; x += 200 )
         for( double y = 0 ; y<512 ; y += 200 ) {
@@ -59,7 +67,12 @@ int main(int argc, char *argv[]) {
 
             canvas.save() ;
 
+            Path clipPath ;
+
+            clipPath.addRect(0, 0, 30, 30) ;
+
             canvas.setTransform(tr) ;
+        //    canvas.setClipPath(clipPath) ;
 
 
 
@@ -67,12 +80,15 @@ int main(int argc, char *argv[]) {
 
             canvas.restore() ;
 
-            break ;
+
         }
 
 
     canvas.restore() ;
 
-    canvas.getImage().saveToPNG("/tmp/oo.png") ;
+    is.flush() ;
+
+  //  is.clip(ms) ;
+    is.getImage().saveToPNG("/tmp/oo.png") ;
 
 }

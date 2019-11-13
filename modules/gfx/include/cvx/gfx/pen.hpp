@@ -16,7 +16,7 @@ class PenBase {
 public:
 
     virtual std::unique_ptr<PenBase> clone() const = 0 ;
-
+    bool isEmpty() const ;
 } ;
 
 class Pen: public PenBase {
@@ -61,6 +61,9 @@ public:
     std::unique_ptr<PenBase> clone() const override { return std::unique_ptr<PenBase>(new EmptyPen(*this)) ; }
 };
 
+inline bool PenBase::isEmpty() const {
+    return dynamic_cast<const EmptyPen *>(this) != nullptr;
+}
 
 } }
 

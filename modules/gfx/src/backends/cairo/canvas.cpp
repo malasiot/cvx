@@ -30,16 +30,8 @@ State::State(): font_("Arial", 10), pen_(new EmptyPen), brush_(new EmptyBrush) {
 
 }
 
-Backend::Backend() {
-    State st ;
-    state_.push(std::move(st)) ;
-}
 
-void Backend::init() {
-    cr_ = source_cr_ ;
-}
-
-void Backend::set_cairo_stroke(const Pen &pen) {
+void RenderingContext::set_cairo_stroke(const Pen &pen) {
 
     const Color &clr = pen.lineColor() ;
 
@@ -84,7 +76,7 @@ void Backend::set_cairo_stroke(const Pen &pen) {
         cairo_set_dash(cr(), &dash_array[0], dash_array.size(), dash_offset) ;
 }
 
-void Backend::cairo_apply_linear_gradient(const LinearGradientBrush &lg) {
+void RenderingContext::cairo_apply_linear_gradient(const LinearGradientBrush &lg) {
     cairo_pattern_t *pattern;
     cairo_matrix_t matrix;
 
@@ -113,7 +105,7 @@ void Backend::cairo_apply_linear_gradient(const LinearGradientBrush &lg) {
     cairo_pattern_destroy (pattern);
 }
 
-void Backend::cairo_apply_radial_gradient(const RadialGradientBrush &rg) {
+void RenderingContext::cairo_apply_radial_gradient(const RadialGradientBrush &rg) {
     cairo_pattern_t *pattern;
     cairo_matrix_t matrix;
 
@@ -142,9 +134,9 @@ void Backend::cairo_apply_radial_gradient(const RadialGradientBrush &rg) {
     cairo_pattern_destroy (pattern);
 }
 
-void Backend::cairo_apply_pattern(const PatternBrush &pat) {
+void RenderingContext::cairo_apply_pattern(const PatternBrush &pat) {
 
-    Canvas &c = pat.pattern() ;
+    const Surface &c = pat.pattern() ;
 
     cairo_pattern_t *pattern = cairo_pattern_create_for_surface (c.surf_);
 
@@ -169,27 +161,25 @@ void Backend::cairo_apply_pattern(const PatternBrush &pat) {
     cairo_pattern_destroy (pattern);
 }
 
-void Backend::fill_stroke_shape() {
+void RenderingContext::fill_stroke_shape() {
 
     const State &state = state_.top();
-
 
     if ( Brush *br = dynamic_cast<Brush *>(state.brush_.get()) )  {
 
         set_cairo_fill(br) ;
 
-        if ( state.pen_  ) cairo_fill_preserve(cr()) ;
+        if ( !state.pen_->isEmpty()  ) cairo_fill_preserve(cr()) ;
         else cairo_fill (cr());
     }
 
     if ( Pen *pen = dynamic_cast<Pen *>(state.pen_.get()) )  {
             set_cairo_stroke(*pen) ;
             cairo_stroke(cr()) ;
-
     }
 }
 
-void Backend::set_cairo_fill(const Brush *br) {
+void RenderingContext::set_cairo_fill(const Brush *br) {
 
     if ( br->fillRule() == FillRule::EvenOdd)
         cairo_set_fill_rule (cr(), CAIRO_FILL_RULE_EVEN_ODD);
@@ -212,12 +202,12 @@ void Backend::set_cairo_fill(const Brush *br) {
 }
 
 
-void Backend::line_path(double x0, double y0, double x1, double y1) {
+void RenderingContext::line_path(double x0, double y0, double x1, double y1) {
     cairo_move_to(cr(), x0, y0) ;
     cairo_line_to(cr(), x1, y1) ;
 }
 
-void Backend::polyline_path(double *pts, int n, bool close) {
+void RenderingContext::polyline_path(double *pts, int n, bool close) {
     if ( n < 2 ) return ;
 
     cairo_move_to(cr(), pts[0], pts[1]) ;
@@ -228,13 +218,13 @@ void Backend::polyline_path(double *pts, int n, bool close) {
     if ( close ) cairo_close_path(cr()) ;
 }
 
-cairo_t *Backend::cr() {
-    return ( cr_ == nullptr ) ? source_cr_ : cr_ ;
+cairo_t *RenderingContext::cr() {
+    return cr_ ;
 }
 
 
 
-void Backend::path(const Path &path) {
+void RenderingContext::path(const Path &path) {
 
     cairo_new_path(cr()) ;
 
@@ -258,7 +248,7 @@ void Backend::path(const Path &path) {
 }
 
 
-void Backend::rect_path(double x0, double y0, double w, double h) {
+void RenderingContext::rect_path(double x0, double y0, double w, double h) {
     cairo_rectangle(cr(), x0, y0, w, h);
 }
 
@@ -338,30 +328,13 @@ cairo_surface_t *cairo_create_image_surface(const Image &im)
     return psurf ;
 }
 
-void Backend::flush() {
 
-    if ( proxy_surf_ ) {
-        // apply the mask and copy to surface
-
-        cairo_set_source_surface(source_cr_, proxy_surf_, 0, 0);
-        cairo_mask_surface(source_cr_, mask_->surf_, 0, 0) ;
-        cairo_fill(source_cr_) ;
-        cairo_surface_destroy(proxy_surf_) ;
-        proxy_surf_ = nullptr ;
-    }
-
-    cairo_surface_flush(surf_) ;
-
+RenderingContext::RenderingContext() {
 
 }
 
-Backend::~Backend() {
-
-    flush() ;
-
-    cairo_surface_finish (surf_);
-    cairo_surface_destroy (surf_);
-    cairo_destroy(source_cr_) ;
+RenderingContext::~RenderingContext() {
+    cairo_destroy(cr_) ;
 }
 
 
@@ -375,6 +348,7 @@ void Canvas::setBrush(const BrushBase &br) {
     state_.top().brush_ = br.clone() ;
 }
 
+
 void Canvas::save() {
     cairo_save(cr()) ;
 
@@ -387,19 +361,8 @@ void Canvas::restore() 	{
     state_.pop() ;
 }
 
-
-
-
 void Canvas::setFont(const Font &font) {
     state_.top().font_ = font ;
-}
-
-void Canvas::clearBrush() {
-    state_.top().brush_.reset() ;
-}
-
-void Canvas::clearPen() {
-    state_.top().pen_.reset() ;
 }
 
 
@@ -587,16 +550,53 @@ static void cairo_push_transform(cairo_t *cr, const Matrix2d &a)
     cairo_transform (cr, &matrix);
 }
 
+void Canvas::fill(const Color &color)
+{
+    if ( color.a() == 1.0 )
+        cairo_set_source_rgb(cr_, color.r(), color.g(), color.b()) ;
+    else
+        cairo_set_source_rgba(cr_, color.r(), color.g(), color.b(), color.a()) ;
+
+    cairo_paint(cr_) ;
+}
+
+void Canvas::setBlendMode(BlendMode mode) {
+    switch ( mode ) {
+    case SRC_OVER:  cairo_set_operator(cr_, CAIRO_OPERATOR_OVER) ; break ;
+    case SRC_IN:    cairo_set_operator(cr_, CAIRO_OPERATOR_IN) ; break ;
+    case SRC_OUT:   cairo_set_operator(cr_, CAIRO_OPERATOR_OUT) ; break ;
+    case SRC_ATOP:  cairo_set_operator(cr_, CAIRO_OPERATOR_ATOP) ; break ;
+    case SRC:       cairo_set_operator(cr_, CAIRO_OPERATOR_SOURCE) ; break ;
+    case DST:       cairo_set_operator(cr_, CAIRO_OPERATOR_DEST) ; break ;
+    case DST_OVER:  cairo_set_operator(cr_, CAIRO_OPERATOR_DEST_OVER) ; break ;
+    case DST_IN:    cairo_set_operator(cr_, CAIRO_OPERATOR_DEST_IN) ; break ;
+    case DST_OUT:   cairo_set_operator(cr_, CAIRO_OPERATOR_DEST_OUT) ; break ;
+    case DST_ATOP:  cairo_set_operator(cr_, CAIRO_OPERATOR_DEST_ATOP) ; break ;
+    case CLEAR:     cairo_set_operator(cr_, CAIRO_OPERATOR_CLEAR) ; break ;
+    case XOR:       cairo_set_operator(cr_, CAIRO_OPERATOR_XOR) ; break ;
+    case ADD:       cairo_set_operator(cr_, CAIRO_OPERATOR_ADD) ; break ;
+    case SATURATE:  cairo_set_operator(cr_, CAIRO_OPERATOR_SATURATE) ; break ;
+    case MULTIPLY:  cairo_set_operator(cr_, CAIRO_OPERATOR_MULTIPLY) ; break ;
+    case SCREEN:    cairo_set_operator(cr_, CAIRO_OPERATOR_SCREEN) ; break ;
+    case OVERLAY:   cairo_set_operator(cr_, CAIRO_OPERATOR_OVERLAY) ; break ;
+    case DARKEN:    cairo_set_operator(cr_, CAIRO_OPERATOR_DARKEN) ; break ;
+    case LIGHTEN:    cairo_set_operator(cr_, CAIRO_OPERATOR_LIGHTEN) ; break ;
+ //       case DODGE:    cairo_set_operator(cr_, CAIRO_OPERATOR_DODGE) ; break ;
+ //       case BURN:    cairo_set_operator(cr_, CAIRO_OPERATOR_BURN) ; break ;
+    case HARD_LIGHT:    cairo_set_operator(cr_, CAIRO_OPERATOR_HARD_LIGHT) ; break ;
+    case SOFT_LIGHT:    cairo_set_operator(cr_, CAIRO_OPERATOR_SOFT_LIGHT) ; break ;
+    case DIFFERENCE:    cairo_set_operator(cr_, CAIRO_OPERATOR_DIFFERENCE) ; break ;
+    case EXCLUSION:     cairo_set_operator(cr_, CAIRO_OPERATOR_EXCLUSION) ; break ;
+    case HSL_HUE:       cairo_set_operator(cr_, CAIRO_OPERATOR_HSL_HUE) ; break ;
+    case HSL_COLOR:     cairo_set_operator(cr_, CAIRO_OPERATOR_HSL_COLOR) ; break ;
+    case HSL_LUMINOSITY:cairo_set_operator(cr_, CAIRO_OPERATOR_HSL_LUMINOSITY) ; break ;
+    default:            cairo_set_operator(cr_, CAIRO_OPERATOR_OVER) ;
+    }
+
+}
 void Canvas::setClipRect(const Rectangle2d &r)
 {
     setClipRect(r.x(), r.y(), r.width(), r.height()) ;
-}
-
-void Canvas::setClipMask(const std::shared_ptr<Canvas> &mask) {
-    mask_ = mask ;
-    proxy_surf_ = cairo_surface_create_similar(surf_, CAIRO_CONTENT_COLOR_ALPHA, width_, height_) ;
-    cairo_t *cr = cairo_create(proxy_surf_) ;
-    cr_ = cr ;
 }
 
 void Canvas::setClipRect(double x0, double y0, double w, double h)
@@ -721,55 +721,20 @@ void Canvas::drawEllipse(double xp, double yp, double rxp, double ryp) {
     fill_stroke_shape() ;
 }
 
-
+/*
 Canvas::Canvas(double width, double height, double dpix, double dpiy): width_(width), height_(height), dpi_x_(dpix), dpi_y_(dpiy) {
 
 }
+*/
 
 Canvas::~Canvas()
 {
 
 }
 
-ImageCanvas::ImageCanvas(double w, double h, double dpi): Canvas(w, h, dpi, dpi) {
-    surf_ = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h) ;
-    source_cr_ = cairo_create(surf_) ;
-    init() ;
-}
-
-Image ImageCanvas::getImage()
-{
-    flush() ;
-
-    char *src = (char *)cairo_image_surface_get_data(surf_) ;
-    unsigned width = cairo_image_surface_get_width(surf_) ;
-    unsigned height = cairo_image_surface_get_height(surf_) ;
-    unsigned src_stride = cairo_image_surface_get_stride(surf_) ;
-    cairo_format_t src_format = cairo_image_surface_get_format(surf_) ;
-
-    Image im(width, height, ImageFormat::ARGB32) ;
-
-    unsigned dst_stride = im.stride() ;
-    char *dst, *p, *q ;
-    dst = im.pixels() ;
-    uint i, j ;
-
-    if ( src_format == CAIRO_FORMAT_ARGB32 ) {
-        for( i=0 ; i<height ; i++, dst += dst_stride, src += src_stride ) {
-            for( j=0, p=src, q=dst ; j<width ; j++ ) {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-                char a = *p++, r = *p++, g = *p++, b = *p++ ;
-#else
-
-                char b = *p++, g = *p++, r = *p++, a = *p++ ;
-#endif
-                *q++ = a ; *q++ = r ; *q++ = g ; *q++ = b ;
-            }
-        }
-    }
-
-    return im ;
-
+Canvas::Canvas(Surface &surface): RenderingContext(), surface_(surface) {
+    cr_ = cairo_create(surface.surf_) ;
+    state_.emplace() ;
 }
 
 
@@ -801,12 +766,12 @@ void Canvas::setAntialias(bool anti_alias)
     else
         cairo_set_antialias (cr(), CAIRO_ANTIALIAS_DEFAULT);
 }
-
+/*
 PatternCanvas::PatternCanvas(double width, double height): Canvas(width, height, 92, 92) {
     cairo_rectangle_t r{0, 0, width, height} ;
     surf_ = cairo_recording_surface_create(CAIRO_CONTENT_COLOR_ALPHA, &r) ;
     source_cr_ = cairo_create(surf_) ;
 }
-
+*/
 
 } }

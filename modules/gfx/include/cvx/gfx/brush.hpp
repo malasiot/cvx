@@ -3,6 +3,7 @@
 
 #include <cvx/gfx/color.hpp>
 #include <cvx/gfx/xform.hpp>
+#include <cvx/gfx/surface.hpp>
 
 #include <vector>
 #include <memory>
@@ -146,7 +147,7 @@ class PatternBrush: public Brush {
 
 public:
 
-    PatternBrush(const std::shared_ptr<Canvas> &pattern):  pattern_(pattern), sm_(SpreadMethod::Pad)  {}
+    PatternBrush(const Surface &pattern):  pattern_(pattern), sm_(SpreadMethod::Pad)  {}
 
     std::unique_ptr<BrushBase> clone() const override { return std::unique_ptr<BrushBase>(new PatternBrush(*this)) ; }
 
@@ -154,15 +155,14 @@ public:
     void setSpread(SpreadMethod method) { sm_ = method ; }
 
     Matrix2d transform() const { return tr_ ; }
-    Canvas &pattern() const { return *pattern_ ; }
+    const Surface &pattern() const { return pattern_ ; }
     SpreadMethod spread() const { return sm_ ; }
 
 private:
 
     SpreadMethod sm_ ;
-    std::shared_ptr<Canvas> pattern_ ;
+    const Surface &pattern_ ;
     Matrix2d tr_ ;
-
 } ;
 
 } }

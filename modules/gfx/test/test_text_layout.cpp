@@ -1,5 +1,6 @@
 #include <cvx/gfx/canvas.hpp>
 #include <cvx/gfx/text_layout.hpp>
+#include <cvx/gfx/text.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -18,13 +19,20 @@ int main(int argc, char *argv[]) {
 
     layout.compute() ;
 
+    ImageSurface is(1024, 512) ;
+    Canvas canvas(is) ;
 
-   ImageCanvas canvas(1024, 512) ;
+    canvas.setBrush(SolidBrush(Color(NamedColor::white(), 1.0))) ;
+    canvas.drawRect(0, 0, 1024, 512) ;
 
-   canvas.setBrush(SolidBrush(Color(NamedColor::white(), 1.0))) ;
-   canvas.drawRect(0, 0, 1024, 512) ;
+    is.flush() ;
+    is.getImage().saveToPNG("/tmp/oo.png") ;
 
+    StyledText st(text) ;
 
-   canvas.getImage().saveToPNG("/tmp/oo.png") ;
+    st.addSpan(new FontSpan(font, 5, 6)) ;
+    st.addSpan(new FontSpan(font, 10, 13)) ;
+
+    auto x = st.split() ;
 
 }

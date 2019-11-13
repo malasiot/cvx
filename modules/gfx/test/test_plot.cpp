@@ -10,7 +10,9 @@ int main(int argc, char *argv[]) {
     Image im(256, 256) ;
     string buffer ;
     im.saveToPNGBuffer(buffer) ;
-    ImageCanvas canvas(1024, 512) ;
+
+    ImageSurface is(1024, 512) ;
+    Canvas canvas(is) ;
 
     canvas.setPen(Pen()) ;
 
@@ -38,6 +40,7 @@ int main(int argc, char *argv[]) {
 
     canvas.drawText(s, 40, 100) ;
 
-    canvas.getImage().saveToPNG("/tmp/oo.png") ;
+    is.flush() ;
+    is.getImage().saveToPNG("/tmp/oo.png") ;
 
 }

@@ -11,6 +11,7 @@
 #include <cvx/gfx/pen.hpp>
 #include <cvx/gfx/brush.hpp>
 #include <cvx/gfx/path.hpp>
+#include <cvx/gfx/surface.hpp>
 
 namespace cvx { namespace gfx {
 namespace detail {
@@ -21,7 +22,8 @@ struct State {
             pen_(other.pen_->clone()),
             brush_(other.brush_->clone()),
             font_(other.font_),
-            trans_(other.trans_){}
+            trans_(other.trans_)
+           {}
 
      std::unique_ptr<PenBase> pen_;
      std::unique_ptr<BrushBase> brush_ ;
@@ -30,23 +32,17 @@ struct State {
      Matrix2d trans_ ;
  };
 
-class Backend {
+class RenderingContext {
 public:
-    cairo_t *source_cr_ = nullptr, *cr_ = nullptr;
-    cairo_surface_t *surf_ = nullptr , *proxy_surf_ = nullptr;
-    std::shared_ptr<Canvas> mask_ ;
 
-    Backend() ;
-    ~Backend() ;
+    RenderingContext() ;
+    ~RenderingContext() ;
 
-
-
+    cairo_t *cr_ = nullptr;
     std::stack<State> state_ ;
 
 protected:
 
-    void init() ;
-    void flush() ;
     void set_cairo_stroke(const Pen &pen) ;
     void cairo_apply_linear_gradient(const LinearGradientBrush &lg);
     void cairo_apply_radial_gradient(const RadialGradientBrush &rg);
