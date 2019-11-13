@@ -12,6 +12,7 @@
 #include <cvx/gfx/brush.hpp>
 #include <cvx/gfx/path.hpp>
 #include <cvx/gfx/surface.hpp>
+#include <cvx/gfx/text_layout.hpp>
 
 namespace cvx { namespace gfx {
 namespace detail {
@@ -22,7 +23,9 @@ struct State {
             pen_(other.pen_->clone()),
             brush_(other.brush_->clone()),
             font_(other.font_),
-            trans_(other.trans_)
+            trans_(other.trans_),
+            text_align_flags_(other.text_align_flags_),
+            text_direction_(other.text_direction_)
            {}
 
      std::unique_ptr<PenBase> pen_;
@@ -30,7 +33,9 @@ struct State {
 
      Font font_ ;
      Matrix2d trans_ ;
- };
+     int text_align_flags_  ;
+     TextDirection text_direction_ ;
+};
 
 class RenderingContext {
 public:

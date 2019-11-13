@@ -16,12 +16,12 @@ int main(int argc, char *argv[]) {
 
     canvas.setPen(Pen()) ;
 
-    Font f("Amiri", 32) ;
+    Font f("Arial", 32) ;
     f.setStyle(FontStyle::Italic) ;
     canvas.setFont(f) ;
 
-    canvas.setBrush(SolidBrush(NamedColor::alice_blue())) ;
-    string s("Win is the mother of battles بسم الله الرحمن الرحيم") ;
+    canvas.setBrush(SolidBrush(NamedColor::white())) ;
+ //  string s("Win is the mother of battles بسم الله الرحمن الرحيم") ;
    // string s("Win is \nthe mother of battles") ;
 /*
     Matrix2d tr ;
@@ -32,11 +32,16 @@ int main(int argc, char *argv[]) {
 
     canvas.setTransform(tr);
 */
-    double w = 5000 ;
-    //string s("Σπανακόρυζο λεμονάτο και σπυρωτό. Μια παραδοσιακή κλασική συνταγή. Εύκολο, γρήγορο, οικονομικό, υγιεινό και νηστίσιμο!") ;
+    double w = 500 ;
+    string s("Σπανακόρυζο λεμονάτο και σπυρωτό.\n Μια παραδοσιακή κλασική συνταγή. Εύκολο, γρήγορο, οικονομικό, υγιεινό και νηστίσιμο!") ;
     canvas.drawRect(40, 100, w, 400) ;
-  canvas.drawText(s, 40, 100, w, 400, TextAlignBottom | TextAlignLeft) ;
- //   canvas.drawText(s, 40, 100, w, 400, TextAlignTop | TextAlignRight) ;
+    canvas.setTextAlign(TextAlignBottom | TextAlignLeft) ;
+
+    canvas.setBrush(SolidBrush(NamedColor::blue())) ;
+    canvas.setPen(EmptyPen()) ;
+  //  canvas.setPen(Pen(NamedColor::yellow())) ;
+  canvas.drawText(s, 40, 100, w, 400) ;
+
 
     canvas.drawText(s, 40, 100) ;
 

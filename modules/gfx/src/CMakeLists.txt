@@ -30,7 +30,6 @@ set(LIB_SOURCES
     backends/cairo/scrptrun.cpp
     backends/cairo/text_path.cpp
     backends/cairo/surface.cpp
-    backends/cairo/text.cpp
 
     ${LIBRARY_INCLUDE_DIR}/backends/cairo/canvas.hpp
 
@@ -43,9 +42,6 @@ set(LIB_SOURCES
     ${LIBRARY_INCLUDE_DIR}/xform.hpp
     ${LIBRARY_INCLUDE_DIR}/text_layout.hpp
     ${LIBRARY_INCLUDE_DIR}/glyph.hpp
-
-    ${LIBRARY_INCLUDE_DIR}/util/variant.hpp
-    ${LIBRARY_INCLUDE_DIR}/util/dictionary.hpp
 
     svg/svg_parser.cpp
     svg/svg_parser.hpp

@@ -15,6 +15,7 @@
 #include <cvx/gfx/image.hpp>
 #include <cvx/gfx/rectangle.hpp>
 #include <cvx/gfx/glyph.hpp>
+#include <cvx/gfx/text_layout.hpp>
 #include <cvx/gfx/svg_document.hpp>
 
 #include <cvx/gfx/backends/cairo/canvas.hpp>
@@ -52,6 +53,8 @@ public:
     void setBrush(const BrushBase &brush) ;
     void setFont(const Font &font) ;
     void setBlendMode(BlendMode mode) ;
+    void setTextAlign(int flags) ;
+    void setTextDirection(TextDirection dir) ;
 
     void setAntialias(bool antiAlias = true) ;
 
@@ -73,9 +76,9 @@ public:
     void drawEllipse(double xp, double yp, double ax, double ay) ;
 
     void drawText(const std::string &textStr, double x0, double y0) ;
-    void drawText(const std::string &textStr, double x0, double y0, double width, double height, unsigned int flags) ;
+    void drawText(const std::string &textStr, double x0, double y0, double width, double height) ;
     void drawText(const std::string &textStr, const Point2d &p) ;
-    void drawText(const std::string &textStr, const Rectangle2d &r, unsigned int flags) ;
+    void drawText(const std::string &textStr, const Rectangle2d &r) ;
 
     void drawGlyph(const Glyph &g, const Point2d &p) ;
     void drawGlyphs(const std::vector<Glyph> &glyphs, const std::vector<Point2d> &positions) ;

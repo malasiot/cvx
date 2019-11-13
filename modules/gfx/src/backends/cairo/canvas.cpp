@@ -27,7 +27,8 @@ namespace cvx { namespace gfx {
 namespace detail {
 
 State::State(): font_("Arial", 10), pen_(new EmptyPen), brush_(new EmptyBrush) {
-
+    text_align_flags_ = TextAlignLeft | TextAlignTop ;
+    text_direction_ = TextDirection::Auto ;
 }
 
 
@@ -366,14 +367,19 @@ void Canvas::setFont(const Font &font) {
 }
 
 
-void Canvas::drawText(const std::string &text, double x0, double y0, double width, double height, unsigned int flags)
+void Canvas::drawText(const std::string &text, double x0, double y0, double width, double height)
 {
-    const Font &f = state_.top().font_ ;
+    const detail::State &state = state_.top() ;
+
+    const Font &f = state.font_ ;
+
+    unsigned int flags = state.text_align_flags_ ;
 
     cairo_scaled_font_t *scaled_font = FontManager::instance().createFont(f) ;
 
     TextLayout layout(text, f) ;
     layout.setWrapWidth(width) ;
+    layout.setTextDirection(state.text_direction_) ;
 
     layout.compute() ;
 
@@ -421,12 +427,12 @@ void Canvas::drawText(const std::string &text, double x0, double y0, double widt
         //      cairo_show_glyphs(cr_, cairo_glyphs, num_glyphs) ;
         cairo_glyph_path(cr(), cairo_glyphs, num_glyphs);
 
-        cairo_fill(cr()) ;
+     //   cairo_fill(cr()) ;
 
-        //     fill_stroke_shape() ;
+        fill_stroke_shape() ;
 #if 0
-        cairo_rectangle(cr_, 0, 0, layout.width(), -line.ascent_) ;
-        cairo_rectangle(cr_, 0, 0, layout.width(), line.descent_) ;
+        cairo_rectangle(cr_, 0, 0, layout.width(), -line.ascent()) ;
+        cairo_rectangle(cr_, 0, 0, layout.width(), line.descent()) ;
 #endif
 
         y += line.height() ;
@@ -448,23 +454,24 @@ void Canvas::drawText(const string &textStr, const Point2d &p) {
     drawText(textStr, p.x(), p.y()) ;
 }
 
-void Canvas::drawText(const string &textStr, const Rectangle2d &r, unsigned int flags) {
-    drawText(textStr, r.x(), r.y(), r.width(), r.height(), flags) ;
+void Canvas::drawText(const string &textStr, const Rectangle2d &r) {
+    drawText(textStr, r.x(), r.y(), r.width(), r.height()) ;
 }
 
 void Canvas::drawText(const std::string &text, double x0, double y0)
 {
-    const Font &f = state_.top().font_ ;
+    const detail::State &state = state_.top() ;
 
+    const Font &f = state.font_ ;
 
     TextLayout layout(text, f) ;
+    layout.setTextDirection(state.text_direction_) ;
 
     layout.compute() ;
 
     const TextLine &line = layout.lines()[0] ;
 
     unsigned num_glyphs = line.numGlyphs() ;
-
 
     double gx = 0 ;
     cairo_glyph_t *cairo_glyphs = cairo_glyph_allocate (num_glyphs + 1);
@@ -483,12 +490,11 @@ void Canvas::drawText(const std::string &text, double x0, double y0)
 
     cairo_save(cr()) ;
 
-
     cairo_translate(cr(), x0, y0) ;
 
     cairo_glyph_path(cr(), cairo_glyphs, num_glyphs);
 
-    cairo_fill(cr()) ;
+    fill_stroke_shape();
 #if 0
     cairo_rectangle(cr_, 0, 0, layout.width(), -line.ascent_) ;
     cairo_rectangle(cr_, 0, 0, layout.width(), line.descent_) ;
@@ -594,6 +600,15 @@ void Canvas::setBlendMode(BlendMode mode) {
     }
 
 }
+
+void Canvas::setTextAlign(int flags) {
+    state_.top().text_align_flags_ = flags ;
+}
+
+void Canvas::setTextDirection(TextDirection dir) {
+    state_.top().text_direction_ = dir ;
+}
+
 void Canvas::setClipRect(const Rectangle2d &r)
 {
     setClipRect(r.x(), r.y(), r.width(), r.height()) ;
