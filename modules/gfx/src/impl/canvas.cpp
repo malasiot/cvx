@@ -29,6 +29,7 @@ namespace detail {
 State::State(): font_("Arial", 10), pen_(new EmptyPen), brush_(new EmptyBrush) {
     text_align_flags_ = TextAlignLeft | TextAlignTop ;
     text_direction_ = TextDirection::Auto ;
+    text_decoration_ = TextDecorationNone ;
 }
 
 
@@ -373,11 +374,16 @@ void Canvas::drawText(Text &layout, double x0, double y0, double width, double h
 
     unsigned int flags = state.text_align_flags_ ;
 
+    TextDecoration decoration = state.text_decoration_ ;
+
     cairo_scaled_font_t *scaled_font = FontManager::instance().createFont(f) ;
 
     layout.setFont(f) ;
     layout.setWrapWidth(width) ;
     layout.setTextDirection(state.text_direction_) ;
+
+    cairo_font_extents_t extents ;
+    cairo_scaled_font_extents(scaled_font, &extents) ;
 
     double y = 0, tx = 0, ty = 0 ;
 
@@ -402,7 +408,7 @@ void Canvas::drawText(Text &layout, double x0, double y0, double width, double h
 
         unsigned num_glyphs = line.numGlyphs() ;
 
-        double gx = 0 ;
+        double gx = 0, ga = std::numeric_limits<double>::max() ;
         cairo_glyph_t *cairo_glyphs = cairo_glyph_allocate (num_glyphs + 1);
 
         for ( unsigned i=0; i<num_glyphs; i++) {
@@ -410,6 +416,7 @@ void Canvas::drawText(Text &layout, double x0, double y0, double width, double h
             cairo_glyphs[i].index = g.index_ ;
             cairo_glyphs[i].x = gx + g.x_offset_ ;
             cairo_glyphs[i].y =  - g.y_offset_ ;
+            ga = std::min(ga, g.y_advance_) ;
 
             gx +=  g.x_advance_;
         }
@@ -426,6 +433,21 @@ void Canvas::drawText(Text &layout, double x0, double y0, double width, double h
      //   cairo_fill(cr()) ;
 
         fill_stroke_shape() ;
+
+        cairo_restore(cr()) ;
+
+        cairo_glyph_free(cairo_glyphs) ;
+
+        static const int text_underline_offset = 5 ;
+        static const int text_underline_stroke = 2 ;
+
+        if ( decoration == TextDecorationUnderline ) {
+            cairo_rectangle(cr_, x0 + tx, y0 + y + ty + text_underline_offset - text_underline_stroke/2, gx, text_underline_stroke );
+            fill_stroke_shape();
+        } else if ( decoration == TextDecorationStrikeThrough ) {
+            cairo_rectangle(cr_, x0 + tx, y0 + y + ty - text_underline_stroke/2 - extents.ascent/3, gx, text_underline_stroke );
+            fill_stroke_shape();
+        }
 #if 0
         cairo_rectangle(cr_, 0, 0, layout.width(), -line.ascent()) ;
         cairo_rectangle(cr_, 0, 0, layout.width(), line.descent()) ;
@@ -437,9 +459,7 @@ void Canvas::drawText(Text &layout, double x0, double y0, double width, double h
 
         cairo_stroke(cr_) ;
 #endif
-        cairo_restore(cr()) ;
 
-        cairo_glyph_free(cairo_glyphs) ;
 
     }
 
@@ -620,6 +640,10 @@ void Canvas::setTextDirection(TextDirection dir) {
     state_.top().text_direction_ = dir ;
 }
 
+void Canvas::setTextDecoration(TextDecoration dec) {
+    state_.top().text_decoration_ = dec ;
+}
+
 void Canvas::setClipRect(const Rectangle2d &r)
 {
     setClipRect(r.x(), r.y(), r.width(), r.height()) ;
@@ -747,11 +771,6 @@ void Canvas::drawEllipse(double xp, double yp, double rxp, double ryp) {
     fill_stroke_shape() ;
 }
 
-/*
-Canvas::Canvas(double width, double height, double dpix, double dpiy): width_(width), height_(height), dpi_x_(dpix), dpi_y_(dpiy) {
-
-}
-*/
 
 Canvas::~Canvas()
 {

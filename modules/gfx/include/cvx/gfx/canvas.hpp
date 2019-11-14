@@ -53,6 +53,7 @@ public:
     void setBlendMode(BlendMode mode) ;
     void setTextAlign(int flags) ;
     void setTextDirection(TextDirection dir) ;
+    void setTextDecoration(TextDecoration dec) ;
 
     void setAntialias(bool antiAlias = true) ;
 

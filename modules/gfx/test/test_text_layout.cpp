@@ -24,6 +24,7 @@ int main(int argc, char *argv[]) {
     canvas.fill(NamedColor::white()) ;
     canvas.setBrush(SolidBrush(NamedColor::black())) ;
     canvas.setTextAlign(TextAlignVCenter|TextAlignRight);
+    canvas.setTextDecoration(TextDecorationStrikeThrough) ;
     canvas.drawText(layout, 0, 0, 300, 200) ;
 
     canvas.setBrush(EmptyBrush());

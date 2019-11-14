@@ -18,6 +18,10 @@ enum TextAlignFlags {
     TextAlignLeft = 0x01, TextAlignRight = 0x02, TextAlignTop = 0x04, TextAlignBottom = 0x08, TextAlignHCenter = 0x10, TextAlignVCenter = 0x20, TextAlignBaseline = 0x40
 }  ;
 
+enum TextDecoration {
+    TextDecorationNone, TextDecorationUnderline, TextDecorationStrikeThrough
+};
+
 class GlyphRun ;
 
 // The Text object can be used to cache text layout for repeated text drawing

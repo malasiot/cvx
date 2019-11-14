@@ -25,7 +25,8 @@ struct State {
             font_(other.font_),
             trans_(other.trans_),
             text_align_flags_(other.text_align_flags_),
-            text_direction_(other.text_direction_)
+            text_direction_(other.text_direction_),
+            text_decoration_(other.text_decoration_)
            {}
 
      std::unique_ptr<PenBase> pen_;
@@ -35,6 +36,7 @@ struct State {
      Matrix2d trans_ ;
      unsigned int text_align_flags_  ;
      TextDirection text_direction_ ;
+     TextDecoration text_decoration_ ;
 };
 
 class RenderingContext {
