@@ -114,7 +114,7 @@ void TextLayoutEngine::mergeRuns(const vector<LangScriptRun> &script_runs, const
     }
 }
 
-void TextLayoutEngine::addLine(TextLine&& line)
+void TextLayoutEngine::addLine(GlyphRun&& line)
 {
     width_ = std::max(width_, line.width());
     lines_.emplace_back(std::move(line));
@@ -143,7 +143,7 @@ public:
 
 void TextLayoutEngine::breakLine(int32_t start, int32_t end) {
 
-    TextLine line(start, end);
+    GlyphRun line(start, end);
 
     shape(line);
 
@@ -186,7 +186,7 @@ void TextLayoutEngine::breakLine(int32_t start, int32_t end) {
 
         bool adjust_for_space_character = break_position > 0 && us_[break_position - 1] == 0x0020;
 
-        TextLine new_line(last_break_position, adjust_for_space_character ? break_position - 1 : break_position);
+        GlyphRun new_line(last_break_position, adjust_for_space_character ? break_position - 1 : break_position);
         clearWidths(last_break_position, adjust_for_space_character ? break_position - 1 : break_position);
         shape(new_line);
         addLine(std::move(new_line));
@@ -197,7 +197,7 @@ void TextLayoutEngine::breakLine(int32_t start, int32_t end) {
     if ( last_break_position == line.first_ )
         addLine(std::move(line));
     else if ( last_break_position != line.last_ ) {
-        TextLine new_line(last_break_position, line.last_);
+        GlyphRun new_line(last_break_position, line.last_);
         clearWidths(last_break_position, line.last_);
         shape(new_line);
         addLine(std::move(new_line));
@@ -264,7 +264,7 @@ void TextLayoutEngine::clearWidths(int32_t start, int32_t end) {
         width_map_[i] = 0 ;
 }
 
-void TextLayoutEngine::fillGlyphInfo(GlyphCollection &glyphs, TextLine &line)
+void TextLayoutEngine::fillGlyphInfo(GlyphCollection &glyphs, GlyphRun &line)
 {
 
     // iterate all clusters
@@ -295,7 +295,7 @@ void TextLayoutEngine::fillGlyphInfo(GlyphCollection &glyphs, TextLine &line)
     }
 }
 
-void TextLayoutEngine::makeCairoGlyphsAndMetrics(TextLine &line) {
+void TextLayoutEngine::makeCairoGlyphsAndMetrics(GlyphRun &line) {
 
     cairo_font_extents_t f_extents ;
     cairo_scaled_font_extents (font_, &f_extents);
@@ -328,7 +328,7 @@ void TextLayoutEngine::makeCairoGlyphsAndMetrics(TextLine &line) {
     line.descent_ = descent ;
 }
 
-bool TextLayoutEngine::shape(TextLine &line)
+bool TextLayoutEngine::shape(GlyphRun &line)
 {
     unsigned start = line.first_ ;
     unsigned end = line.last_ ;
@@ -417,9 +417,12 @@ bool TextLayoutEngine::itemize(int32_t start, int32_t end, vector<TextItem> &ite
 }
 
 
-TextLayoutEngine::TextLayoutEngine(const string &text, const Font &f) {
-    font_ =  FontManager::instance().createFont(f) ;
+TextLayoutEngine::TextLayoutEngine(const string &text) {
     us_ = UnicodeString::fromUTF8(text) ;
+}
+
+void TextLayoutEngine::setFont(const Font &font) {
+      font_ =  FontManager::instance().createFont(font) ;
 }
 
 void TextLayoutEngine::setWrapWidth(double w) {
@@ -456,7 +459,7 @@ void TextLayoutEngine::computeHeight()
 
     uint i ;
     for( i=0 ; i<lines_.size() - 1; i++ ) {
-        const TextLine &l = lines_[i] ;
+        const GlyphRun &l = lines_[i] ;
         height_ += l.height_ ;
     }
 

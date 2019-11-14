@@ -44,10 +44,11 @@ Path &Path::addText(const std::string &text, double x0, double y0, const Font &f
 
     cairo_set_scaled_font(cr, scaled_font);
 
-    TextLayoutEngine layout(text, f) ;
+    TextLayoutEngine layout(text) ;
+    layout.setFont(f) ;
     layout.run() ;
 
-    const TextLine &line = layout.lines()[0] ;
+    const GlyphRun &line = layout.lines()[0] ;
 
     unsigned num_glyphs = line.numGlyphs() ;
 

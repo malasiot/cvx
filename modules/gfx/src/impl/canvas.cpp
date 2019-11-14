@@ -1,4 +1,4 @@
-#include <cvx/gfx/backends/cairo/canvas.hpp>
+#include <cvx/gfx/impl/canvas.hpp>
 #include <cvx/gfx/canvas.hpp>
 
 #include <cairo/cairo.h>
@@ -366,9 +366,7 @@ void Canvas::setFont(const Font &font) {
     state_.top().font_ = font ;
 }
 
-
-void Canvas::drawText(const std::string &text, double x0, double y0, double width, double height)
-{
+void Canvas::drawText(Text &layout, double x0, double y0, double width, double height) {
     const detail::State &state = state_.top() ;
 
     const Font &f = state.font_ ;
@@ -377,11 +375,9 @@ void Canvas::drawText(const std::string &text, double x0, double y0, double widt
 
     cairo_scaled_font_t *scaled_font = FontManager::instance().createFont(f) ;
 
-    TextLayout layout(text, f) ;
+    layout.setFont(f) ;
     layout.setWrapWidth(width) ;
     layout.setTextDirection(state.text_direction_) ;
-
-    layout.compute() ;
 
     double y = 0, tx = 0, ty = 0 ;
 
@@ -392,7 +388,7 @@ void Canvas::drawText(const std::string &text, double x0, double y0, double widt
 
     bool is_first_line = true ;
 
-    for (const TextLine &line: layout.lines() ) {
+    for (const GlyphRun &line: layout.lines() ) {
 
         if ( flags & TextAlignHCenter )
             tx =  ( width - line.width() )/2.0 ;
@@ -450,6 +446,11 @@ void Canvas::drawText(const std::string &text, double x0, double y0, double widt
     cairo_scaled_font_destroy(scaled_font) ;
 }
 
+void Canvas::drawText(const std::string &text, double x0, double y0, double width, double height) {
+    Text layout(text) ;
+    drawText(layout, x0, y0, width, height) ;
+}
+
 void Canvas::drawText(const string &textStr, const Point2d &p) {
     drawText(textStr, p.x(), p.y()) ;
 }
@@ -458,18 +459,24 @@ void Canvas::drawText(const string &textStr, const Rectangle2d &r) {
     drawText(textStr, r.x(), r.y(), r.width(), r.height()) ;
 }
 
-void Canvas::drawText(const std::string &text, double x0, double y0)
+void Canvas::drawText(Text &text, const Point2d &p) {
+    drawText(text, p.x(), p.y()) ;
+}
+
+void Canvas::drawText(Text &text, const Rectangle2d &r) {
+    drawText(text, r.x(), r.y(), r.width(), r.height()) ;
+}
+
+void Canvas::drawText(Text &text, double x0, double y0)
 {
     const detail::State &state = state_.top() ;
 
     const Font &f = state.font_ ;
 
-    TextLayout layout(text, f) ;
-    layout.setTextDirection(state.text_direction_) ;
+    text.setFont(f) ;
+    text.setTextDirection(state.text_direction_) ;
 
-    layout.compute() ;
-
-    const TextLine &line = layout.lines()[0] ;
+    const GlyphRun &line = text.lines()[0] ;
 
     unsigned num_glyphs = line.numGlyphs() ;
 
@@ -510,9 +517,13 @@ void Canvas::drawText(const std::string &text, double x0, double y0)
     cairo_glyph_free(cairo_glyphs) ;
 
     cairo_scaled_font_destroy(scaled_font) ;
+
 }
 
-
+void Canvas::drawText(const std::string &text, double x0, double y0) {
+    Text layout(text) ;
+    drawText(layout, x0, y0) ;
+}
 
 void Canvas::drawGlyphs(const vector<Glyph> &glyphs, const vector<Point2d> &gpos)
 {

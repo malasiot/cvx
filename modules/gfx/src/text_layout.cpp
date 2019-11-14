@@ -1,37 +1,89 @@
 #include <cvx/gfx/text_layout.hpp>
 
-#include "backends/cairo/text_layout_engine.hpp"
-#include "backends/cairo/font_manager.hpp"
+#include "impl/text_layout_engine.hpp"
+#include "impl/font_manager.hpp"
 
 namespace cvx { namespace gfx {
 
-TextLayout::TextLayout(const std::string &text, const Font &fd) {
-    engine_.reset(new TextLayoutEngine(text, fd)) ;
+Text::Text(const std::string &text) {
+    engine_.reset(new TextLayoutEngine(text)) ;
 }
 
-void TextLayout::setWrapWidth(double width) {
-    engine_->setWrapWidth(width) ;
+Text::~Text() {}
+
+void Text::setFont(const Font &font)
+{
+    if ( engine_->getFont() != font ) {
+        engine_->setFont(font) ;
+        needs_update_ = true ;
+    }
 }
 
-void TextLayout::setTextDirection(TextDirection dir) {
-     engine_->setTextDirection(dir) ;
+void Text::setLineSpacing(double ls)
+{
+    if ( engine_->getLineSpacing() != ls ) {
+        engine_->setLineSpacing(ls) ;
+        needs_update_ = true ;
+    }
+
 }
 
-void TextLayout::compute() {
-    engine_->run() ;
+void Text::setWrapWidth(double tw) {
+    if ( engine_->getWrapWidth() != tw ) {
+        engine_->setWrapWidth(tw) ;
+        needs_update_ = true ;
+    }
 }
 
-double TextLayout::width() const {
+void Text::setTextDirection(TextDirection dir) {
+    if ( engine_->getTextDirection() != dir ) {
+        engine_->setTextDirection(dir) ;
+        needs_update_ = true ;
+    }
+}
+
+void Text::updateLayout() {
+    if ( needs_update_ ) {
+        engine_->run() ;
+        needs_update_ = false ;
+    }
+}
+
+const std::vector<GlyphRun> &Text::lines() {
+    updateLayout() ;
+    return engine_->lines() ;
+}
+
+double Text::width() {
+    updateLayout() ;
     return engine_->width() ;
 }
 
-double TextLayout::height() const {
+double Text::height() {
+    updateLayout() ;
     return engine_->height() ;
 }
 
-const std::vector<TextLine> &TextLayout::lines() const
+Rectangle2d Text::box(const Rectangle2d &box, uint flags)
 {
-    return engine_->lines() ;
+    double tx = std::numeric_limits<double>::max(), ty = 0 ;
+
+    if ( flags & TextAlignVCenter )
+        ty = ( box.height() - height())/2;
+    else if ( flags & TextAlignBottom )
+        ty = box.height() - height()  ;
+
+    for (const GlyphRun &line: lines() ) {
+        double ox ;
+        if ( flags & TextAlignHCenter )
+            ox =  ( box.width() - line.width() )/2.0 ;
+        else if ( flags & TextAlignRight )
+            ox =  box.width() - line.width();
+
+        tx = std::min(ox, tx) ;
+    }
+
+    return Rectangle2d(box.x() + tx, box.y() + ty, width(), height()) ;
 }
 
 }}

@@ -33,7 +33,7 @@ struct State {
 
      Font font_ ;
      Matrix2d trans_ ;
-     int text_align_flags_  ;
+     unsigned int text_align_flags_  ;
      TextDirection text_direction_ ;
 };
 

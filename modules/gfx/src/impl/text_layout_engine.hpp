@@ -18,17 +18,26 @@
 #include <map>
 
 using cvx::gfx::Glyph ;
-using cvx::gfx::TextLine ;
+using cvx::gfx::GlyphRun ;
+using cvx::gfx::Font ;
 
 class TextLayoutEngine {
 public:
-    TextLayoutEngine(const std::string &text, const cvx::gfx::Font &f) ;
+    TextLayoutEngine(const std::string &text) ;
 
+    void setFont(const Font &font) ;
     void setWrapWidth(double w) ;
     void setTextDirection(cvx::gfx::TextDirection dir) { bidi_mode_ = dir ; }
+    void setLineSpacing(double ls) { ls_ = ls ; }
+
     bool run() ;
 
-    const std::vector<TextLine> &lines() const { return lines_ ; }
+    const Font &getFont() const { return font_desc_ ; }
+    double getLineSpacing() const { return ls_ ; }
+    double getWrapWidth() const { return wrap_width_ ; }
+    cvx::gfx::TextDirection getTextDirection() const { return bidi_mode_ ; }
+
+    const std::vector<GlyphRun> &lines() const { return lines_ ; }
 
     double width() const { return width_ ; }
     double height() const { return height_ ; }
@@ -36,8 +45,6 @@ public:
     ~TextLayoutEngine();
 
 private:
-
-
     struct TextItem {
         uint start_ ;
         uint end_ ;
@@ -45,7 +52,6 @@ private:
         std::string lang_ ;
         hb_direction_t dir_ ;
     } ;
-
 
     static hb_direction_t icu_direction_to_hb(UBiDiDirection direction) {
         return (direction == UBIDI_RTL) ? HB_DIRECTION_RTL : HB_DIRECTION_LTR;
@@ -59,7 +65,7 @@ private:
     bool itemizeScript(std::vector<LangScriptRun> &runs) ;
     void mergeRuns(const std::vector<LangScriptRun> &script_runs, const std::vector<DirectionRun> &dir_runs, std::vector<TextItem> &items) ;
     void breakLine(int32_t start, int32_t end) ;
-    bool shape(TextLine &line) ;
+    bool shape(GlyphRun &line) ;
 
     struct GlyphInfo {
         hb_glyph_info_t glyph_;
@@ -73,20 +79,21 @@ private:
     } ;
 
     bool getGlyphsAndClusters(hb_buffer_t *buffer, GlyphCollection &glyphs) ;
-    void fillGlyphInfo(GlyphCollection &glyphs, TextLine &line) ;
+    void fillGlyphInfo(GlyphCollection &glyphs, GlyphRun &line) ;
     void clearWidths(int32_t start, int32_t end) ;
-    void addLine(TextLine&& line) ;
-    void makeCairoGlyphsAndMetrics(TextLine &line);
+    void addLine(GlyphRun&& line) ;
+    void makeCairoGlyphsAndMetrics(GlyphRun &line);
     void computeHeight();
 
 private:
     UnicodeString us_ ;
-    cairo_scaled_font_t *font_ ;
+    Font font_desc_ ;
+    cairo_scaled_font_t *font_ = nullptr ;
     std::map<unsigned,double> width_map_ ;
     double wrap_width_ = -1 ;
 
-    std::vector<TextLine> lines_ ;
-    double width_ = 0, height_ = 0 ;
+    std::vector<GlyphRun> lines_ ;
+    double width_ = 0, height_ = 0, ls_ = 0;
     unsigned glyphs_count_ ;
     char wrap_char_ = ' ';
     bool wrap_before_ = true ;

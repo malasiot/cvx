@@ -852,8 +852,8 @@ void RenderingContext::render(TSpanElement &e)
 
     // we add a space here ?
 
-    TextLayout tl(e.text_ + ' ', f) ;
-    tl.compute() ;
+    Text tl(e.text_ + ' ') ;
+    tl.setFont(f) ;
 
     const auto &line = tl.lines()[0] ;
 

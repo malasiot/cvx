@@ -6,37 +6,58 @@
 
 #include <cvx/gfx/font.hpp>
 #include <cvx/gfx/glyph.hpp>
+#include <cvx/gfx/rectangle.hpp>
 
 class TextLayoutEngine ;
 
 namespace cvx { namespace gfx {
 
 enum class TextDirection { Auto, LeftToRight, RightToLeft } ;
-class TextLine ;
 
-class TextLayout {
+enum TextAlignFlags {
+    TextAlignLeft = 0x01, TextAlignRight = 0x02, TextAlignTop = 0x04, TextAlignBottom = 0x08, TextAlignHCenter = 0x10, TextAlignVCenter = 0x20, TextAlignBaseline = 0x40
+}  ;
+
+class GlyphRun ;
+
+// The Text object can be used to cache text layout for repeated text drawing
+// It can be also used to measure the string bounding box
+
+class Text {
 public:
-    TextLayout(const std::string &text, const Font &fd) ;
+    Text(const std::string &text) ;
+    ~Text() ;
+public:
 
-    void setWrapWidth(double width) ;
+    // when drawing directly to canvas i.e. via drawText calls, these are set by the current context
+
+    void setFont(const Font &font) ;
     void setLineSpacing(double ls) ;
-
+    void setWrapWidth(double width) ;
     void setTextDirection(TextDirection dir) ;
 
-    void compute() ;
+    // get a the text box dimensions ( the font and other layout parameters have to be set first )
 
-    double width() const ;
-    double height() const ;
+    double width() ;
+    double height() ;
 
-    const std::vector<TextLine> &lines() const ;
+    // get the box containing the text as will be drawn given the provided alignment flags
+    Rectangle2d box(const Rectangle2d &box, uint flags) ;
 
+    // get the internal text layout
+
+    const std::vector<GlyphRun> &lines() ;
 
 private:
 
-    std::shared_ptr<TextLayoutEngine> engine_ ;
+    void updateLayout() ;
+
+    bool needs_update_ = true ;
+
+    std::unique_ptr<TextLayoutEngine> engine_ ;
 };
 
-class TextLine {
+class GlyphRun {
 
 public:
 
@@ -60,7 +81,7 @@ protected:
 
     friend class ::TextLayoutEngine ;
 
-    TextLine(int32_t first, int32_t last): first_(first), last_(last) {}
+    GlyphRun(int32_t first, int32_t last): first_(first), last_(last) {}
 
     void addGlyph(Glyph && glyph)  {
         double advance = glyph.x_advance_ ;

@@ -18,13 +18,11 @@
 #include <cvx/gfx/text_layout.hpp>
 #include <cvx/gfx/svg_document.hpp>
 
-#include <cvx/gfx/backends/cairo/canvas.hpp>
+#include <cvx/gfx/impl/canvas.hpp>
 
 namespace cvx { namespace gfx {
 
-enum TextAlignFlags {
-    TextAlignLeft = 0x01, TextAlignRight = 0x02, TextAlignTop = 0x04, TextAlignBottom = 0x08, TextAlignHCenter = 0x10, TextAlignVCenter = 0x20, TextAlignBaseline = 0x40
-}  ;
+
 
 enum BlendMode {
     CLEAR, SRC, SRC_OVER, SRC_IN, SRC_OUT, SRC_ATOP, DST, DST_OVER, DST_IN, DST_OUT, DST_ATOP, XOR, ADD,
@@ -79,6 +77,11 @@ public:
     void drawText(const std::string &textStr, double x0, double y0, double width, double height) ;
     void drawText(const std::string &textStr, const Point2d &p) ;
     void drawText(const std::string &textStr, const Rectangle2d &r) ;
+
+    void drawText(Text &text, double x0, double y0) ;
+    void drawText(Text &text, double x0, double y0, double width, double height) ;
+    void drawText(Text &text, const Point2d &p) ;
+    void drawText(Text &text, const Rectangle2d &r) ;
 
     void drawGlyph(const Glyph &g, const Point2d &p) ;
     void drawGlyphs(const std::vector<Glyph> &glyphs, const std::vector<Point2d> &positions) ;

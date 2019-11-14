@@ -1,7 +1,7 @@
 #ifndef CVX_GFX_SURFACE_HPP
 #define CVX_GFX_SURFACE_HPP
 
-#include <cvx/gfx/backends/cairo/surface.hpp>
+#include <cvx/gfx/impl/surface.hpp>
 
 namespace cvx { namespace gfx {
 

@@ -22,16 +22,16 @@ set(LIB_SOURCES
     image.cpp
     text_layout.cpp
 
-    backends/cairo/canvas.cpp
-    backends/cairo/text_layout_engine.cpp
-    backends/cairo/text_layout_engine.hpp
-    backends/cairo/font_manager.cpp
-    backends/cairo/font_manager.hpp
-    backends/cairo/scrptrun.cpp
-    backends/cairo/text_path.cpp
-    backends/cairo/surface.cpp
+    impl/canvas.cpp
+    impl/text_layout_engine.cpp
+    impl/text_layout_engine.hpp
+    impl/font_manager.cpp
+    impl/font_manager.hpp
+    impl/scrptrun.cpp
+    impl/text_path.cpp
+    impl/surface.cpp
 
-    ${LIBRARY_INCLUDE_DIR}/backends/cairo/canvas.hpp
+    ${LIBRARY_INCLUDE_DIR}/impl/canvas.hpp
 
     ${LIBRARY_INCLUDE_DIR}/font.hpp
     ${LIBRARY_INCLUDE_DIR}/path.hpp
