@@ -435,6 +435,8 @@ TextLayoutEngine::~TextLayoutEngine() {
 
 
 bool TextLayoutEngine::run() {
+    lines_.clear() ;
+
     int32_t start = 0, end = 0;
 
     while ( (end = us_.indexOf('\n', start)) > 0 ) {
