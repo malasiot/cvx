@@ -29,12 +29,16 @@ class GlyphRun ;
 
 class Text {
 public:
+    Text()  ;
     Text(const std::string &text) ;
     ~Text() ;
+
+
 public:
 
     // when drawing directly to canvas i.e. via drawText calls, these are set by the current context
 
+    void setText(const std::string &text) ;
     void setFont(const Font &font) ;
     void setLineSpacing(double ls) ;
     void setWrapWidth(double width) ;

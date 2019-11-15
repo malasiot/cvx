@@ -58,6 +58,8 @@ set(LIB_SOURCES
     svg/svg_render_context.hpp
 
     ${LIBRARY_INCLUDE_DIR}/svg_document.hpp
+
+    plot/axis.cpp
 )
 
 add_library(cvx_gfx ${LIBRARY_TYPE} ${LIB_SOURCES} )

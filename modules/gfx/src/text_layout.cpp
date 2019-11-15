@@ -3,13 +3,25 @@
 #include "impl/text_layout_engine.hpp"
 #include "impl/font_manager.hpp"
 
+using namespace std ;
+
 namespace cvx { namespace gfx {
+
+Text::Text()
+{
+
+}
 
 Text::Text(const std::string &text) {
     engine_.reset(new TextLayoutEngine(text)) ;
 }
 
 Text::~Text() {}
+
+void Text::setText(const string &text)
+{
+   engine_.reset(new TextLayoutEngine(text)) ;
+}
 
 void Text::setFont(const Font &font)
 {
