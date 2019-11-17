@@ -5,6 +5,7 @@
 #include <cvx/gfx/bbox.hpp>
 
 #include <cvx/gfx/plot/axis.hpp>
+#include <cvx/gfx/plot/plot.hpp>
 
 #include <cmath>
 using namespace cvx::gfx ;
@@ -25,20 +26,22 @@ int main(int argc, char *argv[]) {
     f.setStyle(FontStyle::Italic) ;
     canvas.setFont(f) ;
 
-    XAxis x_axis(0, 1) ;
-    YAxis y_axis(-3.0e-4, 3.0e-4);
-
     Matrix2d tr ;
     tr.translate(100, 400) ;
 
     canvas.setTransform(tr);
-    x_axis.setTitle("Seasons");
-    x_axis.computeLayout(500, 1.0) ;
-    x_axis.draw(canvas, 500, 1) ;
 
-    y_axis.setTitle("Values") ;
-    y_axis.computeLayout(300, 1.0) ;
-    y_axis.draw(canvas, 300, 1) ;
+    Plot plot ;
+
+    vector<double> x = { 0.0, 0.1, 0.6 } ;
+    vector<double> y = { 1.0, 3.1, -0.4 } ;
+
+    plot.lines(x, y) ;
+
+    plot.xAxis().setGrid(true).setTitle("X") ;
+    plot.yAxis().setGrid(true).setTitle("Y") ;
+    plot.draw(canvas, 500, 300) ;
+
 
 
     is.flush() ;

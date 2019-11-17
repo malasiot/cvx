@@ -1,54 +1,57 @@
-#ifndef __XPLOT_PLOT_HPP__
-#define __XPLOT_PLOT_HPP__
+#ifndef CVX_GFX_PLOT_HPP
+#define CVX_GFX_PLOT_HPP
 
 #include <vector>
-#include <xplot/drawable.hpp>
-#include <xplot/line_plot.hpp>
-#include <xplot/legend.hpp>
-#include <xplot/axis.hpp>
-#include <xplot/label.hpp>
+#include <cvx/gfx/plot/axis.hpp>
+#include <cvx/gfx/plot/line_graph.hpp>
 
-namespace xplot {
+namespace cvx { namespace gfx {
 
-class LinePlot ;
-class Drawable ;
+class Graph ;
+class LineGraph ;
 
-class Label ;
-class Subplot ;
-
-class Plot: public Drawable {
+class Plot {
 public:
 
-    Plot() ;
+    Plot() = default;
 
-    LinePlot &plot(const std::vector<double> &x, const std::vector<double> &y) ;
+    LineGraph &lines(const std::vector<double> &x, const std::vector<double> &y) {
+        LineGraph *g = new LineGraph(x, y) ;
+        addGraph(g) ;
+        return *g ;
+    }
 
-    Legend &legend() ;
+    Plot &addGraph(Graph *g) {
+        graphs_.push_back(std::unique_ptr<Graph>(g)) ;
+        data_bounds_.extend(g->getDataBounds());
+        g->plot_ = this ;
+        return *this ;
+    }
 
-    Axis &xAxis() ;
-    Axis &yAxis() ;
+    Axis &xAxis() { return x_axis_ ; }
+    Axis &yAxis() { return y_axis_ ; }
 
-    Label &title() ;
+    void setTitle(const std::string &title) ;
+    void showLegend(bool legend) ;
 
-    void draw(RenderingContext &) override ;
-    void updateLayout(RenderingContext &) override ;
+    void draw(Canvas &c, double w, double h) ;
+    void updateLayout(double w, double h) ;
 
 private:
 
-    Legend legend_ ;
+    bool show_legend_ = false ;
     XAxis x_axis_ ;
     YAxis y_axis_ ;
-    Label title_ ;
-    std::vector<std::unique_ptr<Subplot>> elements_ ;
+    std::string title_ ;
+    std::vector<std::unique_ptr<Graph>> graphs_ ;
+    BoundingBox data_bounds_ ;
 
-private:
-
-    BoundingBox dataBounds() ;
-    Transform dataTransform() ;
 
 } ;
 
 
-} // namespace xplot ;
+
+
+} }
 
 #endif

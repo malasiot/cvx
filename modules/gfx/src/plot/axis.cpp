@@ -10,21 +10,26 @@ double Axis::sround(double x) {
 
     if ( fabs(x) < 1.0e-10 ) return 0.0 ;
 
+
     while ( x * s < 1.0 ) s *= 10 ;
     while ( x * s > 10.0 ) s /= 10 ;
 
     double sx = s * x ;
 
     if ( is_log_ ) {
+        if ( x < 1.0 ) return 1.0 ;
         if ( sx >= 1.0 && sx < 2.0 ) return 1.0/s ;
         else if ( sx >= 2.0 && sx < 3.0 ) return 2.0/s ;
         else if ( sx >= 3.0 && sx <10.0 ) return 3.0/s ;
+        else return 1.0 ;
     }
     else {
         if ( sx >= 1.0 && sx < 2.0 ) return 1.0/s ;
         else if ( sx >= 2.0 && sx < 5.0 ) return 2.0/s ;
         else return 5.0/s ;
     }
+
+    return s ;
 }
 
 void Axis::bounds(double sx, double xu, double xl, unsigned &nTics, double &rxu, double &rxl)
@@ -92,8 +97,8 @@ void Axis::computeAxisLayout(double ls, double wsize, double gscale) {
 
     if ( is_log_ )
     {
-        if ( _min <= 0 ) _min = log10(max_v_/10.0) ;
-        else _min = log10(min_v_/10.0) ;
+        if ( _min <= 0 ) throw std::runtime_error("log scale for negative number") ;
+        else _min = log10(min_v_) ;
 
         _max = log10(_max) ;
     }
@@ -153,7 +158,7 @@ void Axis::computeAxisLayout(double ls, double wsize, double gscale) {
     // compute transformation of this axis from data space to window space
 
     if ( is_reversed_ ) {
-        scale_ = -(wsize - 2*margin_ *gscale)/(max_label_v_ - min_label_v_)*vscale_ ;
+        scale_ = (wsize - 2*margin_ *gscale)/(max_label_v_ - min_label_v_)*vscale_ ;
         offset_ = -scale_ * max_label_v_ / vscale_  + margin_ * gscale  ;
     }
     else
@@ -164,7 +169,7 @@ void Axis::computeAxisLayout(double ls, double wsize, double gscale) {
 
 }
 
-void Axis::paintLabel(Canvas &canvas,  const string &text, double x, double y, bool rotate)
+Rectangle2d Axis::paintLabel(Canvas &canvas,  const string &text, double x, double y, bool rotate)
 {
     string mnt, expo ;
     size_t spos = text.find('^') ;
@@ -178,32 +183,42 @@ void Axis::paintLabel(Canvas &canvas,  const string &text, double x, double y, b
     Text layout_mnt(mnt) ;
     layout_mnt.setFont(label_font_) ;
 
+    float xoffset = label_font_.size()/8 ; // better to get this from glyph advance
+
     double lw = layout_mnt.width() ;
     double lh = layout_mnt.height() ;
-    double soffset = 0.8*lh ;
+    double soffset = 0.66*lh ;
 
     Text layout_expo;
 
     Font superf(label_font_) ;
-     superf.setSize(label_font_.size()/2.0) ;
+     superf.setSize(0.58 * label_font_.size()) ;
 
     if ( !expo.empty() ) {
         layout_expo.setText(expo);
-
         layout_expo.setFont(superf) ;
-
 
         double ew = layout_expo.width() ;
         double eh = layout_expo.height() ;
 
-        lw += ew ;
+        lw += ew + xoffset;
         lh += soffset + eh - lh ;
     }
 
+    double xf, yf ;
+    if ( !rotate ) {
+        xf = x - lw/2.0 ;
+        yf = y ;
+    } else {
+       xf = x - lw ;
+       yf = y - lh/2 ;
+    }
 
-    Rectangle2d layout_rect(x - lw/2.0, y, lw, lh ) ;
+    Rectangle2d layout_rect(xf, yf, lw, lh) ;
 
     canvas.save() ;
+    canvas.setBrush(text_brush_) ;
+    canvas.setPen(EmptyPen()) ;
     canvas.setFont(label_font_) ;
     canvas.setTextAlign(TextAlignBottom|TextAlignLeft) ;
     canvas.drawText(layout_mnt, layout_rect) ;
@@ -216,7 +231,7 @@ void Axis::paintLabel(Canvas &canvas,  const string &text, double x, double y, b
 
     canvas.restore() ;
 
-
+    return layout_rect ;
 }
 
 void XAxis::computeLayout(double wsize, double gscale) {
@@ -226,7 +241,7 @@ void XAxis::computeLayout(double wsize, double gscale) {
     computeAxisLayout(maxLabelW, wsize, gscale) ;
 }
 
-void XAxis::draw(Canvas &canvas, double wsize, double gscale) {
+void XAxis::draw(Canvas &canvas, double wsize, double hsize, double gscale) {
 
     unsigned s = wsize - 2 * margin_ * gscale ;
     unsigned nTics = labels_.size() ;
@@ -243,80 +258,41 @@ void XAxis::draw(Canvas &canvas, double wsize, double gscale) {
     double lb = 0 ;
 
     double ticy = ( tics_placement_ == TicsInside ) ? - tic_size_ * gscale :  tic_size_ * gscale ;
+    double ticy_minor = ( tics_placement_ == TicsInside ) ? - tic_minor_size_ * gscale :  tic_minor_size_ * gscale ;
     double labely = ticy + (( tics_placement_ == TicsInside ) ? - label_offset_ * gscale :  label_offset_ * gscale) ;
+
+    // draw tics
 
     for(  uint j=0 ; j<nTics ; j++ ) {
         double x1 = margin_ * gscale +  j * ts ;
 
         canvas.drawLine(x1, 0, x1, ticy) ;
 
-        /*
-          if ( j < nTicsX -1 && logX && fabs(stepx) == 1.0)
-          {
-            for( int k=2 ; k<10 ; k++ )
-            {
-              qreal offset = tsx*log10((double)k) ;
-
-              painter.setPen(axisp) ;
-              painter.drawLine(QPointF(x1 + offset, y1), QPointF(x1 + offset, y3)) ;
-
-              if ( gridX )
-              {
-                painter.setPen(gridp) ;
-                painter.drawLine(QPointF(x1 + offset, y1), QPointF(x1 + offset, y1 - sy)) ;
-              }
+        if ( is_log_ && j < nTics - 1) { // minor
+            for( int k=2 ; k<10 ; k++ ) {
+              double offset = ts*log10((double)k) ;
+              canvas.drawLine(x1 + offset, 0, x1 + offset, ticy_minor) ;
             }
-          }
-          */
+        }
 
         if ( is_log_ )
         {
-            /*
-            QRectF powerRect ;
-            powerRect = painter.boundingRect(powerRect, Qt::AlignLeft | Qt::AlignBottom, "10") ;
-
-            QRectF boundRect ;
-            painter.setFont(expoFont) ;
-            boundRect = painter.boundingRect(boundRect, Qt::AlignLeft | Qt::AlignBottom, labelsX[j]) ;
-            QRectF expoRect = QRectF(0, 0, boundRect.width(), boundRect.height()) ;
-
-            powerRect.setWidth(powerRect.width() + boundRect.width()) ;
-            powerRect.setHeight(powerRect.height() + boundRect.height()/2) ;
-
-            QRectF layoutRect(x1 - powerRect.width()/2.0, y1 + 5 * scale,
-            powerRect.width(), powerRect.height() ) ;
-
-            expoRect.moveTopRight(layoutRect.topRight()) ;
-
-            painter.setFont(labelFont) ;
-
-            painter.drawText(layoutRect, Qt::AlignLeft | Qt::AlignBottom, "10") ;
-
-            painter.setFont(expoFont) ;
-
-            painter.drawText(expoRect, Qt::AlignLeft | Qt::AlignBottom, labelsX[j]) ;
-
-            lbx = qMax(lbx, layoutRect.height()) ;
-
-            painter.setFont(labelFont) ;
-            */
+            Rectangle2d r = paintLabel(canvas, "10^" + labels_[j], x1,labely, false);
+            lb = std::max(lb, r.height()) ;
         }
         else
         {
-            paintLabel(canvas, labels_[j] + "10^2", x1,labely, false);
-            /*Text label(labels_[j]) ;
-            label.setFont(label_font_) ;
+            Rectangle2d r = paintLabel(canvas, labels_[j], x1,labely, false);
+            lb = std::max(lb, r.height()) ;
+        }
 
-            Rectangle2d layout_rect(x1 - label.width()/2.0, labely, label.width(), label.height() ) ;
-
-            canvas.drawText(label, layout_rect) ;
-
-
-            lb = std::max(lb, label.height()) ;
-            */
+        if ( draw_grid_ ) {
+            canvas.save() ;
+            canvas.setPen(grid_pen_) ;
+            canvas.drawLine(x1, 0, x1, -hsize) ;
+            canvas.restore() ;
         }
     }
-
 
 
     // draw title
@@ -328,7 +304,12 @@ void XAxis::draw(Canvas &canvas, double wsize, double gscale) {
         canvas.setTextAlign(TextAlignTop|TextAlignHCenter) ;
         Rectangle2d boundRect(x1 - title_wrap_/2, y1, title_wrap_, lb) ;
 
+        canvas.save() ;
+        canvas.setFont(title_font_) ;
+        canvas.setBrush(text_brush_) ;
+        canvas.setPen(EmptyPen()) ;
         canvas.drawText(title_, boundRect) ;
+        canvas.restore() ;
     }
 
 
@@ -342,9 +323,9 @@ void YAxis::computeLayout(double wsize, double gscale) {
     computeAxisLayout(maxLabelH, wsize, gscale) ;
 }
 
-void YAxis::draw(Canvas &canvas, double wsize, double gscale) {
+void YAxis::draw(Canvas &canvas, double wsize, double hsize, double gscale) {
 
-    unsigned s = wsize - 2 * margin_ * gscale ;
+    unsigned s = hsize - 2 * margin_ * gscale ;
     unsigned nTics = labels_.size() ;
 
     double ts = s/(nTics - 1) ;
@@ -354,11 +335,12 @@ void YAxis::draw(Canvas &canvas, double wsize, double gscale) {
     canvas.setPen(tics_pen_) ;
     canvas.setTextAlign(TextAlignLeft|TextAlignTop) ;
 
-    canvas.drawLine(0, 0, 0, -wsize) ;
+    canvas.drawLine(0, 0, 0, -hsize) ;
 
     double lb = 0 ;
 
     double ticx = ( tics_placement_ == TicsInside ) ?  tic_size_ * gscale :  -tic_size_ * gscale ;
+    double ticx_minor = ( tics_placement_ == TicsInside ) ?  tic_minor_size_ * gscale :  -tic_minor_size_ * gscale ;
     double labelx = ticx + (( tics_placement_ == TicsInside ) ?  label_offset_ * gscale :  -label_offset_ * gscale) ;
 
     for(  int j=0 ; j<nTics ; j++ ) {
@@ -366,68 +348,31 @@ void YAxis::draw(Canvas &canvas, double wsize, double gscale) {
 
         canvas.drawLine(0, y1, ticx, y1) ;
 
-        /*
-          if ( j < nTicsX -1 && logX && fabs(stepx) == 1.0)
-          {
-            for( int k=2 ; k<10 ; k++ )
-            {
-              qreal offset = tsx*log10((double)k) ;
-
-              painter.setPen(axisp) ;
-              painter.drawLine(QPointF(x1 + offset, y1), QPointF(x1 + offset, y3)) ;
-
-              if ( gridX )
-              {
-                painter.setPen(gridp) ;
-                painter.drawLine(QPointF(x1 + offset, y1), QPointF(x1 + offset, y1 - sy)) ;
-              }
+        if ( is_log_ && j < nTics - 1) { // minor
+            for( int k=2 ; k<10 ; k++ ) {
+              double offset = ts*log10((double)k) ;
+              canvas.drawLine(0, y1 + offset, ticx_minor, y1 + offset) ;
             }
-          }
-          */
+        }
 
         if ( is_log_ )
         {
-            /*
-            QRectF powerRect ;
-            powerRect = painter.boundingRect(powerRect, Qt::AlignLeft | Qt::AlignBottom, "10") ;
-
-            QRectF boundRect ;
-            painter.setFont(expoFont) ;
-            boundRect = painter.boundingRect(boundRect, Qt::AlignLeft | Qt::AlignBottom, labelsX[j]) ;
-            QRectF expoRect = QRectF(0, 0, boundRect.width(), boundRect.height()) ;
-
-            powerRect.setWidth(powerRect.width() + boundRect.width()) ;
-            powerRect.setHeight(powerRect.height() + boundRect.height()/2) ;
-
-            QRectF layoutRect(x1 - powerRect.width()/2.0, y1 + 5 * scale,
-            powerRect.width(), powerRect.height() ) ;
-
-            expoRect.moveTopRight(layoutRect.topRight()) ;
-
-            painter.setFont(labelFont) ;
-
-            painter.drawText(layoutRect, Qt::AlignLeft | Qt::AlignBottom, "10") ;
-
-            painter.setFont(expoFont) ;
-
-            painter.drawText(expoRect, Qt::AlignLeft | Qt::AlignBottom, labelsX[j]) ;
-
-            lbx = qMax(lbx, layoutRect.height()) ;
-
-            painter.setFont(labelFont) ;
-            */
+            Rectangle2d r = paintLabel(canvas, "10^" + labels_[j], labelx, y1, true);
+            lb = std::max(lb, r.width()) ;
         }
         else
         {
-            Text label(labels_[j]) ;
-            label.setFont(label_font_) ;
-
-            Rectangle2d layout_rect(labelx - label.width(), y1 - label.height()/2, label.width(), label.height() ) ;
-
-            canvas.drawText(label, layout_rect) ;
-
-            lb = std::max(lb, label.width()) ;
+            Rectangle2d r = paintLabel(canvas, labels_[j], labelx, y1, true);
+            lb = std::max(lb, r.width()) ;
         }
+
+        if ( draw_grid_ ) {
+            canvas.save() ;
+            canvas.setPen(grid_pen_) ;
+            canvas.drawLine(0, y1, wsize, y1) ;
+            canvas.restore() ;
+        }
+
     }
 
     if ( !title_.empty() ) {
@@ -445,8 +390,13 @@ void YAxis::draw(Canvas &canvas, double wsize, double gscale) {
         const double bs = 2 * lb ; // 2 lines ? (font height)
         Rectangle2d boundRect(x1 - title_wrap_/2, y1 - bs, title_wrap_, bs) ;
         //    canvas.drawRect(boundRect) ;
+
+        canvas.setFont(title_font_) ;
+        canvas.setBrush(text_brush_) ;
+        canvas.setPen(EmptyPen()) ;
         canvas.drawText(title_, boundRect) ;
         canvas.restore() ;
+
     }
 
 

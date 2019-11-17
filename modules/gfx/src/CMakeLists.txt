@@ -60,6 +60,8 @@ set(LIB_SOURCES
     ${LIBRARY_INCLUDE_DIR}/svg_document.hpp
 
     plot/axis.cpp
+    plot/line_graph.cpp
+    plot/plot.cpp
 )
 
 add_library(cvx_gfx ${LIBRARY_TYPE} ${LIB_SOURCES} )

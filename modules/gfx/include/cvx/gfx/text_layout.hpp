@@ -48,6 +48,7 @@ public:
 
     double width() ;
     double height() ;
+    double advance() ;
 
     // get the box containing the text as will be drawn given the provided alignment flags
     Rectangle2d box(const Rectangle2d &box, uint flags) ;
