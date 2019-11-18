@@ -11,9 +11,6 @@
 using namespace cvx::gfx ;
 using namespace std ;
 
-
-
-
 int main(int argc, char *argv[]) {
 
     ImageSurface is(1024, 512) ;
@@ -36,13 +33,14 @@ int main(int argc, char *argv[]) {
     vector<double> x = { 0.0, 0.1, 0.6 } ;
     vector<double> y = { 1.0, 3.1, -0.4 } ;
 
-    plot.lines(x, y) ;
+    auto &graph = plot.lines(x, y) ;
+    graph.pen().setColor(NamedColor::red()) ;
+    graph.setMarker(new SimpleShapeMarker(SimpleShapeMarker::TriangleUp, 6, Pen(NamedColor::blue()), SolidBrush(NamedColor::red()))) ;
 
     plot.xAxis().setGrid(true).setTitle("X") ;
     plot.yAxis().setGrid(true).setTitle("Y") ;
+    plot.setTitle("Text plot") ;
     plot.draw(canvas, 500, 300) ;
-
-
 
     is.flush() ;
     is.getImage().saveToPNG("/tmp/oo.png") ;

@@ -29,27 +29,33 @@ void LineGraph::draw(Canvas &c)
     auto &xaxis = plot_->xAxis() ;
     auto &yaxis = plot_->yAxis() ;
 
-    double sx = xaxis.getScale();
-    double tx = xaxis.getOffset() ;
-
-    double sy = yaxis.getScale() ;
-    double ty = yaxis.getOffset() ;
-
     Path p ;
 
     for( int i=0 ; i<x_.size() ; i++ ) {
-        double x = sx * x_[i] + tx ;
-        double y = sy * y_[i] + ty ;
+        double x = xaxis.transform(x_[i]) ;
+        double y = yaxis.transform(y_[i]) ;
 
-        if ( i == 0 ) p.moveTo(x, -y) ;
-        else p.lineTo(x, -y) ;
+        if ( i == 0 ) p.moveTo(x, y) ;
+        else p.lineTo(x, y) ;
     }
 
+
     c.save() ;
-    c.setPen(Pen(NamedColor::red(), 2)) ;
+    c.setPen(pen_) ;
     c.drawPath(p) ;
     c.restore() ;
 
+    if ( marker_ ) {
+        for( int i=0 ; i<x_.size() ; i++ ) {
+            double x = xaxis.transform(x_[i]) ;
+            double y = yaxis.transform(y_[i]) ;
+
+            c.save() ;
+            c.setTransform(Matrix2d().translate(x, y)) ;
+            marker_->draw(c) ;
+            c.restore() ;
+        }
+    }
 }
 
 void LineGraph::drawLegend(Canvas &c, double width, double height)

@@ -28,10 +28,10 @@ public:
         return *this ;
     }
 
-    Axis &xAxis() { return x_axis_ ; }
-    Axis &yAxis() { return y_axis_ ; }
+    XAxis &xAxis() { return x_axis_ ; }
+    YAxis &yAxis() { return y_axis_ ; }
 
-    void setTitle(const std::string &title) ;
+    void setTitle(const std::string &title) { title_ = title ; } ;
     void showLegend(bool legend) ;
 
     void draw(Canvas &c, double w, double h) ;
@@ -46,7 +46,9 @@ private:
     std::vector<std::unique_ptr<Graph>> graphs_ ;
     BoundingBox data_bounds_ ;
 
-
+    double max_title_width_ = 200 ;
+    double title_offset_ = 4 ;
+    Font title_font_ = Font("Arial", 14);
 } ;
 
 

@@ -5,54 +5,6 @@
 using namespace std ;
 namespace cvx { namespace gfx {
 
-double Axis::sround(double x) {
-    double s = 1.0 ;
-
-    if ( fabs(x) < 1.0e-10 ) return 0.0 ;
-
-
-    while ( x * s < 1.0 ) s *= 10 ;
-    while ( x * s > 10.0 ) s /= 10 ;
-
-    double sx = s * x ;
-
-    if ( is_log_ ) {
-        if ( x < 1.0 ) return 1.0 ;
-        if ( sx >= 1.0 && sx < 2.0 ) return 1.0/s ;
-        else if ( sx >= 2.0 && sx < 3.0 ) return 2.0/s ;
-        else if ( sx >= 3.0 && sx <10.0 ) return 3.0/s ;
-        else return 1.0 ;
-    }
-    else {
-        if ( sx >= 1.0 && sx < 2.0 ) return 1.0/s ;
-        else if ( sx >= 2.0 && sx < 5.0 ) return 2.0/s ;
-        else return 5.0/s ;
-    }
-
-    return s ;
-}
-
-void Axis::bounds(double sx, double xu, double xl, unsigned &nTics, double &rxu, double &rxl)
-{
-    int i, n = (int)(xu/sx) ;
-
-    for(i=n+1 ; i>=n-1 ; i--) {
-        if ( i * sx - xu <= 1.0e-4 ) break ;
-    }
-
-    rxu = i * sx ;
-
-    n = (int)(xl/sx) ;
-
-    for(i=n-1 ; i<=n+1 ; i++) {
-        if ( i * sx - xl >= -1.0e-4 ) break ;
-    }
-
-    rxl = i * sx ;
-
-    nTics = (rxl - rxu)/sx + 1.5;
-}
-
 TickFormatter Axis::nullFormatter =
            [](double v, int idx) { return std::string() ; } ;
 
@@ -103,7 +55,12 @@ void Axis::computeAxisLayout(double ls, double wsize, double gscale) {
         _max = log10(_max) ;
     }
 
+    vector<double> tic_locations_ ;
+    tick_locator_->compute(_min, _max, numTics, is_log_ ? 1.0 : 0.0, min_label_v_, max_label_v_, tic_locations_) ;
+
+    /*
     max_label_v_ = max_v_ ;
+
 
     if ( ticStep == 0.0 ) {
         // recompute tic number and tic step to achieve normalized steps
@@ -129,6 +86,9 @@ void Axis::computeAxisLayout(double ls, double wsize, double gscale) {
         step_ = sround(ticStep*vscale_) ;
         bounds(step_, _min*vscale_, _max*vscale_, numTics, min_label_v_, max_label_v_) ;
     }
+*/
+
+    numTics = tic_locations_.size() ;
 
     // create labels
 
@@ -136,24 +96,10 @@ void Axis::computeAxisLayout(double ls, double wsize, double gscale) {
 
     uint i ;
 
-    if ( is_reversed_ ) {
-        double v = max_label_v_ ;
-
-        for(  i=0 ; i<numTics ; i++ ) {
-            if ( fabs(v) < 1.0e-4 ) v = 0.0 ;
-            labels_[i].assign(tick_formatter_(v, i)) ;
-            v -= step_ ;
-        }
+    for( i=0 ; i<numTics ; i++ ) {
+        labels_[i].assign(tick_formatter_(tic_locations_[i], i)) ;
     }
-    else  {
-        double v = min_label_v_ ;
 
-        for(  i=0 ; i<numTics ; i++ ) {
-            if ( fabs(v) < 1.0e-4 ) v = 0.0 ;
-            labels_[i].assign(tick_formatter_(v, i)) ;
-            v += step_ ;
-        }
-    }
 
     // compute transformation of this axis from data space to window space
 
@@ -403,8 +349,21 @@ void YAxis::draw(Canvas &canvas, double wsize, double hsize, double gscale) {
     canvas.restore() ;
 }
 
+double XAxis::transform(double x) {
+    if ( is_log_ ) {
+        if ( x > 0.0 ) x = log10(x) ;
+        else throw runtime_error("log scale needs positive numbers") ;
+    }
+    return scale_ * x + offset_ ;
+}
 
-
+double YAxis::transform(double y) {
+    if ( is_log_ ) {
+        if ( y > 0.0 ) y = log10(y) ;
+        else throw runtime_error("log scale needs positive numbers") ;
+    }
+    return -(scale_ * y + offset_) ;
+}
 
 
 
