@@ -30,6 +30,7 @@ class GlyphRun ;
 class Text {
 public:
     Text()  ;
+    Text(Text &&t) ;
     Text(const std::string &text) ;
     ~Text() ;
 
@@ -43,6 +44,9 @@ public:
     void setLineSpacing(double ls) ;
     void setWrapWidth(double width) ;
     void setTextDirection(TextDirection dir) ;
+
+    // force layout computation
+     void updateLayout() ;
 
     // get a the text box dimensions ( the font and other layout parameters have to be set first )
 
@@ -59,7 +63,7 @@ public:
 
 private:
 
-    void updateLayout() ;
+
 
     bool needs_update_ = true ;
 

@@ -15,6 +15,7 @@ public:
 
 private:
 
+    Pen pen_ = Pen() ;
     std::vector<double> x_, y_ ;
 } ;
 

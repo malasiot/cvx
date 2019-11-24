@@ -12,6 +12,8 @@ Text::Text()
 
 }
 
+Text::Text(Text &&t): needs_update_(t.needs_update_), engine_(std::move(t.engine_)) {}
+
 Text::Text(const std::string &text) {
     engine_.reset(new TextLayoutEngine(text)) ;
 }

@@ -31,8 +31,8 @@ public:
     Axis &xAxis() { return x_axis_ ; }
     Axis &yAxis() { return y_axis_ ; }
 
-    void setTitle(const std::string &title) ;
-    void showLegend(bool legend) ;
+    Plot &setTitle(const std::string &title) { title_ = title ; return *this ; }
+    Plot &showLegend(bool legend) { show_legend_ = legend; return *this ; }
 
     void draw(Canvas &c, double w, double h) ;
     void updateLayout(double w, double h) ;
@@ -43,10 +43,22 @@ private:
     XAxis x_axis_ ;
     YAxis y_axis_ ;
     std::string title_ ;
+    double legend_max_label_width_ = 150 ;
+    double legend_preview_width_ = 30 ;
+    double legend_min_row_height_ = 30;
+    double legend_padding_ = 6 ;
+    double legend_margin_ = 4 ;
+
+    Font legend_font_ = Font("Arial", 10) ;
+    SolidBrush legend_label_brush_ = SolidBrush(NamedColor::black()) ;
+    SolidBrush legend_bg_brush_ = SolidBrush(NamedColor::white()) ;
+    Pen legend_bg_pen_ = Pen() ;
+
     std::vector<std::unique_ptr<Graph>> graphs_ ;
     BoundingBox data_bounds_ ;
 
-
+private:
+    void drawLegend(Canvas &c, double w, double h);
 } ;
 
 

@@ -11,9 +11,6 @@
 using namespace cvx::gfx ;
 using namespace std ;
 
-
-
-
 int main(int argc, char *argv[]) {
 
     ImageSurface is(1024, 512) ;
@@ -32,17 +29,17 @@ int main(int argc, char *argv[]) {
     canvas.setTransform(tr);
 
     Plot plot ;
+    plot.showLegend(true) ;
 
     vector<double> x = { 0.0, 0.1, 0.6 } ;
     vector<double> y = { 1.0, 3.1, -0.4 } ;
 
-    plot.lines(x, y) ;
+    LineGraph &graph = plot.lines(x, y) ;
+    graph.setTitle("line 1") ;
 
     plot.xAxis().setGrid(true).setTitle("X") ;
     plot.yAxis().setGrid(true).setTitle("Y") ;
     plot.draw(canvas, 500, 300) ;
-
-
 
     is.flush() ;
     is.getImage().saveToPNG("/tmp/oo.png") ;

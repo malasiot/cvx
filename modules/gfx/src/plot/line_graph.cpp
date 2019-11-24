@@ -46,7 +46,7 @@ void LineGraph::draw(Canvas &c)
     }
 
     c.save() ;
-    c.setPen(Pen(NamedColor::red(), 2)) ;
+    c.setPen(pen_) ;
     c.drawPath(p) ;
     c.restore() ;
 
@@ -54,7 +54,10 @@ void LineGraph::draw(Canvas &c)
 
 void LineGraph::drawLegend(Canvas &c, double width, double height)
 {
-
+    c.save() ;
+    c.setPen(pen_) ;
+    c.drawLine(0, height/2.0, width, height/2.0);
+    c.restore() ;
 }
 
 

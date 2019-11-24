@@ -423,6 +423,7 @@ TextLayoutEngine::TextLayoutEngine(const string &text) {
 
 void TextLayoutEngine::setFont(const Font &font) {
       font_ =  FontManager::instance().createFont(font) ;
+      font_desc_ = font ;
 }
 
 void TextLayoutEngine::setWrapWidth(double w) {

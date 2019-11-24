@@ -378,10 +378,6 @@ void Canvas::drawText(Text &layout, double x0, double y0, double width, double h
 
     cairo_scaled_font_t *scaled_font = FontManager::instance().createFont(f) ;
 
-    layout.setFont(f) ;
-    layout.setWrapWidth(width) ;
-    layout.setTextDirection(state.text_direction_) ;
-
     cairo_font_extents_t extents ;
     cairo_scaled_font_extents(scaled_font, &extents) ;
 
@@ -468,6 +464,15 @@ void Canvas::drawText(Text &layout, double x0, double y0, double width, double h
 
 void Canvas::drawText(const std::string &text, double x0, double y0, double width, double height) {
     Text layout(text) ;
+
+    const detail::State &state = state_.top() ;
+
+    const Font &f = state.font_ ;
+
+    layout.setFont(f) ;
+    layout.setWrapWidth(width) ;
+    layout.setTextDirection(state.text_direction_) ;
+
     drawText(layout, x0, y0, width, height) ;
 }
 
@@ -492,9 +497,6 @@ void Canvas::drawText(Text &text, double x0, double y0)
     const detail::State &state = state_.top() ;
 
     const Font &f = state.font_ ;
-
-    text.setFont(f) ;
-    text.setTextDirection(state.text_direction_) ;
 
     const GlyphRun &line = text.lines()[0] ;
 
@@ -542,6 +544,12 @@ void Canvas::drawText(Text &text, double x0, double y0)
 
 void Canvas::drawText(const std::string &text, double x0, double y0) {
     Text layout(text) ;
+    const detail::State &state = state_.top() ;
+
+    const Font &f = state.font_ ;
+
+    layout.setFont(f) ;
+    layout.setTextDirection(state.text_direction_) ;
     drawText(layout, x0, y0) ;
 }
 
