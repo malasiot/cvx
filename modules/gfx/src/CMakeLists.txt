@@ -62,6 +62,10 @@ set(LIB_SOURCES
     plot/axis.cpp
     plot/line_graph.cpp
     plot/plot.cpp
+    plot/tics.cpp
+    plot/markers.cpp
+    plot/legend.cpp
+
 )
 
 add_library(cvx_gfx ${LIBRARY_TYPE} ${LIB_SOURCES} )

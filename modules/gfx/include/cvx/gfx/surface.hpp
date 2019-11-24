@@ -33,6 +33,11 @@ public:
     Image getImage() const ;
 };
 
+class PDFSurface: public Surface {
+public:
+    PDFSurface(const std::string &path, int width, int height, double dpi_x = 300, double dpi_y = 300);
+};
+
 class RecordingSurface: public Surface {
 public:
     RecordingSurface(double width, double height) ;

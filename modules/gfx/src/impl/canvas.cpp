@@ -75,7 +75,7 @@ void RenderingContext::set_cairo_stroke(const Pen &pen) {
     if ( dash_array.empty() )
         cairo_set_dash(cr(), 0, 0, 0) ;
     else
-        cairo_set_dash(cr(), &dash_array[0], dash_array.size(), dash_offset) ;
+        cairo_set_dash(cr(), dash_array.data(), dash_array.size(), dash_offset) ;
 }
 
 void RenderingContext::cairo_apply_linear_gradient(const LinearGradientBrush &lg) {
@@ -171,7 +171,7 @@ void RenderingContext::fill_stroke_shape() {
 
         set_cairo_fill(br) ;
 
-        if ( !state.pen_->isEmpty()  ) cairo_fill_preserve(cr()) ;
+        if ( dynamic_cast<EmptyPen *>(state.pen_.get()) == nullptr  ) cairo_fill_preserve(cr()) ;
         else cairo_fill (cr());
     }
 
@@ -179,6 +179,8 @@ void RenderingContext::fill_stroke_shape() {
             set_cairo_stroke(*pen) ;
             cairo_stroke(cr()) ;
     }
+
+    cairo_new_path(cr());
 }
 
 void RenderingContext::set_cairo_fill(const Brush *br) {

@@ -4,19 +4,31 @@
 #include <vector>
 #include <cvx/gfx/plot/axis.hpp>
 #include <cvx/gfx/plot/line_graph.hpp>
+#include <cvx/gfx/plot/legend.hpp>
 
 namespace cvx { namespace gfx {
 
 class Graph ;
 class LineGraph ;
+class Legend ;
 
 class Plot {
 public:
 
     Plot() = default;
 
-    LineGraph &lines(const std::vector<double> &x, const std::vector<double> &y) {
-        LineGraph *g = new LineGraph(x, y) ;
+    LineGraph &lines(const std::vector<double> &x, const std::vector<double> &y, const char *style = nullptr) {
+        LineGraph *g = new LineGraph(x, y, style) ;
+        addGraph(g) ;
+        return *g ;
+    }
+
+    LineGraph &errorbars(const std::vector<double> &x,
+                         const std::vector<double> &y,
+                         const std::vector<double> &e,
+                         const char *style = nullptr) {
+        LineGraph *g = new LineGraph(x, y, style) ;
+        g->setErrors(e) ;
         addGraph(g) ;
         return *g ;
     }
@@ -28,37 +40,36 @@ public:
         return *this ;
     }
 
-    Axis &xAxis() { return x_axis_ ; }
-    Axis &yAxis() { return y_axis_ ; }
+    XAxis &xAxis() { return x_axis_ ; }
+    YAxis &yAxis() { return y_axis_ ; }
+
+    Legend &legend() { return legend_ ; }
 
     Plot &setTitle(const std::string &title) { title_ = title ; return *this ; }
-    Plot &showLegend(bool legend) { show_legend_ = legend; return *this ; }
 
     void draw(Canvas &c, double w, double h) ;
-    void updateLayout(double w, double h) ;
+
 
 private:
 
-    bool show_legend_ = false ;
+
     XAxis x_axis_ ;
     YAxis y_axis_ ;
     std::string title_ ;
-    double legend_max_label_width_ = 150 ;
-    double legend_preview_width_ = 30 ;
-    double legend_min_row_height_ = 30;
-    double legend_padding_ = 6 ;
-    double legend_margin_ = 4 ;
 
-    Font legend_font_ = Font("Arial", 10) ;
-    SolidBrush legend_label_brush_ = SolidBrush(NamedColor::black()) ;
-    SolidBrush legend_bg_brush_ = SolidBrush(NamedColor::white()) ;
-    Pen legend_bg_pen_ = Pen() ;
+    Legend legend_ ;
+
+    double max_title_width_ = 200 ;
+    double title_offset_ = 4 ;
+    Font title_font_ = Font("Arial", 14);
 
     std::vector<std::unique_ptr<Graph>> graphs_ ;
     BoundingBox data_bounds_ ;
 
 private:
     void drawLegend(Canvas &c, double w, double h);
+
+
 } ;
 
 

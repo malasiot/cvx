@@ -1,5 +1,9 @@
 #include <cvx/gfx/surface.hpp>
 
+#include <cairo-pdf.h>
+
+using namespace std ;
+
 namespace cvx { namespace gfx {
 
 Surface::~Surface()
@@ -67,6 +71,10 @@ Image ImageSurface::getImage() const
     }
 
     return im ;
+}
+
+PDFSurface::PDFSurface(const string &fileName, int w, int h, double dpi_x, double dpi_y): Surface(w, h, dpi_x, dpi_y) {
+    surf_ = cairo_pdf_surface_create(fileName.c_str(), w , h) ;
 }
 
 }}

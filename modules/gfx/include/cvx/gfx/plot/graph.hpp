@@ -11,6 +11,7 @@ class Graph {
 public:
 
     void setTitle(const std::string &title) { title_ = title ; }
+    const std::string &getTitle() const { return title_ ; }
 
     virtual BoundingBox getDataBounds() = 0;
     virtual void draw(Canvas &c) = 0;

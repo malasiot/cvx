@@ -50,19 +50,19 @@ Pen & Pen::setLineStyle(LineStyle style) {
     else if ( style == DashLine ) {
         dash_array_.resize(2) ;
         dash_array_[0] = 4.0 ;
-        dash_array_[1] = 1.0 ;
+        dash_array_[1] = 4.0 ;
     }
     else if ( style == DotLine ) {
         dash_array_.resize(2) ;
         dash_array_[0] = 1.0 ;
-        dash_array_[1] = 1.0 ;
+        dash_array_[1] = 4.0 ;
     }
     else if ( style == DashDotLine ) {
         dash_array_.resize(4) ;
-        dash_array_[0] = 6.0 ;
-        dash_array_[1] = 1.0 ;
-        dash_array_[2] = 1.0 ;
-        dash_array_[3] = 1.0 ;
+        dash_array_[0] = 8.0 ;
+        dash_array_[1] = 2.0 ;
+        dash_array_[2] = 4.0 ;
+        dash_array_[3] = 2.0 ;
     }
     return *this ;
 }
