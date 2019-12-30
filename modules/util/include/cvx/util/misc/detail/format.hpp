@@ -1,6 +1,7 @@
 #ifndef __STRINGS_FORMAT_IMPL_HPP__
 #define __STRINGS_FORMAT_IMPL_HPP__
 
+
 #include <string>
 #include <memory>
 namespace cvx { namespace impl {

@@ -19,7 +19,7 @@ namespace cvx { namespace util {
 // format is one of 'f', 'F', 'g', 'G', 'e', 'E' (similar to printf).
 // precision is the number of significant digits retained
 
-std::string format(double arg, int fieldWidth = 0, char format = 'g', int precision = -1, char fill_char = ' ') ;
+//std::string format(double arg, int fieldWidth = 0, char format = 'g', int precision = -1, char fill_char = ' ') ;
 
 // format integer value
 //
@@ -27,14 +27,16 @@ std::string format(double arg, int fieldWidth = 0, char format = 'g', int precis
 // The value is not truncated even if the result is larger. If this is negative the string is left align in the field space othwerwise it is right aligned.
 // base is one of 'd', 'i', 'u', 'x', 'X', 'o', 'O'.
 
-std::string format(long long int arg, int fieldWidth = 0, char base = 'd', char fill_char = ' ') ;
+//std::string format(long long int arg, int fieldWidth = 0, char base = 'd', char fill_char = ' ') ;
 
 // Printf like formating of string. snprintf is called internally and there is no type safety. Yet one may pass std::strings as arguments
+
+/*
 template<typename... Args>
 std::string format(const char *frmt, Args... args ) {
     return impl::format(frmt, args...) ;
 }
-
+*/
 // tokenize string by spliting with one of delimeters
 std::vector<std::string> split(const std::string &s, const char *delimeters) ;
 

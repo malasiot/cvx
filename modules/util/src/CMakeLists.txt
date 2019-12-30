@@ -36,6 +36,7 @@ set ( LIB_SOURCES
     misc/xml_writer.cpp
     misc/json_reader.cpp
     misc/json_writer.cpp
+    misc/format.cpp
 
     geometry/trimesh_topology.cpp
     3rdparty/triangle.c
@@ -132,6 +133,7 @@ include_directories(3rdparty)
 
 add_subdirectory(3rdparty/levmar)
 
+
 set_source_files_properties(rgbd/depth_filter/jointNearest.cpp
                             rgbd/depth_filter/split.cpp
                             PROPERTIES COMPILE_FLAGS -msse4.1)
@@ -147,6 +149,7 @@ TARGET_LINK_LIBRARIES(cvx_util
         ${LAPACK_LIBRARIES}
         ${F2C_LIBRARIES}
         ${ZLIB_LIBRARIES}
+
 )
 
 # Install library

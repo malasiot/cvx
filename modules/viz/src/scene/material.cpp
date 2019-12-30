@@ -1,5 +1,5 @@
 #include <cvx/viz/scene/material.hpp>
-#include <cvx/util/misc/strings.hpp>
+#include <cvx/util/misc/format.hpp>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 

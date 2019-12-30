@@ -1,4 +1,5 @@
 #include <cvx/util/misc/strings.hpp>
+#include <cvx/util/misc/format.hpp>
 
 #include <iostream>
 #include <iterator>
@@ -10,7 +11,6 @@ using namespace cvx::util ;
 
 int main(int argc, char *argv[]) {
 
-    cout << format(-23.0, 10, 'f', 5) << endl ;
 
     auto s = split("2.4, 3.5  4.6 ",regex("[, ]+")) ;
     std::copy(s.begin(), s.end(), std::ostream_iterator<std::string>(std::cout, "$"));

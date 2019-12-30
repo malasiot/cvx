@@ -1,6 +1,7 @@
 #include <cvx/util/geometry/viewpoint_sampler.hpp>
 #include <cvx/util/geometry/util.hpp>
 #include <cvx/util/misc/strings.hpp>
+#include <cvx/util/misc/format.hpp>
 
 #include <Eigen/Geometry>
 #include <fstream>

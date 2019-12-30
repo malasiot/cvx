@@ -70,6 +70,11 @@ public:
         new (&data_.s_) string_t(value) ;
     }
 
+    Variant(const char value) {
+        tag_ = Type::String ;
+        new (&data_.s_) string_t(1, value) ;
+    }
+
     Variant(string_t&& value)  {
         tag_ = Type::String ;
         new (&data_.s_) string_t(value) ;
@@ -773,7 +778,11 @@ private:
             if (!isObject() ) throw std::runtime_error("Trying to index an object which is not dictionary") ;
 
             auto it = data_.o_.find(key) ;
-            if ( it == data_.o_.end() ) throw std::out_of_range( cvx::util::format("key '%s' not found", key));
+            if ( it == data_.o_.end() ) {
+                std::ostringstream strm ;
+                strm << "key '" << key << "' not found" ;
+                throw std::out_of_range( strm.str());
+            }
             else return it->second ; // return reference
     }
 
@@ -782,7 +791,11 @@ private:
             if (!isObject() ) throw std::runtime_error("Trying to index an object which is not dictionary") ;
 
             auto it = data_.o_.find(key) ;
-            if ( it == data_.o_.end() ) throw std::out_of_range( cvx::util::format("key '%s' not found", key));
+            if ( it == data_.o_.end() ) {
+                std::ostringstream strm ;
+                strm << "key '" << key << "' not found" ;
+                throw std::out_of_range( strm.str());
+            }
             else return it->second ; // return reference
         } else {
             if ( isNull() || isUndefined() ) {
@@ -802,8 +815,11 @@ private:
             const Variant &v = (data_.a_)[idx] ;
             return v ; // reference to item
         }
-        else
-            throw std::out_of_range( cvx::util::format("index '%d' not in array of size %d", idx, data_.a_.size()));
+        else {
+            std::ostringstream strm ;
+            strm << "index '" <<idx << "' not in array of size " << data_.a_.size() ;
+            throw std::out_of_range( strm.str() ) ;
+        }
     }
 
     Variant &fetchIndex(uint idx, bool safe = true)  {
@@ -814,8 +830,11 @@ private:
                 Variant &v = (data_.a_)[idx] ;
                 return v ; // reference to item
             }
-            else
-                throw std::out_of_range( cvx::util::format("index '%d' not in array of size %d", idx, data_.a_.size()));
+            else {
+                std::ostringstream strm ;
+                strm << "index '" <<idx << "' not in array of size " << data_.a_.size() ;
+                throw std::out_of_range( strm.str() ) ;
+            }
         } else {
             if ( isNull() || isUndefined() ) {
                 *this = std::move(Array()) ;

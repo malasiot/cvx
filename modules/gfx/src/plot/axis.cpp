@@ -1,6 +1,6 @@
 #include <cvx/gfx/plot/axis.hpp>
 #include <cvx/gfx/canvas.hpp>
-#include <cvx/util/misc/strings.hpp>
+#include <cvx/util/misc/format.hpp>
 
 using namespace std ;
 namespace cvx { namespace gfx {

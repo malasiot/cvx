@@ -3,6 +3,7 @@
 
 #include <cvx/db/types.hpp>
 #include <cvx/util/misc/strings.hpp>
+#include <cvx/util/misc/format.hpp>
 
 namespace cvx {
 namespace db {
