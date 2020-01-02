@@ -7,8 +7,8 @@ static bool parse_literal(const char *&p, detail::FormatPart &part) {
     part.begin_ = p ;
 
     while ( *p != 0 ) {
-        if ( *p == '%' ) {
-            if ( *(p+1) != '%' ) {
+        if ( *p == '{' ) {
+            if ( *(p+1) != '{' ) {
                  break ;
             } else {
                 part.end_ = ++p;
@@ -31,96 +31,70 @@ static size_t parse_integer(const char *&p) {
     return val ;
 }
 
-static bool parse_part(const char *&p, detail::FormatPart &part) {
-    part.begin_ = p ;
-    ++p ;
-    bool width_parsed = false ;
-
-    if ( isdigit(*p) ) { // fill, width or positional argument
-        if ( *p == '0' ) {
-            part.flag_ = detail::FormatPart::FLAG_PREPEND_ZEROS ;
-            ++p ;
-
-            if ( isdigit(*p) ) {
-                int w = parse_integer(p) ;
-                part.width_ = w ;
-                width_parsed = true ;
-            }
-        } else {
-            int value = parse_integer(p) ;
-
-            if ( value != 0 ) {
-                if ( *p == '$' ) { // positional argument
-                    part.arg_ = value - 1 ;
-                    ++p ;
-                }
-                else {
-                    part.width_ = value ;
-                    width_parsed = true ;
-                }
-            } else {
-                return false ;
-            }
-        }
-    }
-
-    if ( !width_parsed ) {
-        while (*p != 0 ) {
-            switch (*p) {
-            case '#':
-                ++p ;
-                part.flag_ |= detail::FormatPart::FLAG_HASH ;
-                continue ;
-            case '0':
-                ++p ;
-                part.flag_ |= detail::FormatPart::FLAG_PREPEND_ZEROS ;
-                continue ;
-            case '-':
-                ++p ;
-                part.flag_ |= detail::FormatPart::FLAG_LEFT_ALIGN ;
-                continue ;
-            case ' ':
-                ++p ;
-                part.flag_ |= detail::FormatPart::FLAG_PREPEND_SPACE ;
-                continue ;
-            case '+':
-                part.flag_ |= detail::FormatPart::FLAG_PREPEND_PLUS ;
-                ++p ;
-                continue ;
-            default:
-                break;
-            }
-            break ;
-        }
-
-        if ( isdigit(*p) ) { // parse width (we do not support width indirections)
-            part.width_ = parse_integer(p) ;
-            width_parsed = true ;
-        }
-    }
-
-    if ( *p == '.' ) {
-        ++p ;
-        if ( isdigit(*p) )
-            part.precision_ = parse_integer(p) ;
-    }
-
+static bool parse_align_flag(const char *p,  detail::FormatPart &part) {
     switch (*p) {
-    case 'l': case 'L': case 'j': case 'Z': case 'h': case 't':
-        ++p ;
-        break ;
+    case '<' :
+        part.align_ = detail::FormatPart::ALIGN_LEFT ; return true;
+    case '>' :
+        part.align_ = detail::FormatPart::ALIGN_RIGHT ; return true;
+    case '^':
+        part.align_ = detail::FormatPart::ALIGN_CENTER ; return true;
+    default:
+        return false ;
     }
+}
 
+static void parse_fill_align_flag(const char *&p,  detail::FormatPart &part) {
+    if ( parse_align_flag(p, part) ) ++p ;
+    else {
+        char fill = *p ;
+        if ( parse_align_flag(p+1, part) ) {
+            part.fill_char_ = fill ;
+            ++p ; ++p ;
+        }
+    }
+}
+
+static void parse_sign(const char *&p,  detail::FormatPart &part) {
     switch (*p) {
-    case 'u': case 'd': case 'i':
+    case '+':
+        part.sign_ = detail::FormatPart::SIGN_BOTH ; ++p ; return ;
+    case '-':
+        part.sign_ = detail::FormatPart::SIGN_NEGATIVE_ONLY ; ++p ; return ;
+    case ' ':
+        part.sign_ = detail::FormatPart::SIGN_NEGATIVE_PAD ; ++p ; return ;
+    }
+}
+
+static void parse_alt_form(const char *&p,  detail::FormatPart &part) {
+    if ( *p == '#' ) {
+        part.alt_form_ = true ;
+        ++p ;
+    }
+}
+
+static void parse_zero_padding(const char *&p,  detail::FormatPart &part) {
+    if ( *p == '0' ) {
+        part.zero_padding_ = true ;
+        ++p ;
+    }
+}
+
+static void parse_type(const char *&p,  detail::FormatPart &part) {
+    switch (*p) {
+    case 'd':
         ++p ; part.type_ = detail::FormatPart::INT ;
         break ;
+    case 'B':
+        part.uppercase_ = true ;
+    case 'b':
+        ++p ; part.type_ = detail::FormatPart::BIN ; break ;
     case 'o':
         ++p ; part.type_ = detail::FormatPart::OCT ;
         break ;
     case 'X':
         part.uppercase_ = true ;
-    case 'x': case 'p':
+    case 'x':
         part.type_ = detail::FormatPart::HEX ; ++p ;
         break ;
     case 'E':
@@ -144,9 +118,38 @@ static bool parse_part(const char *&p, detail::FormatPart &part) {
     case 's':
         part.type_ = detail::FormatPart::STR ; ++p ;
         break ;
-    default:
-        return false ;
+    }
+}
 
+
+static bool parse_format_spec(const char *&p,  detail::FormatPart &part) {
+
+    if ( *p == 0 ) return false ;
+
+    parse_fill_align_flag(p, part) ;
+    parse_sign(p, part) ;
+    parse_alt_form(p, part) ;
+    parse_zero_padding(p, part) ;
+    if ( isdigit(*p) )
+        part.width_ = parse_integer(p) ;
+    if ( *p == '.' )
+        part.precision_ = parse_integer(p) ;
+    parse_type(p, part) ;
+
+    return true ;
+}
+
+static bool parse_part(const char *&p, detail::FormatPart &part) {
+    part.begin_ = p ;
+    ++p ;
+    bool width_parsed = false ;
+
+    if ( isdigit(*p) ) { // positional argument
+        part.arg_ = parse_integer(p) ;
+    }
+
+    if ( *p == ':' ) {
+        ++p ; parse_format_spec(p, part) ;
     }
 
     return true ;
@@ -159,8 +162,15 @@ void Format::parse() {
     detail::FormatPart current ;
 
     while( *p != 0 ) {
-        if ( *p == '%' && *(p+1) != '%' ) {
+        if ( *p == '{' && *(p+1) != '{' ) {
             if ( !parse_part(p, current) ) {
+                throw FormatParseException("") ;
+            }
+            if ( *p == '}' ) {
+                if ( *(p+1) == '}' )
+                    parse_literal(p, current) ;
+                else ++p ;
+            } else {
                 throw FormatParseException("") ;
             }
         } else {
