@@ -11,7 +11,7 @@ struct FormatPart {
 public:
 
     enum FormatterType {
-        FLF, FLE, FLG, INT, OCT, HEX, BIN, STR, CHR, LITERAL, COPY
+        FLF, FLE, FLG, INT, OCT, HEX, BIN, STR, CHR, LITERAL, COPY, PTR
     } ;
 
     enum Align {
@@ -40,11 +40,36 @@ public:
     const char *begin_, *end_ ;
 };
 
-template<class S, class D>
-class Formatter {
-   static void format(std::ostream &strm, const S &src) ;
-} ;
+struct FormatArg {
+public:
+    enum class Type : uint8_t {
+        Boolean, Char, String, SignedInteger, UnsignedInteger, Float, Double, Pointer
+    };
 
+    FormatArg(bool b): b_(b), tag_(Type::Boolean) {}
+    FormatArg(char c): c_(c), tag_(Type::Char) {}
+    FormatArg(int i): i_(i), tag_(Type::SignedInteger) {}
+    FormatArg(uint i): u_(i), tag_(Type::UnsignedInteger) {}
+    FormatArg(long long i): i_(i), tag_(Type::SignedInteger) {}
+    FormatArg(unsigned long long i): u_(i), tag_(Type::UnsignedInteger) {}
+    FormatArg(float f): f_(static_cast<double>(f)), tag_(Type::Float) {}
+    FormatArg(double d): f_(d), tag_(Type::Float) {}
+    FormatArg(const char *s): s_(s), tag_(Type::String) {}
+    FormatArg(const std::string &s): s_(s.c_str()), tag_(Type::String) {}
+    FormatArg(const void *p): p_(p), tag_(Type::Pointer) {}
+
+    union {
+        bool b_ ;
+        char c_ ;
+        const char *s_ ;
+        int64_t i_ ;
+        uint64_t u_ ;
+        double f_;
+        const void *p_ ;
+    } ;
+
+    Type tag_ ;
+};
 
 }}}
 #endif

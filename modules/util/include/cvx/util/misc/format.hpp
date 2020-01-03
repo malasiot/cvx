@@ -18,7 +18,7 @@ namespace detail {
 class Format {
 public:
     Format(const char *fmt) ;
-    void format(std::ostream &strm, Variant args[], size_t n_args) const ;
+    void format(std::ostream &strm, detail::FormatArg args[], size_t n_args) const ;
 
 private:
 
@@ -33,10 +33,15 @@ class FormatParseException: public std::runtime_error {
     FormatParseException(const std::string &msg): std::runtime_error(msg) {}
 };
 
+class FormatArgException: public std::runtime_error {
+  public:
+    FormatArgException(const std::string &msg): std::runtime_error(msg) {}
+};
+
 
 template<typename ...Args>
 void format(std::ostream &strm, const Format &fmt, Args... args ) {
-   Variant arg_list[] = { Variant(args)... } ;
+   detail::FormatArg arg_list[] = { detail::FormatArg(args)... } ;
    fmt.format(strm, arg_list, sizeof...(args)) ;
 }
 
