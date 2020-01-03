@@ -15,7 +15,7 @@ public:
     } ;
 
     enum Align {
-        ALIGN_LEFT, ALIGN_RIGHT, ALIGN_CENTER, PAD_AFTER_SIGN
+        ALIGN_LEFT, ALIGN_RIGHT, ALIGN_DEFAULT, PAD_AFTER_SIGN
     } ;
 
     enum Sign {
@@ -26,7 +26,7 @@ public:
         FLAG_PREPEND_ZEROS = 0x1, FLAG_LEFT_ALIGN = 0x2, FLAG_PREPEND_PLUS = 0x4,
         FLAG_PREPEND_SPACE = 0x8, FLAG_HASH = 0x10a  } ;
 
-    Align align_ = ALIGN_LEFT ;
+    Align align_ = ALIGN_DEFAULT ;
     Sign sign_ = SIGN_NEGATIVE_ONLY;
     bool alt_form_ = false ;
     bool zero_padding_ = false ;
@@ -52,8 +52,8 @@ public:
     FormatArg(uint i): u_(i), tag_(Type::UnsignedInteger) {}
     FormatArg(long long i): i_(i), tag_(Type::SignedInteger) {}
     FormatArg(unsigned long long i): u_(i), tag_(Type::UnsignedInteger) {}
-    FormatArg(float f): f_(static_cast<double>(f)), tag_(Type::Float) {}
-    FormatArg(double d): f_(d), tag_(Type::Float) {}
+    FormatArg(float f): f_(f), tag_(Type::Float) {}
+    FormatArg(double d): d_(d), tag_(Type::Double) {}
     FormatArg(const char *s): s_(s), tag_(Type::String) {}
     FormatArg(const std::string &s): s_(s.c_str()), tag_(Type::String) {}
     FormatArg(const void *p): p_(p), tag_(Type::Pointer) {}
@@ -64,7 +64,8 @@ public:
         const char *s_ ;
         int64_t i_ ;
         uint64_t u_ ;
-        double f_;
+        float f_ ;
+        double d_;
         const void *p_ ;
     } ;
 

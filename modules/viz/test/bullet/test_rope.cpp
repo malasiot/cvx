@@ -6,7 +6,7 @@
 #include <QApplication>
 #include <QMainWindow>
 
-#include <cvx/util/misc/strings.hpp>
+#include <cvx/util/misc/format.hpp>
 #include <cvx/util/math/rng.hpp>
 
 #include <cvx/viz/scene/camera.hpp>

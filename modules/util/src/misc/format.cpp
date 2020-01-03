@@ -1,5 +1,5 @@
 #include <cvx/util/misc/format.hpp>
-
+#include <cmath>
 using namespace std ;
 
 namespace cvx { namespace util {
@@ -40,8 +40,6 @@ static bool parse_align_flag(const char *p,  detail::FormatPart &part) {
         part.align_ = detail::FormatPart::ALIGN_LEFT ; return true;
     case '>' :
         part.align_ = detail::FormatPart::ALIGN_RIGHT ; return true;
-    case '^':
-        part.align_ = detail::FormatPart::ALIGN_CENTER ; return true;
     default:
         return false ;
     }
@@ -138,8 +136,12 @@ static bool parse_format_spec(const char *&p,  detail::FormatPart &part) {
     parse_zero_padding(p, part) ;
     if ( isdigit(*p) )
         part.width_ = parse_integer(p) ;
-    if ( *p == '.' )
-        part.precision_ = parse_integer(p) ;
+    if ( *p == '.' ) {
+        if ( isdigit(*(p+1) ) ) {
+             ++p ;
+            part.precision_ = parse_integer(p) ;
+        }
+    }
     parse_type(p, part) ;
 
     return true ;
@@ -149,7 +151,6 @@ static detail::FormatPart parse_part(const char *&p) {
     detail::FormatPart part ;
     part.begin_ = p ;
     ++p ;
-    bool width_parsed = false ;
 
     if ( isdigit(*p) ) { // positional argument
         part.arg_ = parse_integer(p) ;
@@ -190,10 +191,45 @@ void Format::parse() {
 using detail::FormatArg ;
 using detail::FormatPart ;
 
-static void format_float(ostream &strm, const FormatPart &part, double val) {
+static void format_float(ostream &strm, const FormatPart &part, float val) {
+
+    if ( part.sign_ == FormatPart::SIGN_NEGATIVE_PAD && ( !isfinite(val) || val >= 0 ) )
+        strm << ' ' ;
+
     switch ( part.type_ ) {
     case FormatPart::COPY:
-       strm << val ;
+        if ( part.precision_ == -1 )
+            strm.precision(std::numeric_limits<float>::digits10 + 1);
+        strm << val ;
+        break ;
+    case FormatPart::FLF:
+          strm.setf(std::ios::fixed, std::ios::floatfield);
+          strm << val ;
+        break ;
+    case FormatPart::FLG:
+        strm.setf(strm.flags() & ~std::ios::floatfield);
+        strm << val ;
+        break ;
+    case FormatPart::FLE:
+         strm.setf(std::ios::scientific, std::ios::floatfield);
+         strm << val ;
+          break ;
+
+     default:
+        throw FormatArgException("") ;
+    }
+}
+
+static void format_double(ostream &strm, const FormatPart &part, double val) {
+
+    if ( part.sign_ == FormatPart::SIGN_NEGATIVE_PAD && ( !isfinite(val) || val >= 0 ) )
+        strm << ' ' ;
+
+    switch ( part.type_ ) {
+    case FormatPart::COPY:
+        if ( part.precision_ == -1 )
+            strm.precision(std::numeric_limits<double>::digits10 + 1);
+        strm << val ;
         break ;
     case FormatPart::FLF:
           strm.setf(std::ios::fixed, std::ios::floatfield);
@@ -216,9 +252,13 @@ static void format_float(ostream &strm, const FormatPart &part, double val) {
 static void format_string(ostream &strm, const FormatPart &part, const char *val) {
     switch ( part.type_ ) {
     case FormatPart::COPY:
-    case FormatPart::STR:
-        strm << val ;
+    case FormatPart::STR: {
+        if ( part.precision_ >= 0  )
+            strm << std::string(val, part.precision_) ;
+        else
+            strm << val ;
         break ;
+    }
     default:
         throw FormatArgException("") ;
     }
@@ -226,6 +266,8 @@ static void format_string(ostream &strm, const FormatPart &part, const char *val
 
 
 static void format_integer(ostream &strm, const FormatPart &part, int64_t val) {
+    if ( part.sign_ == FormatPart::SIGN_NEGATIVE_PAD && val >= 0 )
+        strm << ' ' ;
     switch ( part.type_ ) {
     case FormatPart::BIN:
        break ;
@@ -233,6 +275,7 @@ static void format_integer(ostream &strm, const FormatPart &part, int64_t val) {
         strm.setf(std::ios::hex, std::ios::basefield);
         strm << val ;
         break ;
+    case FormatPart::COPY:
     case FormatPart::INT:
         strm.setf(std::ios::dec, std::ios::basefield);
         strm << val ;
@@ -312,6 +355,7 @@ void Format::format(std::ostream &strm, FormatArg args[], size_t n_args) const
 
             if ( arg < n_args ) {
 
+                 const FormatArg &v = args[arg] ;
                 // Saved stream state
                 std::streamsize origWidth = strm.width();
                 std::streamsize origPrecision = strm.precision();
@@ -324,32 +368,61 @@ void Format::format(std::ostream &strm, FormatArg args[], size_t n_args) const
                 if ( part.width_ >= 0 )
                     strm.width(part.width_) ;
 
-                if ( part.flag_ & detail::FormatPart::FLAG_PREPEND_ZEROS ) {
+                if ( part.zero_padding_ && part.align_ == detail::FormatPart::ALIGN_DEFAULT ) {
                     strm.fill('0');
                     strm.setf(std::ios::internal, std::ios::adjustfield);
-                }
+                } else
+                    strm.fill(part.fill_char_) ;
 
-                if ( part.flag_ & detail::FormatPart::FLAG_LEFT_ALIGN ) {
-                    strm.fill(' ');
+                if ( part.align_ == detail::FormatPart::ALIGN_LEFT) {
                     strm.setf(std::ios::left, std::ios::adjustfield);
+                } else if ( part.align_ == detail::FormatPart::ALIGN_RIGHT) {
+                    strm.setf(std::ios::right, std::ios::adjustfield);
+                } else if ( part.align_ == detail::FormatPart::ALIGN_DEFAULT && !part.zero_padding_ ) {
+                    switch ( part.type_ ) {
+                    case detail::FormatPart::FLE:
+                    case detail::FormatPart::FLG:
+                    case detail::FormatPart::FLF:
+                    case detail::FormatPart::INT:
+                    case detail::FormatPart::OCT:
+                    case detail::FormatPart::HEX:
+                        strm.setf(std::ios::right, std::ios::adjustfield);
+                        break ;
+                    case detail::FormatPart::COPY:
+                        switch ( v.tag_ ) {
+                        case detail::FormatArg::Type::Float:
+                        case detail::FormatArg::Type::Double:
+                        case detail::FormatArg::Type::SignedInteger:
+                        case detail::FormatArg::Type::UnsignedInteger:
+                            strm.setf(std::ios::right, std::ios::adjustfield);
+                            break ;
+                        default:
+                            strm.setf(std::ios::left, std::ios::adjustfield);
+                        }
+                        break ;
+
+                    default:
+                        strm.setf(std::ios::left, std::ios::adjustfield);
+                    }
                 }
 
-                if ( part.flag_ & detail::FormatPart::FLAG_HASH ) {
+                if ( part.alt_form_ ) {
                     strm.setf(std::ios::showpoint | std::ios::showbase);
                 }
 
-                if ( part.flag_ & detail::FormatPart::FLAG_PREPEND_PLUS ) {
+                if ( part.sign_ == detail::FormatPart::SIGN_BOTH ) {
                     strm.setf(std::ios::showpos);
                 }
 
                 if ( part.uppercase_ )
                     strm.setf(std::ios::uppercase);
 
-                const FormatArg &v = args[arg] ;
-
                 switch (v.tag_ ) {
                     case FormatArg::Type::Float:
                         format_float(strm, part, v.f_) ;
+                        break ;
+                    case FormatArg::Type::Double:
+                        format_double(strm, part, v.d_) ;
                         break ;
                     case FormatArg::Type::UnsignedInteger:
                         format_integer(strm, part, v.u_) ;
@@ -375,8 +448,6 @@ void Format::format(std::ostream &strm, FormatArg args[], size_t n_args) const
                 strm.precision(origPrecision);
                 strm.flags(origFlags);
                 strm.fill(origFill);
-
-
             }
 
         }

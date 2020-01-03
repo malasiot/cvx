@@ -40,26 +40,26 @@ class FormatArgException: public std::runtime_error {
 
 
 template<typename ...Args>
-void format(std::ostream &strm, const Format &fmt, Args... args ) {
+void format(std::ostream &strm, const Format &fmt, const Args&... args ) {
    detail::FormatArg arg_list[] = { detail::FormatArg(args)... } ;
    fmt.format(strm, arg_list, sizeof...(args)) ;
 }
 
 template<typename ...Args>
-void format(std::ostream &strm, const char *fmt_str, Args... args ) {
+void format(std::ostream &strm, const char *fmt_str, const Args&... args ) {
    Format fmt(fmt_str) ;
    format(strm, fmt, args...) ;
 }
 
 template<typename ...Args>
-std::string format(const char *fmt_str, Args... args ) {
+std::string format(const char *fmt_str, const Args&... args ) {
    std::ostringstream strm ;
    format(strm, fmt_str, args...) ;
    return strm.str() ;
 }
 
 template<typename ...Args>
-std::string format(const Format &fmt, Args... args ) {
+std::string format(const Format &fmt, const Args&... args ) {
    std::ostringstream strm ;
    format(strm, fmt, args...) ;
    return strm.str() ;

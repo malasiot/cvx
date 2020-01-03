@@ -7,7 +7,7 @@
 #include <cvx/viz/scene/geometry.hpp>
 
 #include <cvx/util/math/rng.hpp>
-#include <cvx/util/misc/strings.hpp>
+#include <cvx/util/misc/format.hpp>
 
 #include <iostream>
 #include <thread>
