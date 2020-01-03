@@ -68,8 +68,8 @@ void OpenGLShader::compileString(const std::string &code, const string &resource
         GLchar info_log[1024];
         glGetShaderInfoLog(handle_, 1024, NULL, info_log);
 
-        if ( resource_name.empty()) throw OpenGLShaderError(format("Error compilining shader: %s", info_log)) ;
-        else throw OpenGLShaderError(format("Error compilining shader (%s): %s", resource_name, info_log)) ;
+        if ( resource_name.empty()) throw OpenGLShaderError(format("Error compilining shader: {}", info_log)) ;
+        else throw OpenGLShaderError(format("Error compilining shader ({}): {}", resource_name, info_log)) ;
     }
 }
 
@@ -78,8 +78,8 @@ void OpenGLShader::compileFile(const std::string &fname, const string &resource_
     string contents = get_file_contents(fname) ;
 
     if ( contents.empty() ) {
-        if ( resource_name.empty()) throw OpenGLShaderError(format("Error reading shader file: %s", fname)) ;
-        else throw OpenGLShaderError(format("Error reading shader file (%s): %s", resource_name, fname)) ;
+        if ( resource_name.empty()) throw OpenGLShaderError(format("Error reading shader file: {}", fname)) ;
+        else throw OpenGLShaderError(format("Error reading shader file ({}): {}", resource_name, fname)) ;
     }
 
     if ( resource_name.empty() )
@@ -217,7 +217,7 @@ void OpenGLShaderProgram::use() {
 }
 
 void OpenGLShaderProgram::throwError(const char *error_str, const char *error_desc) {
-    throw OpenGLShaderError(format("%: %", error_str, error_desc)) ;
+    throw OpenGLShaderError(format("{}: {}", error_str, error_desc)) ;
 }
 
 OpenGLShader::Type type_from_string(const string &s) {

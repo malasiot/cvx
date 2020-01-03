@@ -44,7 +44,7 @@ int StatementHandle::columns() const {
 const char *StatementHandle::columnName(int idx) const {
    check() ;
    const char *name = sqlite3_column_name(handle_, idx)  ;
-   if ( name == nullptr ) throw Exception(str(boost::format("There is no column with index %d") % idx)) ;
+   if ( name == nullptr ) throw Exception(str(boost::format("There is no column with index {}") % idx)) ;
    else return name ;
 }
 

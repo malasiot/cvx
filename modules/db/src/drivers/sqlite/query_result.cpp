@@ -60,7 +60,7 @@ int SQLiteQueryResultHandle::columnType(int idx) const {
 std::string SQLiteQueryResultHandle::columnName(int idx) const  {
     check_has_row() ;
     const char *name = sqlite3_column_name(stmt_->handle(), idx)  ;
-    if ( name == nullptr ) throw Exception(cvx::util::format("There is no column with index %d", idx)) ;
+    if ( name == nullptr ) throw Exception(cvx::util::format("There is no column with index {}", idx)) ;
     else return name ;
 }
 

@@ -20,6 +20,6 @@ int main(int argc, char *argv[]) {
     string res = replace(str, regex("\\{([0-9]+)\\}"), [&] ( const smatch &s ) -> string { return s[1] ; }) ;
     cout << res  << '%' << endl ;
 
-    cout << format("%s = %d", string("hello"), 15) << endl ;
+    cout << format("{} = {}", string("hello"), 15) << endl ;
 
 }

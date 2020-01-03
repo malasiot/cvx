@@ -562,7 +562,7 @@ void MaterialInstance::applyDefaultLight(uint light_index, const LightPtr &light
 {
     auto prog = material_->prog() ;
 
-    string vname = cvx::util::format("g_light_source[%d]", light_index ++) ;
+    string vname = cvx::util::format("g_light_source[{}]", light_index ++) ;
 
     if ( const auto &alight = std::dynamic_pointer_cast<AmbientLight>(light) ) {
 

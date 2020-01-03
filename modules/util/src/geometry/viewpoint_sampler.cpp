@@ -131,7 +131,7 @@ void ViewPointSampler::exportCameras(const string &fname, const std::vector<Matr
     float aspect = cam.sz().width / (float) cam.sz().height ;
 
     for( uint i=0 ; i<views.size() ; i++ ) {
-        string id = format("%s-%04d-camera", cam_id, i) ;
+        string id = format("{}-{:04d}-camera", cam_id, i) ;
         strm << "\t<camera id=\"" << id << "\" name=\"" << id << "\">\n" ;
         strm << "\t\t<optics>\n" ;
         strm << "\t\t\t<technique_common>\n" ;
@@ -151,7 +151,7 @@ void ViewPointSampler::exportCameras(const string &fname, const std::vector<Matr
     strm << "\t<visual_scene id=\"Scene\" name=\"Scene\">\n" ;
 
     for( uint i=0 ; i<views.size() ; i++ ) {
-        string id = format("%s-%04d", cam_id, i) ;
+        string id = format("{}-{:04d}", cam_id, i) ;
         Matrix4f mat = views[i].inverse() ;
         strm << "\t\t<node id=\"" << id << "\" name=\"" << id << "\" type=\"NODE\">\n" ;
         strm << "\t\t\t<matrix sid=\"transform\">" ;
