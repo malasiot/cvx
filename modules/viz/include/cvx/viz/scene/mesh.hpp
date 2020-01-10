@@ -22,11 +22,11 @@ namespace detail {
 
 #define MAX_TEXTURES 4
 
-template<typename T, int D>
+template<typename T, int D, bool align = false>
 class VertexBuffer {
 public:
 
-    using data_container_t = cvx::util::PointList<T, D> ;
+    using data_container_t = cvx::util::PointList<T, D, align> ;
     using index_container_t = std::vector<uint32_t> ;
 
     VertexBuffer() = default ;
@@ -62,8 +62,8 @@ public:
     Mesh(PrimitiveType t): ptype_(t) {}
      ~Mesh();
 
-    using vb3_t = VertexBuffer<float, 3> ;
-    using vb2_t = VertexBuffer<float, 2> ;
+    using vb3_t = VertexBuffer<float, 3, false> ;
+    using vb2_t = VertexBuffer<float, 2, false> ;
 
     vb3_t &vertices() { return vertices_ ; }
     vb3_t &normals() { return normals_ ; }

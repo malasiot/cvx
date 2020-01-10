@@ -11,7 +11,7 @@ namespace cvx { namespace util {
 
 struct PointCloudAdaptor3
 {
-    typedef PointList3f point_list_t ;
+    using point_list_t = PointList3f ;
 
     PointCloudAdaptor3(const point_list_t &data): pts_(data) {}
 

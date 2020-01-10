@@ -6,19 +6,18 @@
 
 namespace cvx { namespace util {
 
-template < class T >
-class Polygon: public PointList<T, 2>
+template < class T, bool aligned >
+class Polygon: public PointList<T, 2, aligned>
 {
-    typedef PointList<T, 2> base_t ;
+    using base_t = PointList<T, 2, aligned> ;
 
 public:
 
-    Polygon(const PointList<T, 2> &pts): PointList<T, 2>(pts) {}
+    Polygon(const base_t &pts): base_t(pts) {}
 
-    Polygon(uint n): PointList<T, 2>(n) {}
+    Polygon(uint n): base_t(n) {}
 
-    Polygon(T *data, int n, bool row_major = true):
-        PointList<T, 2>(data, n, row_major) {}
+    Polygon(T *data, int n, bool row_major = true): base_t(makePointList<T, 2, aligned>(data, n, row_major)) {}
 
     T area() const {
         int n = this->size() ;
@@ -60,8 +59,8 @@ public:
     bool contains(T x, T y) { return contains(Point<T, 2>(x, y)) ; }
 } ;
 
-typedef Polygon<double> Polygon2d ;
-typedef Polygon<float> Polygon2f;
+typedef Polygon<double, true> Polygon2d ;
+typedef Polygon<float, false> Polygon2f;
 
 }}
 

@@ -8,14 +8,14 @@
 
 #include <cvx/util/misc/json_reader.hpp>
 
-struct MH2Bone {
+struct MHX2Bone {
     Eigen::Vector3f head_, tail_ ;
     Eigen::Matrix4f bmat_ ; // rotation to align Y axis with the bone
     std::string parent_ ;
     float roll_ ;
 };
 
-struct MH2VertexGroup {
+struct MHX2VertexGroup {
     std::vector<int> idxs_ ;
     std::vector<float> weights_ ;
 };
@@ -23,8 +23,8 @@ struct MH2VertexGroup {
 #define MAX_VERTICES_PER_FACE 4
 #define UNKNOWN_MATERIAL_INDEX 0xffff
 
-struct MH2Face {
-    MH2Face(const std::vector<uint> &idx): material_index_(UNKNOWN_MATERIAL_INDEX) {
+struct MHX2Face {
+    MHX2Face(const std::vector<uint> &idx): material_index_(UNKNOWN_MATERIAL_INDEX) {
         assert(idx.size() <= MAX_VERTICES_PER_FACE) ;
         num_vertices_ = idx.size() ;
         for(int i=0 ; i<num_vertices_ ; i++)
@@ -38,11 +38,11 @@ struct MH2Face {
 
 };
 
-struct MH2Mesh {
+struct MHX2Mesh {
     std::vector<Eigen::Vector3f> vertices_ ;
-    std::vector< MH2Face > faces_ ;
+    std::vector< MHX2Face > faces_ ;
     std::vector<Eigen::Vector2f> tex_coords_ ;
-    std::map<std::string, MH2VertexGroup> groups_ ;
+    std::map<std::string, MHX2VertexGroup> groups_ ;
 };
 
 class Mhx2Importer {
@@ -58,10 +58,10 @@ private:
     bool parseSkeleton(JSONReader &r) ;
     bool parseGeometries(JSONReader &v, const std::string &meshName) ;
     bool parseMesh(const std::string &name, JSONReader &v, const Eigen::Vector3f &of, float scale) ;
-    bool parseVertexGroups(MH2Mesh &mesh, JSONReader &v) ;
+    bool parseVertexGroups(MHX2Mesh &mesh, JSONReader &v) ;
 
-    std::map<std::string, MH2Bone> bones_ ;
-    std::map<std::string, MH2Mesh> meshes_ ;
+    std::map<std::string, MHX2Bone> bones_ ;
+    std::map<std::string, MHX2Mesh> meshes_ ;
 };
 
 #endif

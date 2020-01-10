@@ -8,8 +8,8 @@ namespace cvx { namespace util {
 
 // Least squares fit of line to list of points
 
-template <class T, int D>
-Line<T, D> fitLine(const PointList<T, D> &pts) {
+template <class T, int D, bool align>
+Line<T, D> fitLine(const PointList<T, D, align> &pts) {
 
     int N = pts.size() ;
 
@@ -44,8 +44,8 @@ Line<T, D> fitLine(const PointList<T, D> &pts) {
 
 // robust line fitting using RANSAC and re-weighted least squares using Huber influence
 
-template <class T, int D>
-Line<T, D> fitLineRobust(const PointList<T, D> &pts,
+template <class T, int D, bool align>
+Line<T, D> fitLineRobust(const PointList<T, D, align> &pts,
                                uint n_ransac_iter = 10,         // number of RANSAC iterations (more is better but slower)
                                uint n_ransac_samples = 10,      // number of RANSAC samples used for model estimation
                                const uint n_iwrls_iter = 10,    // maximum number of weighted least squares iterations

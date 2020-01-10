@@ -118,7 +118,7 @@ bool Mhx2Importer::parseSkeleton(JSONReader &reader) {
                 }
                 reader.endObject() ;
 
-                MH2Bone mhbone ;
+                MHX2Bone mhbone ;
                 mhbone.head_ = head + offset ;
                 mhbone.tail_ = tail + offset ;
                 mhbone.roll_ = (float)roll ;
@@ -175,7 +175,7 @@ bool Mhx2Importer::parseGeometries(JSONReader &reader, const string &meshName)
 
 bool Mhx2Importer::parseMesh(const string &name, JSONReader &reader, const Vector3f &offset, float scale)
 {
-    MH2Mesh &mesh = meshes_[name] ;
+    MHX2Mesh &mesh = meshes_[name] ;
 
     reader.beginObject() ;
 
@@ -205,7 +205,7 @@ bool Mhx2Importer::parseMesh(const string &name, JSONReader &reader, const Vecto
                     indices.push_back(idx) ;
                 }
                 reader.endArray() ;
-                MH2Face f(indices) ;
+                MHX2Face f(indices) ;
                 mesh.faces_.emplace_back(f) ;
             }
             reader.endArray() ;
@@ -222,13 +222,13 @@ bool Mhx2Importer::parseMesh(const string &name, JSONReader &reader, const Vecto
     return true ;
 }
 
-bool Mhx2Importer::parseVertexGroups(MH2Mesh &mesh, JSONReader &reader)
+bool Mhx2Importer::parseVertexGroups(MHX2Mesh &mesh, JSONReader &reader)
 {
     reader.beginObject() ;
     while ( reader.hasNext() ) {
         string gname = reader.nextName() ;
 
-        MH2VertexGroup &vg = mesh.groups_[gname] ;
+        MHX2VertexGroup &vg = mesh.groups_[gname] ;
 
         reader.beginArray() ;
         while ( reader.hasNext() ) {
