@@ -7,8 +7,9 @@
 #add_executable(test_polyscanner test_polyscanner.cpp)
 #target_link_libraries(test_polyscanner cvx_util ${Boost_LIBRARIES} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
 
-#add_executable(test_solvers test_solvers.cpp)
-#target_link_libraries(test_solvers cvx_util ${Boost_LIBRARIES} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
+add_executable(test_solvers test_solvers.cpp)
+target_link_libraries(test_solvers cvx_util ${Boost_LIBRARIES} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
+
 find_package(Eigen3 REQUIRED)
 include_directories(
     ../include

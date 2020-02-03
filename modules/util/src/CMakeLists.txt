@@ -1,5 +1,5 @@
 find_package(OpenCV REQUIRED)
-find_package(Eigen3 REQUIRED)
+find_package(Eigen3 3.3.90 REQUIRED)
 find_package(ZLIB REQUIRED)
 
 find_package(F2C REQUIRED)
