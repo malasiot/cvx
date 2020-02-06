@@ -44,7 +44,6 @@ static void test_simple(int argc, const char *argv[]) {
         strm >> val ;
         return true ;
     }).setDescription("custom flag") ;
-    args.addPositional(pos) ;
     args.addPositional(files).setMaxArgs(-1) ;
 
     try {
@@ -150,6 +149,6 @@ to read about a specific subcommand or concept.")") ;
 }
 
 int main(int argc, const char *argv[]) {
- //   test_simple(argc, argv) ;
+    test_simple(argc, argv) ;
     test_git(argc, argv) ;
 }

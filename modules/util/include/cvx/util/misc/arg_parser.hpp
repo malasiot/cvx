@@ -253,8 +253,13 @@ private:
         ValueListHolder(std::vector<T> &t): list_(t) {}
         bool read(std::istream &stream)  {
             std::istream_iterator< T > it { stream }, end;
-            std::copy( it, end, std::back_inserter(list_) );
-            return (bool)stream ;
+            while ( stream && it != end ) {
+                list_.emplace_back(*it) ;
+                ++it ;
+            }
+            return true ;
+            //std::copy( it, end, std::back_inserter(list_) );
+            //return (bool)stream ;
         }
 
 
