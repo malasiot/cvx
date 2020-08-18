@@ -109,7 +109,11 @@ public:
 
 int main(int argc, char *argv[]) {
 
-    MaterialInstancePtr custom_material(new PhongMaterialInstance) ;
+    PBRMaterialInstance *mi  = new PBRMaterialInstance() ;
+    mi->setMetallic(0.8) ;
+    mi->setRoughness(0.5);
+    mi->setColor({1.0, 0.0, 0.0}) ;
+    MaterialInstancePtr custom_material(mi) ;
 
     ScenePtr scene(new Scene) ;
      //scene->load("/home/malasiot/Downloads/greek_column.obj") ;
@@ -124,7 +128,7 @@ int main(int argc, char *argv[]) {
         // add a light source
 
     DirectionalLight *dl = new DirectionalLight(Vector3f(0.5, 0.5, 1)) ;
-    dl->diffuse_color_ = Vector3f(0, 1, 0) ;
+    dl->diffuse_color_ = Vector3f(1, 1, 1) ;
     scene->addLight(LightPtr(dl)) ;
 
 
