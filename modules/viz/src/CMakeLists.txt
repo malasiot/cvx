@@ -32,7 +32,9 @@ include_directories(
 )
 
 set(LIB_SOURCES
-    renderer/ogl_shaders.cpp
+    renderer/gl/shader.cpp
+    renderer/gl/ogl_shaders.cpp
+    renderer/gl/gl3w.c
     renderer/renderer.cpp
     renderer/renderer_impl.cpp
     renderer/font_manager.cpp
@@ -46,7 +48,7 @@ set(LIB_SOURCES
     renderer/shadow_map.cpp
     renderer/shadow_map.hpp
     renderer/text.cpp
-    renderer/gl3w.c
+
 
     scene/scene.cpp
     scene/assimp_loader.cpp
@@ -96,7 +98,7 @@ set(LIB_SOURCES
 
     ${LIBRARY_INCLUDE_DIR}/renderer/renderer.hpp
     ${LIBRARY_INCLUDE_DIR}/renderer/text.hpp
-
+    ${LIBRARY_INCLUDE_DIR}/renderer/gl/shader.hpp
 
     ${LIBRARY_INCLUDE_DIR}/image/widget.hpp
     ${LIBRARY_INCLUDE_DIR}/image/tools.hpp

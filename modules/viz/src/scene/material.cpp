@@ -315,29 +315,39 @@ public:
 
     PhongMaterial(int flags): Material(flags) {}
 
-    OpenGLShaderProgram::Ptr prog() override ;
+    gl::ShaderProgram::Ptr prog() override ;
 
     static MaterialPtr instance(int flags) {
         static std::map<int, MaterialPtr> s_materials ;
         return materialSingleton<PhongMaterial>(s_materials, flags) ;
     }
 
-    OpenGLShaderProgram::Ptr prog_ ;
+    gl::ShaderProgram::Ptr prog_ ;
 };
 
-OpenGLShaderProgram::Ptr PhongMaterial::prog()
+static const char *version_header = "#version 330\n" ;
+
+gl::ShaderProgram::Ptr PhongMaterial::prog()
 {
     if ( prog_ ) return prog_ ;
 
-    OpenGLShader::Ptr vs(new OpenGLShader(OpenGLShader::Vertex)) ;
-    vs->addPreProcDefinition("HAS_NORMALS") ;
-    if ( flags_ & USE_SKINNING ) vs->addPreProcDefinition("USE_SKINNING") ;
+    gl::Shader::Ptr vs(new gl::Shader(gl::Shader::Vertex)) ;
 
-    vs->compileString(vertex_shader_code, "vertex_shader_code") ;
+    std::string preproc ;
+    preproc.append("#define HAS_NORMALS\n") ;
+    if ( flags_ & USE_SKINNING )  preproc.append("#define USE_SKINNING\n") ;
 
-    OpenGLShader::Ptr fs(new OpenGLShader(OpenGLShader::Fragment, phong_fragment_shader_common + phong_fragment_shader_material, "phong_fragment_shader_material"))  ;
+    vs->addSourceString(version_header) ;
+    vs->addSourceString(preproc) ;
+    vs->addSourceString(vertex_shader_code, "vertex_shader_code") ;
 
-    prog_.reset(new OpenGLShaderProgram) ;
+    gl::Shader::Ptr fs(new gl::Shader(gl::Shader::Fragment)) ;
+
+    fs->addSourceString(version_header) ;
+    fs->addSourceString(phong_fragment_shader_common) ;
+    fs->addSourceString(phong_fragment_shader_material, "phong_fragment_shader_material")  ;
+
+    prog_.reset(new gl::ShaderProgram) ;
     prog_->addShader(vs) ;
     prog_->addShader(fs) ;
 
@@ -362,7 +372,7 @@ void PhongMaterialInstance::instantiate() {
 
 class DiffuseMapMaterial: public Material {
 public:
-    OpenGLShaderProgram::Ptr prog() override ;
+   gl::ShaderProgram::Ptr prog() override ;
 
     DiffuseMapMaterial(int flags): Material(flags) {}
 
@@ -372,23 +382,30 @@ public:
 
     }
 
-    OpenGLShaderProgram::Ptr prog_ ;
+    gl::ShaderProgram::Ptr prog_ ;
 };
 
-OpenGLShaderProgram::Ptr DiffuseMapMaterial::prog()
+gl::ShaderProgram::Ptr DiffuseMapMaterial::prog()
 {
     if ( prog_ ) return prog_ ;
 
-    OpenGLShader::Ptr vs(new OpenGLShader(OpenGLShader::Vertex)) ;
-    vs->addPreProcDefinition("HAS_NORMALS") ;
-    vs->addPreProcDefinition("HAS_UVs") ;
-    if ( flags_ & USE_SKINNING ) vs->addPreProcDefinition("USE_SKINNING") ;
+    gl::Shader::Ptr vs(new gl::Shader(gl::Shader::Vertex)) ;
+    std::string preproc ;
+    preproc.append("#define HAS_NORMALS\n") ;
+    preproc.append("#define HAS_UVs\n") ;
+    if ( flags_ & USE_SKINNING ) preproc.append("#define USE_SKINNING\n") ;
 
-    vs->compileString(vertex_shader_code, "vertex_shader_code") ;
+    vs->addSourceString(version_header) ;
+    vs->addSourceString(preproc) ;
+    vs->addSourceString(vertex_shader_code, "vertex_shader_code") ;
 
-    OpenGLShader::Ptr fs(new OpenGLShader(OpenGLShader::Fragment, phong_fragment_shader_common + phong_fragment_shader_map, "phong_fragment_shader_map"))  ;
+    gl::Shader::Ptr fs(new gl::Shader(gl::Shader::Fragment)) ;
 
-    prog_.reset(new OpenGLShaderProgram) ;
+    fs->addSourceString(version_header) ;
+    fs->addSourceString(phong_fragment_shader_common) ;
+    fs->addSourceString(phong_fragment_shader_map, "phong_fragment_shader_map")  ;
+
+    prog_.reset(new gl::ShaderProgram) ;
     prog_->addShader(vs) ;
     prog_->addShader(fs) ;
 
@@ -421,7 +438,7 @@ void DiffuseMapMaterialInstance::instantiate() {
 
 class ConstantMaterial: public Material {
 public:
-    OpenGLShaderProgram::Ptr prog() override ;
+    gl::ShaderProgram::Ptr prog() override ;
 
     ConstantMaterial(int flags): Material(flags_) {}
 
@@ -430,20 +447,28 @@ public:
         return materialSingleton<ConstantMaterial>(s_materials, flags) ;
     }
 
-    OpenGLShaderProgram::Ptr prog_ ;
+    gl::ShaderProgram::Ptr prog_ ;
 };
 
-OpenGLShaderProgram::Ptr ConstantMaterial::prog() {
+gl::ShaderProgram::Ptr ConstantMaterial::prog() {
 
     if ( prog_ ) return prog_ ;
 
-    OpenGLShader::Ptr vs(new OpenGLShader(OpenGLShader::Vertex)) ;
-    if ( flags_ & USE_SKINNING ) vs->addPreProcDefinition("USE_SKINNING") ;
+    gl::Shader::Ptr vs(new gl::Shader(gl::Shader::Vertex)) ;
 
-    vs->compileString(vertex_shader_code, "vertex_shader_code") ;
-    OpenGLShader::Ptr fs(new OpenGLShader(OpenGLShader::Fragment, constant_fragment_shader, "constant_fragment_shader"))  ;
+    std::string preproc ;
+    if ( flags_ & USE_SKINNING ) preproc.append("#define USE_SKINNING\n") ;
 
-    prog_.reset(new OpenGLShaderProgram) ;
+    vs->addSourceString(version_header) ;
+    vs->addSourceString(preproc) ;
+    vs->addSourceString(vertex_shader_code, "vertex_shader_code") ;
+
+    gl::Shader::Ptr fs(new gl::Shader(gl::Shader::Fragment)) ;
+
+    fs->addSourceString(version_header) ;
+    fs->addSourceString(constant_fragment_shader, "constant_fragment_shader") ;
+
+    prog_.reset(new gl::ShaderProgram) ;
     prog_->addShader(vs) ;
     prog_->addShader(fs) ;
 
@@ -469,7 +494,7 @@ void ConstantMaterialInstance::applyParameters() {
 
 class PerVertexColorMaterial: public Material {
 public:
-    OpenGLShaderProgram::Ptr prog() override ;
+   gl::ShaderProgram::Ptr prog() override ;
 
     PerVertexColorMaterial(int flags): Material(flags) {}
 
@@ -478,22 +503,29 @@ public:
         return materialSingleton<PerVertexColorMaterial>(s_materials, flags) ;
     }
 
-    OpenGLShaderProgram::Ptr prog_ ;
+    gl::ShaderProgram::Ptr prog_ ;
 };
 
-OpenGLShaderProgram::Ptr PerVertexColorMaterial::prog()
+gl::ShaderProgram::Ptr PerVertexColorMaterial::prog()
 {
     if ( prog_ ) return prog_ ;
 
-    OpenGLShader::Ptr vs(new OpenGLShader(OpenGLShader::Vertex)) ;
-    vs->addPreProcDefinition("HAS_COLORS") ;
-    if ( flags_ & USE_SKINNING ) vs->addPreProcDefinition("USE_SKINNING") ;
+    gl::Shader::Ptr vs(new gl::Shader(gl::Shader::Vertex)) ;
 
-    vs->compileString(vertex_shader_code, "vertex_shader_code") ;
+    std::string preproc ;
+    preproc.append("#define HAS_COLORS\n") ;
+    if ( flags_ & USE_SKINNING ) preproc.append("#define USE_SKINNING\n") ;
 
-    OpenGLShader::Ptr fs(new OpenGLShader(OpenGLShader::Fragment, pervertex_fragment_shader, "pervertex_fragment_shader"))  ;
+    vs->addSourceString(version_header) ;
+    vs->addSourceString(preproc) ;
+    vs->addSourceString(vertex_shader_code, "vertex_shader_code") ;
 
-    prog_.reset(new OpenGLShaderProgram) ;
+    gl::Shader::Ptr fs(new gl::Shader(gl::Shader::Fragment)) ;
+
+    fs->addSourceString(version_header) ;
+    fs->addSourceString(pervertex_fragment_shader, "pervertex_fragment_shader") ;
+
+    prog_.reset(new gl::ShaderProgram) ;
     prog_->addShader(vs) ;
     prog_->addShader(fs) ;
 

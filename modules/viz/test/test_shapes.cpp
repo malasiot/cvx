@@ -1,4 +1,5 @@
 ﻿#include <cvx/viz/renderer/renderer.hpp>
+#include <cvx/viz/renderer/gl/shader.hpp>
 #include <cvx/viz/scene/camera.hpp>
 #include <cvx/viz/scene/light.hpp>
 #include <cvx/viz/scene/material.hpp>
@@ -68,6 +69,7 @@ Isometry3f getRandTransform(double d)
 
 static string vs_shader =
 R"(
+#version 330
 layout (location = 0) in vec3 vposition;
 layout (location = 5) in vec2 vuv;
 
@@ -87,6 +89,7 @@ void main()
 
 string fs_shader =
 R"(
+#version 330
 in vec2 uv;
 
 out vec4 FragColor;
@@ -219,14 +222,14 @@ public:
 
     PerlinNoiseMaterial(): Material(0) {}
 
-    OpenGLShaderProgram::Ptr prog()  override {
+    gl::ShaderProgram::Ptr prog()  override {
 
         if ( prog_ ) return prog_ ;
 
-        OpenGLShader::Ptr vs(new OpenGLShader(OpenGLShader::Vertex, vs_shader, "vs_shader")) ;
-        OpenGLShader::Ptr fs(new OpenGLShader(OpenGLShader::Fragment, fs_shader, "fs_shader"))  ;
+        gl::Shader::Ptr vs(new gl::Shader(gl::Shader::Vertex, vs_shader, "vs_shader")) ;
+        gl::Shader::Ptr fs(new gl::Shader(gl::Shader::Fragment, fs_shader, "fs_shader"))  ;
 
-        prog_.reset(new OpenGLShaderProgram) ;
+        prog_.reset(new gl::ShaderProgram) ;
         prog_->addShader(vs) ;
         prog_->addShader(fs) ;
 
@@ -241,9 +244,7 @@ public:
         return s_material ;
     }
 
-    OpenGLShaderProgram::Ptr prog_ ;
-
-
+    gl::ShaderProgram::Ptr prog_ ;
 } ;
 
 class PerlinNoiseMaterialInstance: public MaterialInstance {
@@ -259,7 +260,8 @@ public:
     }
 };
 
-MaterialInstancePtr custom_material(new PerlinNoiseMaterialInstance) ;
+//MaterialInstancePtr custom_material(new PerlinNoiseMaterialInstance) ;
+MaterialInstancePtr custom_material(new PhongMaterialInstance) ;
 
 NodePtr randomBox(const string &name, const Vector3f &hs, const Vector4f &clr) {
 

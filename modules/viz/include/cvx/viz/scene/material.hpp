@@ -2,7 +2,7 @@
 #define CVX_VIZ_MATERIAL_HPP
 
 #include <Eigen/Geometry>
-#include <cvx/viz/renderer/ogl_shaders.hpp>
+#include <cvx/viz/renderer/gl/shader.hpp>
 #include <cvx/viz/scene/light.hpp>
 #include <cvx/viz/scene/texture.hpp>
 #include <opencv2/opencv.hpp>
@@ -26,7 +26,7 @@ public:
     // Since this should be called after context creation it should create the required shaders on demand and cache it
     // either in the stock_shaders library or in some internal static variable
 
-    virtual OpenGLShaderProgram::Ptr prog() = 0 ;
+    virtual gl::ShaderProgram::Ptr prog() = 0 ;
 
     static MaterialInstancePtr makeLambertian(const Eigen::Vector4f &clr) ;
     static MaterialInstancePtr makeConstant(const Eigen::Vector4f &clr) ;
