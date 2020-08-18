@@ -3,6 +3,10 @@
 #include <cvx/viz/scene/light.hpp>
 #include <cvx/viz/scene/node.hpp>
 #include <cvx/viz/scene/marker.hpp>
+#include <cvx/viz/renderer/gl/shader.hpp>
+#include <cvx/viz/scene/material.hpp>
+#include <cvx/viz/scene/geometry.hpp>
+#include <cvx/viz/scene/mesh.hpp>
 
 #include <cvx/viz/gui/glfw_window.hpp>
 #include <cvx/viz/gui/trackball.hpp>
@@ -105,15 +109,25 @@ public:
 
 int main(int argc, char *argv[]) {
 
+    MaterialInstancePtr custom_material(new PhongMaterialInstance) ;
 
     ScenePtr scene(new Scene) ;
      //scene->load("/home/malasiot/Downloads/greek_column.obj") ;
-     scene->load("/home/malasiot/Downloads/cube.obj") ;
+  //   scene->load("/home/malasiot/Downloads/cube.obj") ;
 
+
+    MeshPtr sphere = Mesh::flatten(Mesh::createCapsule(0.1, 0.5, 9, 2, 16)) ;
+
+    //MeshPtr sphere = Mesh::createSolidSphere(0.1, 16, 16) ;
+
+    scene->addSimpleShapeNode(make_shared<MeshGeometry>(sphere), custom_material) ;
+        // add a light source
 
     DirectionalLight *dl = new DirectionalLight(Vector3f(0.5, 0.5, 1)) ;
-    dl->diffuse_color_ = Vector3f(1, 1, 1) ;
+    dl->diffuse_color_ = Vector3f(0, 1, 0) ;
     scene->addLight(LightPtr(dl)) ;
+
+
 
     glfwGUI gui(scene) ;
 

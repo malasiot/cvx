@@ -24,7 +24,7 @@ public:
     void visit(const Node &node) override {
         Affine3f tf = node.globalTransform() ;
         for( const DrawablePtr &dr: node.drawables() ) {
-            MeshPtr mesh = std::dynamic_pointer_cast<Mesh>(dr->geometry()) ;
+            MeshPtr mesh = dr->geometry()->getMesh() ;
             if ( mesh ) {
                 for( const Vector3f &v: mesh->vertices().data() ) {
                     Vector3f p = tf * v ;
