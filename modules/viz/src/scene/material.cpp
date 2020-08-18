@@ -13,6 +13,7 @@ string vertex_shader_code =
         R"(
         layout (location = 0) in vec3 vposition;
         out vec3 position;
+#line 1
 
 #ifdef HAS_NORMALS
         layout (location = 1) in vec3 vnormal;
