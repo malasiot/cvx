@@ -2,7 +2,7 @@
 
 #include <cvx/viz/scene/scene_fwd.hpp>
 #include <cvx/viz/renderer/renderer.hpp>
-#include <cvx/viz/gui/trackball.hpp>
+#include <cvx/viz/gui/simple_qt_viewer.hpp>
 #include <cvx/viz/scene/camera.hpp>
 
 #include <QOpenGLWidget>
@@ -11,7 +11,7 @@
 
 #include "physics.hpp"
 
-class TestAnimation : public QOpenGLWidget
+class TestAnimation : public cvx::viz::SimpleQtViewer
 {
     Q_OBJECT
 public:
@@ -20,15 +20,8 @@ public:
 protected:
 
     Physics &physics_ ;
-    cvx::viz::ScenePtr scene_ ;
     bool picking_ = false ;
 
-public slots:
-
-    void updateAnimation()  {
-        onAnimationUpdate() ;
-        update() ;
-    }
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -37,20 +30,9 @@ protected:
 
     void mouseMoveEvent(QMouseEvent *event) override;
 
-    void wheelEvent ( QWheelEvent * event ) override;
-
-    void initializeGL() override;
-    void paintGL() override;
-    void resizeGL(int width, int height) override;
-
-    virtual void onAnimationUpdate() {
-        qint64 elapsed = timer_.elapsed() ;
-        physics_.stepSimulation(elapsed/1000.0f);
-        timer_.restart() ;
+    virtual void onUpdate(float delta) override {
+        physics_.stepSimulation(delta/1000.0f);
     }
 
-    QElapsedTimer timer_ ;
-    cvx::viz::Renderer rdr_ ;
-    cvx::viz::CameraPtr camera_ ;
-    cvx::viz::TrackBall trackball_ ;
+
 };

@@ -8,7 +8,7 @@
 #include <cvx/viz/scene/geometry.hpp>
 #include <cvx/viz/scene/mesh.hpp>
 
-#include <cvx/viz/gui/glfw_window.hpp>
+#include <cvx/viz/gui/glfw_viewer.hpp>
 #include <cvx/viz/gui/trackball.hpp>
 
 #include <GLFW/glfw3.h>
@@ -19,100 +19,35 @@ using namespace cvx::viz ;
 using namespace std ;
 using namespace Eigen ;
 
-class glfwGUI: public glfwRenderWindow {
+class glfwGUI: public GLFWViewer {
 public:
 
-    glfwGUI(ScenePtr scene): glfwRenderWindow(), scene_(scene) {
-        auto c = scene->geomCenter() ;
-        auto r = scene->geomRadius(c) ;
-
-        camera_.reset(new PerspectiveCamera(1.0, 50*M_PI/180, 0.0001, 10*r)) ;
-        trackball_.setCamera(camera_, c + Vector3f{0.0, 0, 2*r}, c, {0, 1, 0}) ;
-        trackball_.setZoomScale(0.1*r) ;
+    glfwGUI(ScenePtr scene): GLFWViewer(scene) {
     }
 
-    void onInit() {
-
-    }
-
-    void onResize(int width, int height) {
-        float ratio;
-        ratio = width / (float) height;
-
-        trackball_.setScreenSize(width, height);
-
-        static_pointer_cast<PerspectiveCamera>(camera_)->setAspectRatio(ratio) ;
-
-        camera_->setViewport(width, height)  ;
-    }
-
-
-    void onMouseButtonPressed(uint button, size_t x, size_t y, uint flags) override {
-        switch ( button ) {
-            case GLFW_MOUSE_BUTTON_LEFT:
-                trackball_.setLeftClicked(true) ;
-                break ;
-            case GLFW_MOUSE_BUTTON_MIDDLE:
-                trackball_.setMiddleClicked(true) ;
-                break ;
-            case GLFW_MOUSE_BUTTON_RIGHT:
-                trackball_.setRightClicked(true) ;
-                break ;
-        }
-        trackball_.setClickPoint(x, y) ;
-    }
-
-    void onMouseButtonReleased(uint button, size_t x, size_t y, uint flags) override {
-        switch ( button ) {
-            case GLFW_MOUSE_BUTTON_LEFT:
-                trackball_.setLeftClicked(false) ;
-                break ;
-            case GLFW_MOUSE_BUTTON_MIDDLE:
-                trackball_.setMiddleClicked(false) ;
-                break ;
-            case GLFW_MOUSE_BUTTON_RIGHT:
-                trackball_.setRightClicked(false) ;
-                break ;
-        }
-
-    }
 
     void onMouseMoved(double xpos, double ypos) override {
         ostringstream s ;
         s << xpos << ',' << ypos ;
         text_ = s.str() ;
 
-
-        trackball_.setClickPoint(xpos, ypos) ;
-    }
-
-    void onMouseWheel(double x) {
-        trackball_.setScrollDirection(x>0);
+        GLFWViewer::onMouseMoved(xpos, ypos) ;
     }
 
 
-    void onRender(double delta) override {
-        trackball_.update() ;
-
-        rdr_.init(camera_) ;
-        rdr_.render(scene_) ;
+    void onUpdate(double delta) override {
+        GLFWViewer::onUpdate(delta) ;
         rdr_.text(text_, 10, 10, Font("arial", 24), {1, 1, 0});
     }
 
 
     string text_ ;
-    Renderer rdr_ ;
-    ScenePtr scene_ ;
-    TrackBall trackball_ ;
-    CameraPtr camera_ ;
 };
 
 int main(int argc, char *argv[]) {
 
-    PBRMaterialInstance *mi  = new PBRMaterialInstance() ;
-    mi->setMetallic(0.8) ;
-    mi->setRoughness(0.5);
-    mi->setColor({1.0, 0.0, 0.0}) ;
+    PhongMaterialInstance *mi  = new PhongMaterialInstance() ;
+    mi->setDiffuse({1, 0, 0, 1}) ;
     MaterialInstancePtr custom_material(mi) ;
 
     ScenePtr scene(new Scene) ;

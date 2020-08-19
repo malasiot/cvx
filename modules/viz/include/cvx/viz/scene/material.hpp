@@ -191,35 +191,6 @@ private:
 };
 
 
-class PBRMaterialInstance: public MaterialInstance {
-public:
-
-    PBRMaterialInstance() = default;
-
-    void setMetallic(float m) { metallic_ = m ; }
-    void setRoughness(float r) { roughness_ = r ; }
-    void setColor(const Eigen::Vector3f &clr) { albedo_ = clr ; }
-
-
-protected:
-    void applyParameters() override ;
-
-    void applyTransform(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) override {
-        applyDefaultPerspective(cam, view, model) ;
-    }
-
-    void applyLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) override {
-        applyDefaultLight(idx, light, tf) ;
-    }
-
-    void instantiate() override ;
-
-private:
-      float metallic_ = 0.5 ;
-      float roughness_ = 0.5 ;
-      Eigen::Vector3f albedo_{0.5, 0.5, 0.5} ;
-};
-
 } // namespace viz
 } // namespave cvx
 #endif

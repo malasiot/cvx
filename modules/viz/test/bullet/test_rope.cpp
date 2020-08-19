@@ -76,7 +76,7 @@ NodePtr makeCylinder(const string &name, float radius, float length, const Matri
 
 static const float chain_radius = 0.1 ;
 static const float chain_length = 0.3 ;
-static const int TOTAL_BOXES = 28;
+static const int TOTAL_BOXES = 8;
 
 
 static Vector4f sColors[4] =  {

@@ -5,8 +5,7 @@
 #include <cvx/viz/scene/light.hpp>
 #include <cvx/viz/scene/node.hpp>
 
-#include <cvx/viz/gui/glfw_window.hpp>
-#include <cvx/viz/gui/trackball.hpp>
+#include <cvx/viz/gui/glfw_viewer.hpp>
 
 #include <GLFW/glfw3.h>
 
@@ -17,40 +16,18 @@ using namespace cvx::viz ;
 using namespace std ;
 using namespace Eigen ;
 
-class glfwGUI: public glfwRenderWindow {
+class glfwGUI: public GLFWViewer {
 public:
 
-    glfwGUI(const RobotScenePtr scene): glfwRenderWindow(), scene_(scene) {
-        auto c = scene->geomCenter() ;
-        auto r = scene->geomRadius(c) ;
-
-        camera_.reset(new PerspectiveCamera(1.0, 50*M_PI/180, 0.001, 10*r)) ;
-        trackball_.setCamera(camera_, c + Vector3f{0.0, 0, 2*r}, c, {0, 1, 0}) ;
-        trackball_.setZoomScale(0.1*r) ;
-
-        joint_ = std::dynamic_pointer_cast<RevoluteJoint>(scene_->getJoint("r2_joint_u")) ;
+    glfwGUI(const RobotScenePtr scene): GLFWViewer(scene) {
+        joint_ = std::dynamic_pointer_cast<RevoluteJoint>(scene->getJoint("r2_joint_u")) ;
         joint_pos_ = 0.0 ;
-
-    }
-
-    void onInit() override {
-
-
-    }
-
-    void onResize(int width, int height) override {
-        float ratio;
-        ratio = width / (float) height;
-
-        trackball_.setScreenSize(width, height);
-
-        static_pointer_cast<PerspectiveCamera>(camera_)->setAspectRatio(ratio) ;
-
-        camera_->setViewport(width, height)  ;
     }
 
 
-    void onKeyPressed(size_t key, uint) override {
+    void onKeyPressed(size_t key, uint flags) override {
+        GLFWViewer::onKeyPressed(key, flags) ;
+
         if (key == GLFW_KEY_Q ) {
             joint_pos_ -= 0.1 ;
             joint_pos_ = joint_->setPosition(joint_pos_) ;
@@ -61,61 +38,6 @@ public:
         }
     }
 
-    void onMouseButtonPressed(uint button, size_t x, size_t y, uint flags) override {
-        switch ( button ) {
-            case GLFW_MOUSE_BUTTON_LEFT:
-                trackball_.setLeftClicked(true) ;
-                break ;
-            case GLFW_MOUSE_BUTTON_MIDDLE:
-                trackball_.setMiddleClicked(true) ;
-                break ;
-            case GLFW_MOUSE_BUTTON_RIGHT:
-                trackball_.setRightClicked(true) ;
-                break ;
-        }
-        trackball_.setClickPoint(x, y) ;
-    }
-
-    void onMouseButtonReleased(uint button, size_t x, size_t y, uint flags) override {
-        switch ( button ) {
-            case GLFW_MOUSE_BUTTON_LEFT:
-                trackball_.setLeftClicked(false) ;
-                break ;
-            case GLFW_MOUSE_BUTTON_MIDDLE:
-                trackball_.setMiddleClicked(false) ;
-                break ;
-            case GLFW_MOUSE_BUTTON_RIGHT:
-                trackball_.setRightClicked(false) ;
-                break ;
-        }
-
-    }
-
-    void onMouseMoved(double xpos, double ypos) override {
-        ostringstream s ;
-        s << xpos << ',' << ypos ;
-        text_ = s.str() ;
-
-        trackball_.setClickPoint(xpos, ypos) ;
-    }
-
-    void onMouseWheel(double x) override {
-        trackball_.setScrollDirection(x>0);
-    }
-
-
-    void onRender(double) override {
-        trackball_.update() ;
-        rdr_.init(camera_) ;
-        rdr_.render(scene_) ;
-        this_thread::yield() ;
-    }
-
-    string text_ ;
-    RobotScenePtr scene_ ;
-    Renderer rdr_ ;
-    TrackBall trackball_ ;
-    CameraPtr camera_ ;
     std::shared_ptr<RevoluteJoint> joint_ ;
     float joint_pos_ ;
 

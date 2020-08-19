@@ -6,6 +6,7 @@
 
 using namespace cvx::viz ;
 
+/*
 void TestAnimation::initializeGL()
 {
     gl3wInit() ;
@@ -39,24 +40,16 @@ void TestAnimation::paintGL()
 
 
 }
+*/
 
-TestAnimation::TestAnimation(ScenePtr scene, Physics &physics): scene_(scene), physics_(physics) {
+TestAnimation::TestAnimation(ScenePtr scene, Physics &physics): SimpleQtViewer(), physics_(physics) {
+    setScene(scene) ;
 
-
-    Vector3f c{0, 0, 0};
-    float r = 10.0 ;
-
-    camera_.reset(new PerspectiveCamera(1.0, 50*M_PI/180, 0.0001, 10*r)) ;
-    trackball_.setCamera(camera_, c + Vector3f{0.0, 0, 3*r}, c, {0, 1, 0}) ;
-    trackball_.setZoomScale(0.1*r) ;
+    initCamera({0, 0, 0}, 10.0) ;
 
     camera_->setBgColor({1, 1, 1, 1}) ;
 
-    QTimer *timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), this, SLOT(updateAnimation()));
-    timer->start(30);
-
-    timer_.start() ;
+    startAnimations() ;
 }
 
 void TestAnimation::mousePressEvent(QMouseEvent *event)
@@ -69,19 +62,7 @@ void TestAnimation::mousePressEvent(QMouseEvent *event)
         picking_ = true ;
 
     } else {
-        switch ( event->button() ) {
-        case Qt::LeftButton:
-            trackball_.setLeftClicked(true) ;
-            break ;
-        case Qt::MiddleButton:
-            trackball_.setMiddleClicked(true) ;
-            break ;
-        case Qt::RightButton:
-            trackball_.setRightClicked(true) ;
-            break ;
-        }
-        trackball_.setClickPoint(event->x(), event->y()) ;
-        trackball_.update() ;
+        SimpleQtViewer::mousePressEvent(event) ;
     }
 
 
@@ -93,19 +74,7 @@ void TestAnimation::mouseReleaseEvent(QMouseEvent *event)
         physics_.removePickingConstraint();
         picking_ = false ;
     } else {
-        switch ( event->button() ) {
-        case Qt::LeftButton:
-            trackball_.setLeftClicked(false) ;
-            break ;
-        case Qt::MiddleButton:
-            trackball_.setMiddleClicked(false) ;
-            break ;
-        case Qt::RightButton:
-            trackball_.setRightClicked(false) ;
-            break ;
-        }
-
-        trackball_.update() ;
+        SimpleQtViewer::mouseReleaseEvent(event) ;
     }
 
 }
@@ -119,16 +88,12 @@ void TestAnimation::mouseMoveEvent(QMouseEvent *event)
         Ray ray = camera_->getRay(x, y) ;
 
         physics_.movePickedBody(eigenVectorToBullet(ray.getOrigin()), eigenVectorToBullet(ray.getDir()*10000));
+        update() ;
     }
     else {
-        trackball_.setClickPoint(x, y) ;
-        trackball_.update() ;
+        SimpleQtViewer::mouseMoveEvent(event) ;
+
     }
-    update() ;
+
 }
 
-void TestAnimation::wheelEvent(QWheelEvent *event) {
-    trackball_.setScrollDirection(event->delta()>0);
-    trackball_.update() ;
-    update() ;
-}

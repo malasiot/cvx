@@ -55,7 +55,7 @@ set(LIB_SOURCES
     scene/camera.cpp
     scene/mesh.cpp
     scene/material.cpp
-    scene/pbr_material.cpp
+
     scene/texture.cpp
     scene/geometry.cpp
     scene/intersect.cpp
@@ -66,6 +66,7 @@ set(LIB_SOURCES
 
     gui/trackball.cpp
     gui/glfw_window.cpp
+    gui/glfw_viewer.cpp
     gui/offscreen.cpp
     gui/simple_qt_viewer.cpp
     
@@ -92,6 +93,7 @@ set(LIB_SOURCES
 
     ${LIBRARY_INCLUDE_DIR}/gui/trackball.hpp
     ${LIBRARY_INCLUDE_DIR}/gui/glfw_window.hpp
+    ${LIBRARY_INCLUDE_DIR}/gui/glfw_viewer.hpp
     ${LIBRARY_INCLUDE_DIR}/gui/offscreen.hpp
     ${LIBRARY_INCLUDE_DIR}/gui/simple_qt_viewer.hpp
    

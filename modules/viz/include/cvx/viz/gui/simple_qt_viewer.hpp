@@ -38,6 +38,8 @@ public:
         anim_cb_ = cb ;
     }
 
+    virtual void onUpdate(float delta) {}
+
 public slots:
 
     void updateAnimation() ;

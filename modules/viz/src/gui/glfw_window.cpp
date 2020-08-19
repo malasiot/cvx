@@ -51,17 +51,7 @@ bool glfwRenderWindow::run(size_t width, size_t height, const string &wname) {
     sizeCallback(handle_, width, height); // Set initial size.
 
     while (!glfwWindowShouldClose(handle_))  {
-        double current_time =  glfwGetTime();
-        double elapsed_time = current_time - saved_time_;
-
-        if ( elapsed_time >= 1.0/60 ) {
-            onRender(elapsed_time) ;
-
-            saved_time_ = current_time ;
-        }
-        else this_thread::sleep_for(std::chrono::milliseconds(100)) ;
-
-        glfwSwapBuffers(handle_);
+        update() ;
         glfwPollEvents();
     }
 
@@ -70,6 +60,20 @@ bool glfwRenderWindow::run(size_t width, size_t height, const string &wname) {
     glfwTerminate();
 
     return true ;
+}
+
+void glfwRenderWindow::update() {
+    double current_time =  glfwGetTime();
+    double elapsed_time = current_time - saved_time_;
+
+    if ( elapsed_time >= 1.0/60 ) {
+        onUpdate(elapsed_time) ;
+
+        saved_time_ = current_time ;
+    }
+    else this_thread::sleep_for(std::chrono::milliseconds(100)) ;
+
+    glfwSwapBuffers(handle_);
 }
 
 void glfwRenderWindow::buttonCallback(GLFWwindow *window, int button, int action, int mods) {

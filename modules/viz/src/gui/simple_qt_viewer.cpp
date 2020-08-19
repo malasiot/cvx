@@ -139,6 +139,10 @@ void SimpleQtViewer::updateAnimation() {
 
     if ( anim_cb_ != nullptr )
         anim_cb_(elapsed) ;
+    else
+        onUpdate(elapsed) ;
+
+    et_.restart() ;
 
     update() ;
 
