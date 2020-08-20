@@ -11,7 +11,8 @@
 
 #include <iostream>
 #include <thread>
-#include "physics.hpp"
+#include <cvx/viz/physics/world.hpp>
+
 #include "bullet_gui.hpp"
 
 #include <QApplication>
@@ -45,7 +46,7 @@ NodePtr makeBox(const string &name, const Vector3f &hs, const Matrix4f &tr, cons
     return box_node ;
 }
 
-Physics physics ;
+PhysicsWorld physics ;
 ScenePtr scene(new Scene) ;
 
 RNG g_rng ;
@@ -64,7 +65,7 @@ void createScene() {
 
     // init physics
 
-    physics.createEmptyDynamicsWorld();
+    physics.createDefaultDynamicsWorld();
 
     Affine3f tr ;
     tr.setIdentity() ;
@@ -74,13 +75,9 @@ void createScene() {
 
     scene->addChild(node) ;
 
-    btCollisionShape *groundShape = physics.createBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
+    CollisionShape groundShape = physics.createBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
 
-    btTransform groundTransform;
-    groundTransform.setIdentity();
-    groundTransform.setOrigin(btVector3(0, -50, 0));
-
-    physics.createStaticRigidBody(groundTransform, groundShape);
+    physics.addBody(RigidBody(groundShape, tr)) ;
 
 
     //create a few dynamic rigidbodies
@@ -88,16 +85,11 @@ void createScene() {
 
     GeometryPtr geom(new BoxGeometry(.1, .1, .1)) ;
 
-    btCollisionShape *colShape = physics.createBoxShape(btVector3(.1, .1, .1));
+    CollisionShape colShape = physics.createBoxShape(btVector3(.1, .1, .1));
 
     /// Create Dynamic Objects
     ///
-    btTransform startTransform;
-    startTransform.setIdentity();
     btScalar mass(1.f);
-    btVector3 localInertia(0, 0, 0);
-
-    colShape->calculateLocalInertia(mass, localInertia);
 
     for (int k = 0; k < ARRAY_SIZE_Y; k++)  {
         for (int i = 0; i < ARRAY_SIZE_X; i++)  {
@@ -105,8 +97,6 @@ void createScene() {
                 float tx = 0.2 * i ;
                 float ty = 2 + 0.2 * k ;
                 float tz = 0.2 * j ;
-
-                startTransform.setOrigin(btVector3(btScalar(tx), btScalar(ty), btScalar(tz)));
 
                 NodePtr node(new Node) ;
 
@@ -130,7 +120,7 @@ void createScene() {
 
                scene->addChild(node) ;
 
-                physics.createRigidBody(mass, node, colShape, localInertia);
+               physics.addBody(RigidBody(mass, new UpdateSceneMotionState(node), colShape));
             }
         }
     }

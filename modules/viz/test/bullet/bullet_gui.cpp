@@ -42,7 +42,7 @@ void TestAnimation::paintGL()
 }
 */
 
-TestAnimation::TestAnimation(ScenePtr scene, Physics &physics): SimpleQtViewer(), physics_(physics) {
+TestAnimation::TestAnimation(ScenePtr scene, PhysicsWorld &physics): SimpleQtViewer(), physics_(physics), picker_(physics) {
     setScene(scene) ;
 
     initCamera({0, 0, 0}, 10.0) ;
@@ -57,7 +57,7 @@ void TestAnimation::mousePressEvent(QMouseEvent *event)
     if ( event->modifiers() & Qt::ControlModifier ) {
         Ray ray = camera_->getRay(event->x(), event->y()) ;
 
-        physics_.pickBody(eigenVectorToBullet(ray.getOrigin()), eigenVectorToBullet(ray.getDir()*10000));
+        picker_.pickBody(ray);
 
         picking_ = true ;
 
@@ -71,7 +71,7 @@ void TestAnimation::mousePressEvent(QMouseEvent *event)
 void TestAnimation::mouseReleaseEvent(QMouseEvent *event)
 {
     if ( event->modifiers() & Qt::ControlModifier ) {
-        physics_.removePickingConstraint();
+        picker_.removePickingConstraint();
         picking_ = false ;
     } else {
         SimpleQtViewer::mouseReleaseEvent(event) ;
@@ -86,8 +86,8 @@ void TestAnimation::mouseMoveEvent(QMouseEvent *event)
 
     if ( picking_ )  {
         Ray ray = camera_->getRay(x, y) ;
+        picker_.movePickedBody(ray) ;
 
-        physics_.movePickedBody(eigenVectorToBullet(ray.getOrigin()), eigenVectorToBullet(ray.getDir()*10000));
         update() ;
     }
     else {

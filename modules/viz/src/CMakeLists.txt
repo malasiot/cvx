@@ -10,6 +10,7 @@ FIND_PACKAGE(Fontconfig REQUIRED)
 FIND_PACKAGE(Freetype REQUIRED)
 FIND_PACKAGE(HarfBuzz REQUIRED)
 
+FIND_PACKAGE(Bullet)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
@@ -29,6 +30,7 @@ include_directories(
     ${FREETYPE_INCLUDE_DIRS}
     ${HARFBUZZ_INCLUDE_DIRS}
     ${FONTCONFIG_INCLUDE_DIR}
+    ${BULLET_INCLUDE_DIRS}
 )
 
 set(LIB_SOURCES
@@ -103,10 +105,24 @@ set(LIB_SOURCES
     ${LIBRARY_INCLUDE_DIR}/renderer/text.hpp
     ${LIBRARY_INCLUDE_DIR}/renderer/gl/shader.hpp
 
+    ${LIBRARY_INCLUDE_DIR}/physics/world.hpp
+
     ${LIBRARY_INCLUDE_DIR}/image/widget.hpp
     ${LIBRARY_INCLUDE_DIR}/image/tools.hpp
     ${LIBRARY_INCLUDE_DIR}/image/view.hpp
 )
+
+IF ( BULLET_FOUND )
+ADD_DEFINITIONS(-DBT_USE_DOUBLE_PRECISION=1)
+LIST(APPEND LIB_SOURCES
+    physics/world.cpp
+    physics/rigid_body.cpp
+    ${LIBRARY_INCLUDE_DIR}/physics/world.hpp
+    ${LIBRARY_INCLUDE_DIR}/physics/rigid_body.hpp
+    ${LIBRARY_INCLUDE_DIR}/physics/collision.hpp
+    ${LIBRARY_INCLUDE_DIR}/physics/convert.hpp
+)
+ENDIF( BULLET_FOUND )
 
 SET ( GFX_SOURCES
     gfx/path.cpp
@@ -164,7 +180,8 @@ target_link_libraries(cvx_viz cvx_util
     ${OpenCV_LIBRARIES}
     ${HARFBUZZ_LIBRARIES}
     ${FONTCONFIG_LIBRARIES}
-    ${FREETYPE_LIBRARIES})
+    ${FREETYPE_LIBRARIES}
+    ${BULLET_LIBRARIES})
 
 add_executable(iview
     image/iview/main_window.cpp
@@ -175,6 +192,7 @@ add_executable(iview
 target_link_libraries(iview cvx_viz cvx_util
     Qt5::Widgets
     ${OpenCV_LIBRARIES}
+
 )
 
 # Install library

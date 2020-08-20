@@ -15,6 +15,8 @@
 #include <cvx/viz/scene/node.hpp>
 #include <cvx/viz/scene/geometry.hpp>
 
+#include <cvx/viz/physics/world.hpp>
+
 #include <iostream>
 
 #include "physics.hpp"
@@ -27,7 +29,7 @@ using namespace cvx::viz ;
 using namespace cvx::util ;
 
 
-static Physics physics ;
+static PhysicsWorld physics ;
 static ScenePtr scene ;
 
 
@@ -92,7 +94,7 @@ void createScene() {
 
     // init physics
 
-    physics.createEmptyDynamicsWorld();
+    physics.createDefaultDynamicsWorld();
 
     // add light
     std::shared_ptr<DirectionalLight> dl( new DirectionalLight(Vector3f(0.5, 0.5, 1)) ) ;
@@ -110,37 +112,30 @@ void createScene() {
     scene->addChild(node) ;
 
     /// create ground collision shape
-    btCollisionShape * groundShape = physics.createBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
+    CollisionShape groundShape = physics.createBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
 
     btTransform groundTransform;
     groundTransform.setIdentity();
     groundTransform.setOrigin(btVector3(0, -50, 0));
 
-    physics.createStaticRigidBody(groundTransform, groundShape);
+    RigidBody ground(groundShape, tr) ;
+    physics.addBody(ground) ;
 
-    btCollisionShape *poleShape = physics.createCylinderShape(0.25, 10);
+    CollisionShape poleShape = physics.createCylinderShape(0.25, 10);
 
-    btTransform poleTransform;
-    poleTransform.setIdentity();
-    poleTransform.setOrigin(btVector3(0.5, 5, 0));
+    Affine3f poleTransform(Translation3f(Vector3f{0.5, 5, 0})) ;
 
-    physics.createStaticRigidBody(poleTransform, poleShape);
+    RigidBody pole(poleShape, poleTransform);
+    physics.addBody(pole) ;
 
-    NodePtr pole_node = makeCylinder("pole", 0.25, 10, Affine3f(Translation3f(Vector3f{0.5, 5, 0})).matrix(), {0, 1, 0, 1}) ;
+    NodePtr pole_node = makeCylinder("pole", 0.25, 10, poleTransform.matrix(), {0, 1, 0, 1}) ;
     scene->addChild(pole_node) ;
 
     // create collision shape for chain element
-    btCollisionShape *colShape = physics.createCylinderShape(chain_radius, chain_length) ;
+    CollisionShape colShape = physics.createCylinderShape(chain_radius, chain_length) ;
 
-    btTransform startTransform;
-    startTransform.setIdentity();
-
-    btScalar mass(1.) ;
-    btVector3 localInertia(0, 0, 0);
-    colShape->calculateLocalInertia(mass, localInertia);
-
-    btAlignedObjectArray<btRigidBody*> boxes;
-
+    btScalar mass(1.0) ;
+    vector<RigidBody> boxes;
 
     int lastBoxIndex = TOTAL_BOXES - 1;
     for (int i = 0; i < TOTAL_BOXES; ++i) {
@@ -151,22 +146,27 @@ void createScene() {
         box_tr.translate(Vector3f{tx, ty, tz}) ;
 
         NodePtr box_node = makeCylinder(cvx::util::format("box-%d", i), chain_radius, chain_length, box_tr.matrix(), sColors[i%3]) ;
-        startTransform.setOrigin(btVector3(btScalar(tx), btScalar(ty), btScalar(tz))) ;
-
-        if ( i== lastBoxIndex )
-            boxes.push_back(physics.createStaticRigidBody(startTransform, colShape)) ;
-        else
-            boxes.push_back(physics.createRigidBody(mass, box_node, colShape, localInertia));
-
         scene->addChild(box_node) ;
+
+        if ( i== lastBoxIndex ) {
+            RigidBody box(colShape, box_tr) ;
+            physics.addBody(box) ;
+            boxes.push_back(box) ;
+        }
+        else {
+            RigidBody box(mass, new UpdateSceneMotionState(box_node), colShape) ;
+            physics.addBody(box) ;
+            boxes.push_back(box) ;
+        }
+
     }
 
     btDynamicsWorld *world = physics.getDynamicsWorld() ;
 
     //add N-1 spring constraints
     for (int i = 0; i < TOTAL_BOXES - 1; ++i) {
-        btRigidBody* b1 = boxes[i];
-        btRigidBody* b2 = boxes[i + 1];
+        btRigidBody* b1 = boxes[i].handle();
+        btRigidBody* b2 = boxes[i + 1].handle();
 
         btPoint2PointConstraint* leftSpring = new btPoint2PointConstraint(*b1, *b2, btVector3(0.0, chain_length/2.0, 0), btVector3(0.0, -chain_length/2.0, 0));
 

@@ -5,21 +5,24 @@
 #include <cvx/viz/gui/simple_qt_viewer.hpp>
 #include <cvx/viz/scene/camera.hpp>
 
+#include <cvx/viz/physics/world.hpp>
+
 #include <QOpenGLWidget>
 #include <QMouseEvent>
 #include <QElapsedTimer>
 
-#include "physics.hpp"
 
 class TestAnimation : public cvx::viz::SimpleQtViewer
 {
     Q_OBJECT
 public:
-    TestAnimation(cvx::viz::ScenePtr scene, Physics &physics) ;
+    TestAnimation(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics) ;
 
 protected:
 
-    Physics &physics_ ;
+    cvx::viz::PhysicsWorld &physics_ ;
+    cvx::viz::RayPicker picker_ ;
+
     bool picking_ = false ;
 
 
