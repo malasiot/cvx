@@ -13,6 +13,10 @@ add_executable(test_bullet test_bullet.cpp bullet_gui.cpp bullet_gui.hpp
 body.cpp body.hpp)
 target_link_libraries(test_bullet cvx_viz ${BULLET_LIBRARIES})
 
+add_executable(test_bullet_old test_bullet_old.cpp bullet_gui_old.cpp bullet_gui_old.hpp
+body.cpp body.hpp)
+target_link_libraries(test_bullet_old cvx_viz ${BULLET_LIBRARIES})
+
 add_executable(test_rope test_rope.cpp bullet_gui.cpp bullet_gui.hpp)
 set_target_properties(test_rope PROPERTIES AUTOMOC TRUE)
 target_link_libraries(test_rope cvx_viz ${BULLET_LIBRARIES})

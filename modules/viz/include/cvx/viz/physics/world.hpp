@@ -14,6 +14,7 @@
 
 #include <cvx/viz/physics/collision.hpp>
 #include <cvx/viz/physics/rigid_body.hpp>
+#include <cvx/viz/physics/constraints.hpp>
 #include <cvx/viz/scene/camera.hpp>
 
 namespace cvx { namespace viz {
@@ -29,12 +30,15 @@ public:
 
     void stepSimulation(float deltaTime);
 
-    CollisionShape createBoxShape(const btVector3 &halfExtents);
+    CollisionShape createBoxShape(const Eigen::Vector3f &halfExtents);
     CollisionShape createCylinderShape(float radius, float len);
+
+
 
     void deleteRigidBody(btRigidBody *body);
 
     void addBody(const RigidBody &body);
+    void addConstraint(const Constraint &c);
 
 private:
 

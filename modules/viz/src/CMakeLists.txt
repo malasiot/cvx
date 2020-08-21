@@ -117,10 +117,12 @@ ADD_DEFINITIONS(-DBT_USE_DOUBLE_PRECISION=1)
 LIST(APPEND LIB_SOURCES
     physics/world.cpp
     physics/rigid_body.cpp
+    physics/constraints.cpp
     ${LIBRARY_INCLUDE_DIR}/physics/world.hpp
     ${LIBRARY_INCLUDE_DIR}/physics/rigid_body.hpp
     ${LIBRARY_INCLUDE_DIR}/physics/collision.hpp
     ${LIBRARY_INCLUDE_DIR}/physics/convert.hpp
+    ${LIBRARY_INCLUDE_DIR}/physics/constraints.hpp
 )
 ENDIF( BULLET_FOUND )
 

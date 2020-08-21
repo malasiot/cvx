@@ -6,43 +6,7 @@
 
 using namespace cvx::viz ;
 
-/*
-void TestAnimation::initializeGL()
-{
-    gl3wInit() ;
-}
-
-void TestAnimation::resizeGL(int w, int h) {
-    float ratio = w/(float)h ;
-    std::static_pointer_cast<PerspectiveCamera>(camera_)->setAspectRatio(ratio) ;
-
-    trackball_.setScreenSize(w, h);
-    camera_->setViewport(w, h) ;
-}
-
-
-void TestAnimation::paintGL()
-{
-    rdr_.init(camera_) ;
-    rdr_.render(scene_) ;
-
-    rdr_.clearZBuffer();
-
-    rdr_.line({0, 0, 0}, {10, 0, 0}, {1, 0, 0, 1}, 3);
-    rdr_.line({0, 0, 0}, {0, 10, 0}, {0, 1, 0, 1}, 3);
-    rdr_.line({0, 0, 0}, {0, 0, 10}, {0, 0, 1, 1}, 3);
-
-    rdr_.text("X", Vector3f{10, 0, 0}, Font("Arial", 12), Vector3f{1, 0, 0}) ;
-    rdr_.text("Y", Vector3f{0, 10, 0}, Font("Arial", 12), Vector3f{0, 1, 0}) ;
-    rdr_.text("Z", Vector3f{0, 0, 10}, Font("Arial", 12), Vector3f{0, 0, 1}) ;
-
-    rdr_.circle({0, 0, 0}, {0, 1, 0}, 5.0, {0, 1, 0, 1}) ;
-
-
-}
-*/
-
-TestAnimation::TestAnimation(ScenePtr scene, PhysicsWorld &physics): SimpleQtViewer(), physics_(physics), picker_(physics) {
+TestSimulation::TestSimulation(ScenePtr scene, PhysicsWorld &physics): SimpleQtViewer(), physics_(physics), picker_(physics) {
     setScene(scene) ;
 
     initCamera({0, 0, 0}, 10.0) ;
@@ -52,7 +16,7 @@ TestAnimation::TestAnimation(ScenePtr scene, PhysicsWorld &physics): SimpleQtVie
     startAnimations() ;
 }
 
-void TestAnimation::mousePressEvent(QMouseEvent *event)
+void TestSimulation::mousePressEvent(QMouseEvent *event)
 {
     if ( event->modifiers() & Qt::ControlModifier ) {
         Ray ray = camera_->getRay(event->x(), event->y()) ;
@@ -68,7 +32,7 @@ void TestAnimation::mousePressEvent(QMouseEvent *event)
 
 }
 
-void TestAnimation::mouseReleaseEvent(QMouseEvent *event)
+void TestSimulation::mouseReleaseEvent(QMouseEvent *event)
 {
     if ( event->modifiers() & Qt::ControlModifier ) {
         picker_.removePickingConstraint();
@@ -79,7 +43,7 @@ void TestAnimation::mouseReleaseEvent(QMouseEvent *event)
 
 }
 
-void TestAnimation::mouseMoveEvent(QMouseEvent *event)
+void TestSimulation::mouseMoveEvent(QMouseEvent *event)
 {
     int x = event->x() ;
     int y = event->y() ;

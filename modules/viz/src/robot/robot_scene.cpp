@@ -96,7 +96,7 @@ RobotScenePtr RobotScene::parseRobotURDF(const urdf::Robot &rb)
             Vector4f clr = mat.diffuse_color_ ;
             PhongMaterialInstance *material = new PhongMaterialInstance ;
             material->setShininess(0);
-            material->setSpecular(Vector4f(0, 0, 0, 1)) ;
+            material->setSpecular({0, 0, 0, 1}) ;
             material->setDiffuse(clr) ;
 
             materials.emplace(name, MaterialInstancePtr(material)) ;
@@ -105,7 +105,7 @@ RobotScenePtr RobotScene::parseRobotURDF(const urdf::Robot &rb)
 
             DiffuseMapMaterialInstance *material = new DiffuseMapMaterialInstance(s) ;
             material->setShininess(0);
-            material->setSpecular(Vector4f(0, 0, 0, 1)) ;
+            material->setSpecular({0, 0, 0, 1}) ;
             material->setDiffuse(s) ;
 
             materials.emplace(name, MaterialInstancePtr(material)) ;

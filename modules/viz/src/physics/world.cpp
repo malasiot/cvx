@@ -55,8 +55,8 @@ void PhysicsWorld::stepSimulation(float deltaTime) {
     }
 }
 
-CollisionShape PhysicsWorld::createBoxShape(const btVector3& halfExtents)  {
-    auto shape = new btBoxShape(halfExtents);
+CollisionShape PhysicsWorld::createBoxShape(const Vector3f& halfExtents)  {
+    auto shape = new btBoxShape(eigenVectorToBullet(halfExtents));
     addCollisionShape(shape);
     return CollisionShape(shape) ;
 }
@@ -81,6 +81,10 @@ void PhysicsWorld::addCollisionShape(const btCollisionShape *shape) {
 
 void PhysicsWorld::addBody(const RigidBody &body) {
      dynamics_world_->addRigidBody(body.handle_);
+}
+
+void PhysicsWorld::addConstraint(const Constraint &c) {
+    dynamics_world_->addConstraint(c.handle());
 }
 
 

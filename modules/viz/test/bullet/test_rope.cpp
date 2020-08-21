@@ -32,53 +32,9 @@ using namespace cvx::util ;
 static PhysicsWorld physics ;
 static ScenePtr scene ;
 
-
-
-NodePtr makeBox(const string &name, const Vector3f &hs, const Matrix4f &tr, const Vector4f &clr) {
-
-    NodePtr box_node(new Node) ;
-    box_node->setName(name) ;
-
-    GeometryPtr geom(new BoxGeometry(hs)) ;
-
-    MaterialInstancePtr material(new ConstantMaterialInstance(clr)) ;
-
-    DrawablePtr dr(new Drawable(geom, material)) ;
-
-    box_node->addDrawable(dr) ;
-
-    box_node->matrix() = tr ;
-
-    return box_node ;
-}
-
-NodePtr makeCylinder(const string &name, float radius, float length, const Matrix4f &tr, const Vector4f &clr) {
-
-    // we need an extra node to perform rotation of cylinder so that it is aligned with Y axis instead of Z
-
-    NodePtr node(new Node) ;
-    node->setName(name) ;
-
-    GeometryPtr geom(new CylinderGeometry(radius, length)) ;
-
-    MaterialInstancePtr material(new ConstantMaterialInstance(clr)) ;
-
-    DrawablePtr dr(new Drawable(geom, material)) ;
-
-    node->addDrawable(dr) ;
-
-    node->matrix().rotate(AngleAxisf(-0.5*M_PI, Vector3f::UnitX()));
-
-    NodePtr externalNode(new Node) ;
-    externalNode->matrix() = tr ;
-    externalNode->addChild(node) ;
-
-    return externalNode ;
-}
-
 static const float chain_radius = 0.1 ;
 static const float chain_length = 0.3 ;
-static const int TOTAL_BOXES = 8;
+static const int TOTAL_BOXES = 7;
 
 
 static Vector4f sColors[4] =  {
@@ -103,50 +59,34 @@ void createScene() {
 
     // create ground plane object
 
-    Affine3f tr ;
-    tr.setIdentity() ;
-    tr.translate(Vector3f(0, -50, 0)) ;
+    Affine3f tr(Translation3f{0, -50, 0}) ;
 
-    NodePtr node = makeBox("ground", Vector3f{50., 50., 50.}, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
+    Vector3f ground_hs{50., 50., 50.} ;
+    scene->addBox(ground_hs, tr.matrix(), {0.5, 0.5, 0.5, 1})->setName("ground") ;
+    physics.addBody(RigidBody(physics.createBoxShape(ground_hs), tr)) ;
 
-    scene->addChild(node) ;
-
-    /// create ground collision shape
-    CollisionShape groundShape = physics.createBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
-
-    btTransform groundTransform;
-    groundTransform.setIdentity();
-    groundTransform.setOrigin(btVector3(0, -50, 0));
-
-    RigidBody ground(groundShape, tr) ;
-    physics.addBody(ground) ;
-
-    CollisionShape poleShape = physics.createCylinderShape(0.25, 10);
-
-    Affine3f poleTransform(Translation3f(Vector3f{0.5, 5, 0})) ;
-
-    RigidBody pole(poleShape, poleTransform);
-    physics.addBody(pole) ;
-
-    NodePtr pole_node = makeCylinder("pole", 0.25, 10, poleTransform.matrix(), {0, 1, 0, 1}) ;
-    scene->addChild(pole_node) ;
+    // create static pole
+    Affine3f poleTransform(Translation3f{0.5, 5, 0}) ;
+    scene->addCylinder(0.25, 10, poleTransform.matrix(), {0, 1, 0, 1})->setName("pole") ;
+    physics.addBody(RigidBody(physics.createCylinderShape(0.25, 10), poleTransform)) ;
 
     // create collision shape for chain element
-    CollisionShape colShape = physics.createCylinderShape(chain_radius, chain_length) ;
 
     btScalar mass(1.0) ;
+
+    CollisionShape colShape = physics.createCylinderShape(chain_radius, chain_length) ;
+
     vector<RigidBody> boxes;
 
     int lastBoxIndex = TOTAL_BOXES - 1;
-    for (int i = 0; i < TOTAL_BOXES; ++i) {
-        float tx = 0, ty = 2+ i*chain_length, tz = 0 ;
 
-        Affine3f box_tr ;
-        box_tr.setIdentity() ;
-        box_tr.translate(Vector3f{tx, ty, tz}) ;
+    for (int i = 0; i < TOTAL_BOXES; i++) {
+        float tx = 0, ty = 2.0f+ i*chain_length, tz = 0 ;
 
-        NodePtr box_node = makeCylinder(cvx::util::format("box-%d", i), chain_radius, chain_length, box_tr.matrix(), sColors[i%3]) ;
-        scene->addChild(box_node) ;
+        Affine3f box_tr(Translation3f{tx, ty, tz}) ;
+
+        NodePtr chain_node = scene->addCylinder(chain_radius, chain_length, box_tr.matrix(), sColors[i%4]);
+        chain_node->setName(cvx::util::format("chain {}", i)) ;
 
         if ( i== lastBoxIndex ) {
             RigidBody box(colShape, box_tr) ;
@@ -154,24 +94,27 @@ void createScene() {
             boxes.push_back(box) ;
         }
         else {
-            RigidBody box(mass, new UpdateSceneMotionState(box_node), colShape) ;
+            RigidBody box(mass, new UpdateSceneMotionState(chain_node), colShape) ;
             physics.addBody(box) ;
             boxes.push_back(box) ;
         }
 
     }
 
+
     btDynamicsWorld *world = physics.getDynamicsWorld() ;
 
     //add N-1 spring constraints
     for (int i = 0; i < TOTAL_BOXES - 1; ++i) {
+     //   Point2PointConstraint c(boxes[i], boxes[i+1], {0.0, chain_length/2.0, 0}, {0.0, -chain_length/2.0, 0}) ;
+//  physics.addConstraint(c);
+
         btRigidBody* b1 = boxes[i].handle();
         btRigidBody* b2 = boxes[i + 1].handle();
 
-        btPoint2PointConstraint* leftSpring = new btPoint2PointConstraint(*b1, *b2, btVector3(0.0, chain_length/2.0, 0), btVector3(0.0, -chain_length/2.0, 0));
+       btPoint2PointConstraint* leftSpring = new btPoint2PointConstraint(*b1, *b2, btVector3(0.0, chain_length/2.0, 0), btVector3(0.0, -chain_length/2.0, 0));
 
-        world->addConstraint(leftSpring);
-
+        world->addConstraint(leftSpring) ;
 
     }
 
@@ -179,25 +122,15 @@ void createScene() {
 
 int main(int argc, char **argv)
 {
-
     createScene() ;
 
     QApplication app(argc, argv);
 
-    QSurfaceFormat format;
-    format.setDepthBufferSize(24);
-    format.setMajorVersion(3);
-    format.setMinorVersion(3);
-    format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
-    format.setSwapInterval(1);
-
-    format.setSamples(4);
-    format.setProfile(QSurfaceFormat::CoreProfile);
-
-    QSurfaceFormat::setDefaultFormat(format);
+    SimpleQtViewer::initDefaultGLContext();
 
     QMainWindow window ;
-    window.setCentralWidget(new TestAnimation(scene, physics)) ;
+    window.setCentralWidget(new TestSimulation(scene, physics)) ;
+    window.resize(1024, 1024) ;
     window.show() ;
 
     return app.exec();

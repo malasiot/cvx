@@ -11,12 +11,14 @@
 #include <QMouseEvent>
 #include <QElapsedTimer>
 
+#include <iostream>
 
-class TestAnimation : public cvx::viz::SimpleQtViewer
+
+class TestSimulation : public cvx::viz::SimpleQtViewer
 {
     Q_OBJECT
 public:
-    TestAnimation(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics) ;
+    TestSimulation(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics) ;
 
 protected:
 
@@ -35,7 +37,10 @@ protected:
 
     virtual void onUpdate(float delta) override {
         physics_.stepSimulation(delta/1000.0f);
+
+        scene_->visit([&](cvx::viz::Node &n) {
+            std::cout << n.name() << std::endl ;
+            std::cout << n.matrix().matrix() << std::endl ;
+        });
     }
-
-
 };

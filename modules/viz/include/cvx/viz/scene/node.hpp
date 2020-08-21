@@ -13,6 +13,8 @@
 #include <cvx/viz/scene/drawable.hpp>
 #include <cvx/viz/scene/marker.hpp>
 #include <cvx/viz/animation/animation.hpp>
+#include <cvx/viz/scene/material.hpp>
+#include <cvx/viz/scene/geometry.hpp>
 
 namespace cvx { namespace viz {
 
@@ -134,6 +136,65 @@ public:
         n->addDrawable(dr) ;
         addChild(n) ;
         return n ;
+    }
+
+
+    // add node containing box geoemtry with given material
+    NodePtr addBox(const Eigen::Vector3f &hs, const Eigen::Matrix4f &tr, const MaterialInstancePtr &material) {
+
+        NodePtr box_node(new Node) ;
+
+        GeometryPtr geom(new BoxGeometry(hs)) ;
+
+        DrawablePtr dr(new Drawable(geom, material)) ;
+
+        box_node->addDrawable(dr) ;
+
+        box_node->matrix() = tr ;
+
+        addChild(box_node) ;
+
+        return box_node ;
+    }
+
+    // same as above but with constant color material
+    NodePtr addBox(const Eigen::Vector3f &hs, const Eigen::Matrix4f &tr, const Eigen::Vector4f &clr) {
+        auto mi = new PhongMaterialInstance() ;
+        mi->setDiffuse(clr) ;
+        MaterialInstancePtr material(mi) ;
+
+        return addBox(hs, tr, material) ;
+    }
+
+    // create cylinder aligned with Y axis
+    NodePtr addCylinder(float radius, float length, const Eigen::Matrix4f &tr, const MaterialInstancePtr &material) {
+
+        // we need an extra node to perform rotation of cylinder so that it is aligned with Y axis instead of Z
+
+        NodePtr node(new Node) ;
+
+        GeometryPtr geom(new CylinderGeometry(radius, length)) ;
+
+        DrawablePtr dr(new Drawable(geom, material)) ;
+
+        node->addDrawable(dr) ;
+
+        node->matrix().rotate(Eigen::AngleAxisf(-0.5*M_PI, Eigen::Vector3f::UnitX()));
+
+        NodePtr externalNode(new Node) ;
+        externalNode->matrix() = tr ;
+        externalNode->addChild(node) ;
+
+        addChild(externalNode) ;
+
+        return externalNode ;
+    }
+
+    NodePtr addCylinder(float radius, float length, const Eigen::Matrix4f &tr, const Eigen::Vector4f &clr) {
+        auto mi = new PhongMaterialInstance() ;
+        mi->setDiffuse(clr) ;
+        MaterialInstancePtr material(mi) ;
+        return addCylinder(radius, length, tr, material) ;
     }
 
     void addMarkerInstance(MarkerInstancePtr inst) {

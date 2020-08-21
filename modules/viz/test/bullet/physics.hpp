@@ -12,43 +12,17 @@
 #include <vector>
 
 #include <cvx/viz/scene/node.hpp>
+#include <cvx/viz/physics/convert.hpp>
 
 using namespace Eigen ;
 
-inline Eigen::Vector3f toEigenVector(const std::vector<float>& vec) {return Eigen::Vector3f(vec[0],vec[1],vec[2]);}
-inline Eigen::Vector3f toEigenVector(const btVector3& vec) {return Eigen::Vector3f(vec.x(),vec.y(),vec.z());}
-inline btVector3 toBulletVector(const Eigen::Vector3f& vec) {return btVector3(vec[0],vec[1],vec[2]);}
-
-inline Eigen::Affine3f toEigenTransform(const btTransform& transform) {
-  btVector3 transBullet = transform.getOrigin();
-  btQuaternion quatBullet = transform.getRotation();
-  Eigen::Translation3f transEig;
-  transEig = Eigen::Translation3f(toEigenVector(transBullet));
-  Eigen::Matrix3f rotEig = Eigen::Quaternionf(quatBullet.w(),quatBullet.x(),quatBullet.y(),quatBullet.z()).toRotationMatrix();
-  Eigen::Affine3f out(transEig*rotEig);
-  return out;
-}
-
-inline btTransform toBulletTransform(const Eigen::Affine3f& affine) {
-  Eigen::Vector3f transEig = affine.translation();
-  Eigen::Matrix3f rotEig = affine.rotation();
-  Eigen::Quaternionf quatEig = Eigen::Quaternionf(rotEig);
-  btVector3 transBullet = toBulletVector(transEig);
-  btQuaternion quatBullet = btQuaternion(quatEig.x(), quatEig.y(), quatEig.z(), quatEig.w());
-  return btTransform(quatBullet,transBullet);
-}
-
-
-inline btVector3 eigenVectorToBullet(const Eigen::Vector3f &v) {
-    return btVector3(btScalar(v.x()), btScalar(v.y()), btScalar(v.z())) ;
-}
 
 class MotionState: public btMotionState {
     public:
 
     MotionState ( const cvx::viz::NodePtr &node): node_(node) {
         Affine3f world = node->globalTransform() ;
-        world_trans_ = toBulletTransform(world) ;
+        world_trans_ = cvx::viz::toBulletTransform(world) ;
 
     }
 
@@ -61,7 +35,7 @@ class MotionState: public btMotionState {
     virtual void setWorldTransform( const btTransform& centerOfMassWorldTrans )
     {
         world_trans_ = centerOfMassWorldTrans;
-        node_->matrix() = toEigenTransform(world_trans_);
+        node_->matrix() = cvx::viz::toEigenTransform(world_trans_);
     }
 
 private:

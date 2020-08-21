@@ -24,27 +24,9 @@ using namespace cvx::util ;
 using namespace std ;
 using namespace Eigen ;
 
-#define ARRAY_SIZE_Y 5
-#define ARRAY_SIZE_X 5
-#define ARRAY_SIZE_Z 5
-
-NodePtr makeBox(const string &name, const Vector3f &hs, const Matrix4f &tr, const Vector4f &clr) {
-
-    NodePtr box_node(new Node) ;
-    box_node->setName(name) ;
-
-    GeometryPtr geom(new BoxGeometry(hs)) ;
-
-    MaterialInstancePtr material(new ConstantMaterialInstance(clr)) ;
-
-    DrawablePtr dr(new Drawable(geom, material)) ;
-
-    box_node->addDrawable(dr) ;
-
-    box_node->matrix() = tr ;
-
-    return box_node ;
-}
+#define ARRAY_SIZE_Y 2
+#define ARRAY_SIZE_X 2
+#define ARRAY_SIZE_Z 2
 
 PhysicsWorld physics ;
 ScenePtr scene(new Scene) ;
@@ -67,30 +49,22 @@ void createScene() {
 
     physics.createDefaultDynamicsWorld();
 
-    Affine3f tr ;
-    tr.setIdentity() ;
-    tr.translate(Vector3f(0, -50, 0)) ;
+    Affine3f tr(Translation3f{0, -50, 0}) ;
 
-    NodePtr node = makeBox("ground", Vector3f{50., 50., 50.}, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
-
-    scene->addChild(node) ;
-
-    CollisionShape groundShape = physics.createBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
-
-    physics.addBody(RigidBody(groundShape, tr)) ;
-
+    Vector3f ground_hs{50.0f, 50.0f, 50.0f} ;
+    scene->addBox(ground_hs, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
+    physics.addBody(RigidBody(physics.createBoxShape(ground_hs), tr)) ;
 
     //create a few dynamic rigidbodies
     // Re-using the same collision is better for memory usage and performance
 
-    GeometryPtr geom(new BoxGeometry(.1, .1, .1)) ;
-
-    CollisionShape colShape = physics.createBoxShape(btVector3(.1, .1, .1));
+    Vector3f cube_hs{.1f, .1f, .1f} ;
+    GeometryPtr geom(new BoxGeometry(cube_hs)) ;
+    CollisionShape colShape = physics.createBoxShape(cube_hs);
+    btScalar mass(1.f);
 
     /// Create Dynamic Objects
     ///
-    btScalar mass(1.f);
-
     for (int k = 0; k < ARRAY_SIZE_Y; k++)  {
         for (int i = 0; i < ARRAY_SIZE_X; i++)  {
             for (int j = 0; j < ARRAY_SIZE_Z; j++) {
@@ -98,29 +72,14 @@ void createScene() {
                 float ty = 2 + 0.2 * k ;
                 float tz = 0.2 * j ;
 
-                NodePtr node(new Node) ;
+                Affine3f tr(Translation3f{tx, ty, tz}) ;
 
-                PhongMaterialInstance *pm = new PhongMaterialInstance();
-                pm->setDiffuse({g_rng.uniform(0.0, 1.), 1, g_rng.uniform(0., 1.), 1}) ;
-
-                MaterialInstancePtr material(pm) ;
-
-                DrawablePtr dr(new Drawable(geom, material)) ;
-
-                node->addDrawable(dr) ;
+                NodePtr node = scene->addBox(cube_hs, tr.matrix(), {g_rng.uniform(0.0, 1.), g_rng.uniform(0., 1.),  g_rng.uniform(0., 1.), 1}) ;
 
                 node->setPickable(true);
-
                 node->setName(cvx::util::format("%d %d %d", i, j, k)) ;
 
-                Affine3f tr ;
-                tr.setIdentity() ;
-                tr.translate(Vector3f{tx, ty, tz}) ;
-                node->matrix() = tr.matrix() ;
-
-               scene->addChild(node) ;
-
-               physics.addBody(RigidBody(mass, new UpdateSceneMotionState(node), colShape));
+                physics.addBody(RigidBody(mass, new UpdateSceneMotionState(node), colShape));
             }
         }
     }
@@ -131,25 +90,14 @@ void createScene() {
 
 int main(int argc, char **argv)
 {
-
     createScene() ;
 
     QApplication app(argc, argv);
 
-    QSurfaceFormat format;
-    format.setDepthBufferSize(24);
-    format.setMajorVersion(3);
-    format.setMinorVersion(3);
-    format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
-    format.setSwapInterval(1);
-
-    format.setSamples(4);
-    format.setProfile(QSurfaceFormat::CoreProfile);
-
-    QSurfaceFormat::setDefaultFormat(format);
+    cvx::viz::SimpleQtViewer::initDefaultGLContext() ;
 
     QMainWindow window ;
-    window.setCentralWidget(new TestAnimation(scene, physics)) ;
+    window.setCentralWidget(new TestSimulation(scene, physics)) ;
     window.resize(512, 512) ;
     window.show() ;
 
