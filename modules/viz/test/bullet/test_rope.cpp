@@ -29,6 +29,22 @@ using namespace cvx::viz ;
 using namespace cvx::util ;
 
 
+class GUI: public TestSimulation {
+public:
+    GUI(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics, vector<RigidBody> &objects):
+    TestSimulation(scene, physics), objects_(objects) {
+
+    }
+
+    void onUpdate(float delta) override {
+        TestSimulation::onUpdate(delta) ;
+        physics_.contactTest(objects_[0]) ;
+    }
+
+private:
+    vector<RigidBody> objects_ ;
+};
+
 static PhysicsWorld physics ;
 static ScenePtr scene ;
 
@@ -44,6 +60,8 @@ static Vector4f sColors[4] =  {
     Vector4f(72. / 256., 133. / 256., 237. / 256., 1),
 
 };
+
+vector<RigidBody> boxes;
 
 void createScene() {
     scene.reset(new Scene) ;
@@ -76,12 +94,10 @@ void createScene() {
 
     CollisionShape colShape = physics.createCylinderShape(chain_radius, chain_length) ;
 
-    vector<RigidBody> boxes;
-
     int lastBoxIndex = TOTAL_BOXES - 1;
 
     for (int i = 0; i < TOTAL_BOXES; i++) {
-        float tx = 0, ty = 2.0f+ i*chain_length, tz = 0 ;
+        float tx = 0, ty = 2.0f+ i*1.5*chain_length, tz = 0 ;
 
         Affine3f box_tr(Translation3f{tx, ty, tz}) ;
 
@@ -106,16 +122,8 @@ void createScene() {
 
     //add N-1 spring constraints
     for (int i = 0; i < TOTAL_BOXES - 1; ++i) {
-     //   Point2PointConstraint c(boxes[i], boxes[i+1], {0.0, chain_length/2.0, 0}, {0.0, -chain_length/2.0, 0}) ;
-//  physics.addConstraint(c);
-
-        btRigidBody* b1 = boxes[i].handle();
-        btRigidBody* b2 = boxes[i + 1].handle();
-
-       btPoint2PointConstraint* leftSpring = new btPoint2PointConstraint(*b1, *b2, btVector3(0.0, chain_length/2.0, 0), btVector3(0.0, -chain_length/2.0, 0));
-
-        world->addConstraint(leftSpring) ;
-
+        Point2PointConstraint c(boxes[i], boxes[i+1], {0.0, 1.5*chain_length/2.0, 0}, {0.0, -1.5*chain_length/2.0, 0}) ;
+        physics.addConstraint(c);
     }
 
 }
@@ -129,7 +137,7 @@ int main(int argc, char **argv)
     SimpleQtViewer::initDefaultGLContext();
 
     QMainWindow window ;
-    window.setCentralWidget(new TestSimulation(scene, physics)) ;
+    window.setCentralWidget(new GUI(scene, physics, boxes)) ;
     window.resize(1024, 1024) ;
     window.show() ;
 

@@ -37,10 +37,5 @@ protected:
 
     virtual void onUpdate(float delta) override {
         physics_.stepSimulation(delta/1000.0f);
-
-        scene_->visit([&](cvx::viz::Node &n) {
-            std::cout << n.name() << std::endl ;
-            std::cout << n.matrix().matrix() << std::endl ;
-        });
     }
 };

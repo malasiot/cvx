@@ -33,7 +33,7 @@ public:
     CollisionShape createBoxShape(const Eigen::Vector3f &halfExtents);
     CollisionShape createCylinderShape(float radius, float len);
 
-
+    bool contactTest(const RigidBody &b1) ;
 
     void deleteRigidBody(btRigidBody *body);
 

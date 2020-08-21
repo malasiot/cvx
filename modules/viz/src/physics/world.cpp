@@ -1,4 +1,5 @@
 #include <cvx/viz/physics/world.hpp>
+#include <bullet/BulletCollision/CollisionDispatch/btCollisionWorld.h>
 
 using namespace Eigen ;
 
@@ -65,6 +66,19 @@ CollisionShape PhysicsWorld::createCylinderShape(float radius, float len)  {
     auto shape = new btCylinderShape(btVector3(radius, len/2.0, radius));
     addCollisionShape(shape);
     return CollisionShape(shape) ;
+}
+
+class ContactResult: public btCollisionWorld::ContactResultCallback {
+public:
+    btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0, const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) override {
+        std::cout << "ok" << std::endl ;
+        return 0 ;
+    }
+};
+
+bool PhysicsWorld::contactTest(const RigidBody &b1) {
+     ContactResult result ; ;
+    dynamics_world_->contactTest(b1.handle(), result) ;
 }
 
 void PhysicsWorld::deleteRigidBody(btRigidBody* body)
