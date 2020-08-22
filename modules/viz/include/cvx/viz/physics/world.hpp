@@ -19,6 +19,10 @@
 
 namespace cvx { namespace viz {
 
+struct ContactResult {
+    const RigidBody *a_, *b_ ;
+    Eigen::Vector3f pa_, pb_, normal_ ;
+} ;
 
 class PhysicsWorld {
 public:
@@ -30,15 +34,12 @@ public:
 
     void stepSimulation(float deltaTime);
 
-    CollisionShape createBoxShape(const Eigen::Vector3f &halfExtents);
-    CollisionShape createCylinderShape(float radius, float len);
+    bool contactTest(const RigidBody &b1, std::vector<ContactResult> &results) ;
 
-    bool contactTest(const RigidBody &b1) ;
-
-    void deleteRigidBody(btRigidBody *body);
-
-    void addBody(const RigidBody &body);
+    uint addBody(const RigidBody &body);
     void addConstraint(const Constraint &c);
+
+    RigidBody *findObjectById(int id) ;
 
 private:
 
@@ -50,6 +51,9 @@ private:
     std::unique_ptr<btConstraintSolver> solver_ ;
     std::unique_ptr<btDefaultCollisionConfiguration> collision_config_ ;
     std::unique_ptr<btDynamicsWorld> dynamics_world_;
+
+    uint body_count_ = 0 ;
+    std::map<uint, RigidBody> bodies_ ;
 };
 
 // MotionState for dynamic objects that updates the transform of the associated node in the scene

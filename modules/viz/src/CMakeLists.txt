@@ -118,6 +118,7 @@ LIST(APPEND LIB_SOURCES
     physics/world.cpp
     physics/rigid_body.cpp
     physics/constraints.cpp
+    physics/collision.cpp
     ${LIBRARY_INCLUDE_DIR}/physics/world.hpp
     ${LIBRARY_INCLUDE_DIR}/physics/rigid_body.hpp
     ${LIBRARY_INCLUDE_DIR}/physics/collision.hpp

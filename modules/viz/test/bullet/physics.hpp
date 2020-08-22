@@ -47,7 +47,6 @@ private:
 
 struct Physics
 {
-    btAlignedObjectArray<const btCollisionShape *> collision_shapes_ ;
     std::unique_ptr<btBroadphaseInterface> m_broadphase ;
     std::unique_ptr<btCollisionDispatcher> m_dispatcher ;
     std::unique_ptr<btConstraintSolver> m_solver ;
@@ -71,9 +70,6 @@ struct Physics
         return m_dynamicsWorld.get();
     }
 
-    void addCollisionShape(const btCollisionShape *shape) {
-        collision_shapes_.push_back(shape) ;
-    }
 
     virtual void createEmptyDynamicsWorld()
     {
@@ -250,7 +246,7 @@ struct Physics
 
     btCollisionShape *createBoxShape(const btVector3& halfExtents)  {
         auto shape = new btBoxShape(halfExtents);
-        addCollisionShape(shape);
+        collision_shapes_.addCollisionShape(shape);
         return shape ;
     }
 

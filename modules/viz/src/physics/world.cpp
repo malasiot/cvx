@@ -1,4 +1,5 @@
 #include <cvx/viz/physics/world.hpp>
+#include <cvx/viz/physics/convert.hpp>
 #include <bullet/BulletCollision/CollisionDispatch/btCollisionWorld.h>
 
 using namespace Eigen ;
@@ -33,16 +34,6 @@ PhysicsWorld::~PhysicsWorld()
         for (i = dynamics_world_->getNumConstraints() - 1; i >= 0; i--) {
             dynamics_world_->removeConstraint(dynamics_world_->getConstraint(i));
         }
-
-        for (i = dynamics_world_->getNumCollisionObjects() - 1; i >= 0; i--) {
-            btCollisionObject* obj = dynamics_world_->getCollisionObjectArray()[i];
-            btRigidBody* body = btRigidBody::upcast(obj);
-            if (body && body->getMotionState()) {
-                delete body->getMotionState();
-            }
-            dynamics_world_->removeCollisionObject(obj);
-            delete obj;
-        }
     }
 }
 
@@ -56,49 +47,66 @@ void PhysicsWorld::stepSimulation(float deltaTime) {
     }
 }
 
-CollisionShape PhysicsWorld::createBoxShape(const Vector3f& halfExtents)  {
-    auto shape = new btBoxShape(eigenVectorToBullet(halfExtents));
-    addCollisionShape(shape);
-    return CollisionShape(shape) ;
-}
-
-CollisionShape PhysicsWorld::createCylinderShape(float radius, float len)  {
-    auto shape = new btCylinderShape(btVector3(radius, len/2.0, radius));
-    addCollisionShape(shape);
-    return CollisionShape(shape) ;
-}
-
-class ContactResult: public btCollisionWorld::ContactResultCallback {
+class ContactResultCallback: public btCollisionWorld::ContactResultCallback {
 public:
+
+    ContactResultCallback(PhysicsWorld &w, std::vector<ContactResult> &contacts): results_(contacts), world_(w) {}
+
     btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0, const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) override {
-        std::cout << "ok" << std::endl ;
+        const btRigidBody *obA =  btRigidBody::upcast(colObj0Wrap->getCollisionObject()) ;
+        const btRigidBody *obB =  btRigidBody::upcast(colObj1Wrap->getCollisionObject()) ;
+
+        int idA = obA->getUserIndex() ;
+        int idB = obB->getUserIndex() ;
+
+        ContactResult result ;
+        result.a_ = world_.findObjectById(idA) ;
+        result.b_ = world_.findObjectById(idB) ;
+        result.pa_ =  toEigenVector(cp.getPositionWorldOnA()) ;
+        result.pb_ = toEigenVector(cp.getPositionWorldOnB()) ;
+        result.normal_ = toEigenVector(cp.m_normalWorldOnB);
+
+        results_.emplace_back(std::move(result)) ;
+
         return 0 ;
     }
+
+    std::vector<ContactResult> &results_ ;
+    PhysicsWorld &world_ ;
+
+
 };
 
-bool PhysicsWorld::contactTest(const RigidBody &b1) {
-     ContactResult result ; ;
-    dynamics_world_->contactTest(b1.handle(), result) ;
+bool PhysicsWorld::contactTest(const RigidBody &b1, std::vector<ContactResult> &results) {
+    ContactResultCallback cb(*this, results) ;
+    dynamics_world_->contactTest(b1.handle(), cb) ;
+
+    for( ContactResult &c: results ) {
+        c.a_ = &b1 ;
+    }
+    return results.size() ;
 }
 
-void PhysicsWorld::deleteRigidBody(btRigidBody* body)
-{
-    dynamics_world_->removeRigidBody(body);
-    btMotionState* ms = body->getMotionState();
-    delete body;
-    delete ms;
-}
 
 void PhysicsWorld::addCollisionShape(const btCollisionShape *shape) {
     collision_shapes_.push_back(shape) ;
 }
 
-void PhysicsWorld::addBody(const RigidBody &body) {
-     dynamics_world_->addRigidBody(body.handle_);
+uint PhysicsWorld::addBody(const RigidBody &body) {
+     dynamics_world_->addRigidBody(body.handle());
+     bodies_.emplace(body_count_, body) ;
+     body.handle()->setUserIndex(body_count_) ;
+     return body_count_++ ;
 }
 
 void PhysicsWorld::addConstraint(const Constraint &c) {
     dynamics_world_->addConstraint(c.handle());
+}
+
+RigidBody *PhysicsWorld::findObjectById(int id)  {
+    auto it = bodies_.find(id) ;
+    if ( it == bodies_.end() ) return nullptr ;
+    else return &(it->second) ;
 }
 
 

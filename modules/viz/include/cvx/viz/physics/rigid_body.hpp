@@ -23,15 +23,26 @@ public :
     // static body
     RigidBody(const CollisionShape &shape, const Eigen::Affine3f &tr) ;
 
-    btRigidBody *handle() const { return handle_ ; }
+    btRigidBody *handle() const { return data_->handle_.get() ; }
+
+    void setName(const std::string &name) { data_->name_ = name ; }
+
+    const std::string &name() const { return data_->name_ ; }
 
 private:
 
     friend class PhysicsWorld ;
 
-    RigidBody(btRigidBody *cs): handle_(cs) {}
+    RigidBody() = default ;
 
-    btRigidBody *handle_ ;
+    struct Data {
+        std::string name_ ;
+        std::unique_ptr<btRigidBody> handle_ ;
+        CollisionShape collision_shape_ ;
+        std::unique_ptr<btMotionState> motion_state_ ;
+    } ;
+
+    std::shared_ptr<Data> data_ ;
 };
 
 } // namespace viz

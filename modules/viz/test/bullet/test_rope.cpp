@@ -19,7 +19,6 @@
 
 #include <iostream>
 
-#include "physics.hpp"
 #include "bullet_gui.hpp"
 
 using namespace Eigen ;
@@ -32,13 +31,19 @@ using namespace cvx::util ;
 class GUI: public TestSimulation {
 public:
     GUI(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics, vector<RigidBody> &objects):
-    TestSimulation(scene, physics), objects_(objects) {
+    TestSimulation(scene, physics), objects_(std::move(objects)) {
 
     }
 
     void onUpdate(float delta) override {
         TestSimulation::onUpdate(delta) ;
-        physics_.contactTest(objects_[0]) ;
+
+        vector<ContactResult> contacts ;
+        if ( physics_.contactTest(objects_[0], contacts ) ) {
+            for( ContactResult &c: contacts ) {
+                cout << c.a_->name() << ' ' << c.b_->name() << endl ;
+            }
+        }
     }
 
 private:
@@ -81,18 +86,22 @@ void createScene() {
 
     Vector3f ground_hs{50., 50., 50.} ;
     scene->addBox(ground_hs, tr.matrix(), {0.5, 0.5, 0.5, 1})->setName("ground") ;
-    physics.addBody(RigidBody(physics.createBoxShape(ground_hs), tr)) ;
+    RigidBody ground(BoxCollisionShape(ground_hs), tr);
+    ground.setName("ground") ;
+    physics.addBody(ground) ;
 
     // create static pole
     Affine3f poleTransform(Translation3f{0.5, 5, 0}) ;
     scene->addCylinder(0.25, 10, poleTransform.matrix(), {0, 1, 0, 1})->setName("pole") ;
-    physics.addBody(RigidBody(physics.createCylinderShape(0.25, 10), poleTransform)) ;
+    RigidBody pole(CylinderCollisionShape(0.25, 10), poleTransform);
+    pole.setName("pole") ;
+    physics.addBody(pole) ;
 
     // create collision shape for chain element
 
     btScalar mass(1.0) ;
 
-    CollisionShape colShape = physics.createCylinderShape(chain_radius, chain_length) ;
+    CylinderCollisionShape colShape(chain_radius, chain_length) ;
 
     int lastBoxIndex = TOTAL_BOXES - 1;
 
@@ -102,24 +111,23 @@ void createScene() {
         Affine3f box_tr(Translation3f{tx, ty, tz}) ;
 
         NodePtr chain_node = scene->addCylinder(chain_radius, chain_length, box_tr.matrix(), sColors[i%4]);
-        chain_node->setName(cvx::util::format("chain {}", i)) ;
+        string name = cvx::util::format("chain {}", i) ;
+        chain_node->setName(name) ;
 
         if ( i== lastBoxIndex ) {
             RigidBody box(colShape, box_tr) ;
+            box.setName(name) ;
             physics.addBody(box) ;
-            boxes.push_back(box) ;
+            boxes.push_back(std::move(box)) ;
         }
         else {
             RigidBody box(mass, new UpdateSceneMotionState(chain_node), colShape) ;
+            box.setName(name) ;
             physics.addBody(box) ;
-            boxes.push_back(box) ;
+            boxes.push_back(std::move(box)) ;
         }
 
     }
-
-
-    btDynamicsWorld *world = physics.getDynamicsWorld() ;
-
     //add N-1 spring constraints
     for (int i = 0; i < TOTAL_BOXES - 1; ++i) {
         Point2PointConstraint c(boxes[i], boxes[i+1], {0.0, 1.5*chain_length/2.0, 0}, {0.0, -1.5*chain_length/2.0, 0}) ;
