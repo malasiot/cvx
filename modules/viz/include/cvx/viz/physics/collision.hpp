@@ -48,12 +48,12 @@ public:
 
 class MeshCollisionShape: public CollisionShape {
 public:
-    MeshCollisionShape(const std::string &mesh, const Eigen::Affine3f &tr) ;
-    MeshCollisionShape(const aiScene *scene, const Eigen::Affine3f &tr) ;
+    MeshCollisionShape(const std::string &mesh, float scale) ;
+    MeshCollisionShape(const aiScene *scene, float scale) ;
 
 private:
 
-    void create(const aiScene *scene, const Eigen::Affine3f &tr) ;
+    void create(const aiScene *scene, float scale) ;
 
     struct MeshData {
         std::vector<uint> tridx_ ;

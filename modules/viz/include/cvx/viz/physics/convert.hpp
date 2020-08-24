@@ -24,7 +24,7 @@ inline Eigen::Affine3f toEigenTransform(const btTransform& transform) {
 
 inline btTransform toBulletTransform(const Eigen::Affine3f& affine) {
   Eigen::Vector3f transEig = affine.translation();
-  Eigen::Matrix3f rotEig = affine.rotation();
+  Eigen::Matrix3f rotEig = affine.linear();
   Eigen::Quaternionf quatEig = Eigen::Quaternionf(rotEig);
   btVector3 transBullet = toBulletVector(transEig);
   btQuaternion quatBullet = btQuaternion(quatEig.x(), quatEig.y(), quatEig.z(), quatEig.w());

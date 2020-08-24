@@ -31,11 +31,11 @@ namespace cvx { namespace viz { namespace impl {
 
 class AssimpImporter {
 public:
-    AssimpImporter(Scene &sc, int options): scene_(sc), options_(options) {}
+    AssimpImporter(Node &sc, int options, float scale): scene_(sc), options_(options), scale_(scale) {}
 
     MaterialInstancePtr importMaterial(const struct aiMaterial *mtl, const string &model_path) ;
 
-    Scene &scene_ ;
+    Node &scene_ ;
 
     map<const aiMesh *, MeshPtr> meshes_ ;
     map<const aiMaterial *, MaterialInstancePtr> materials_ ;
@@ -43,13 +43,14 @@ public:
     map<string, CameraPtr> cameras_ ;
     map<string, NodePtr> node_map_ ;
     int options_ ;
+    float scale_ ;
 
     bool importMaterials(const string &mpath, const aiScene *sc);
     bool importMeshes(const aiScene *sc);
     bool importLights(const aiScene *sc);
     bool importAnimations(const aiScene *sc) ;
     bool importNodes(NodePtr &pnode, const aiScene *sc, const aiNode *nd);
-    bool import(const aiScene *sc, const std::string &fname, const NodePtr &parent);
+    bool import(const aiScene *sc, const std::string &fname);
     bool findSkeletonHierarchies();
 };
 
@@ -164,7 +165,7 @@ bool AssimpImporter::importMeshes(const aiScene *sc) {
             smesh->vertices().data().resize(n) ;
 
             for(int i = 0; i < n; ++i)
-                smesh->vertices().data()[i] = Vector3f(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z) ;
+                smesh->vertices().data()[i] = Vector3f(scale_ * mesh->mVertices[i].x, scale_ * mesh->mVertices[i].y, scale_ * mesh->mVertices[i].z) ;
         }
 
         if ( mesh->HasNormals() ) {
@@ -524,7 +525,7 @@ bool AssimpImporter::findSkeletonHierarchies() {
     return true ;
 }
 
-bool AssimpImporter::import(const aiScene *sc, const std::string &fname, const NodePtr &parent) {
+bool AssimpImporter::import(const aiScene *sc, const std::string &fname) {
 
     if ( !importMeshes(sc) ) return false ;
     if ( !importMaterials(fname, sc) ) return false ;
@@ -533,7 +534,7 @@ bool AssimpImporter::import(const aiScene *sc, const std::string &fname, const N
         if ( !importLights(sc) ) return false ;
     }
 
-    NodePtr root = (parent) ? parent : scene_.shared_from_this() ;
+    NodePtr root = scene_.shared_from_this() ;
     if ( !importNodes(root, sc, sc->mRootNode) ) return false ;
 
     if ( options_ & Scene::IMPORT_ANIMATIONS ) {
@@ -547,7 +548,7 @@ bool AssimpImporter::import(const aiScene *sc, const std::string &fname, const N
 
 }
 
-void Scene::load(const std::string &fname, int options, const NodePtr &parent) {
+void Node::load(const std::string &fname, int options, float scale) {
   //  const aiScene *sc = aiImportFile(fname.c_str(), aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_FlipUVs | aiProcess_TransformUVCoords);
     const aiScene *sc = aiImportFile(fname.c_str(),
     aiProcess_GenNormals
@@ -562,16 +563,16 @@ void Scene::load(const std::string &fname, int options, const NodePtr &parent) {
         throw SceneLoaderException(aiGetErrorString(), fname) ;
     }
 
-    load(sc, fname, options, parent) ;
+    load(sc, fname, options, scale) ;
 
     aiReleaseImport(sc) ;
 }
 
-void Scene::load(const aiScene *sc, const std::string &fname, int options, const NodePtr &parent) {
+void Node::load(const aiScene *sc, const std::string &fname, int options, float scale) {
 
-    impl::AssimpImporter importer(*this, options) ;
+    impl::AssimpImporter importer(*this, options, scale) ;
 
-    bool res = importer.import(sc, fname, parent) ;
+    bool res = importer.import(sc, fname) ;
 
     if ( !res ) {
         aiReleaseImport(sc) ;

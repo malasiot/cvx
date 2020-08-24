@@ -19,7 +19,7 @@ RigidBody::RigidBody(btScalar mass, btMotionState *ms, const CollisionShape::Ptr
 
 // dynamic body with intertia computed by collision shape and mass
 RigidBody::RigidBody(btScalar mass, btMotionState *ms, const CollisionShape::Ptr &shape) {
-    btAssert((!shape.handle_() || shape.handle_()->getShapeType() != INVALID_SHAPE_PROXYTYPE));
+    btAssert((!shape->handle() || shape->handle_()->getShapeType() != INVALID_SHAPE_PROXYTYPE));
 
     data_.reset(new Data()) ;
     data_->collision_shape_ = shape ;

@@ -6,7 +6,7 @@ using namespace std ;
 
 namespace cvx { namespace viz {
 
-MeshCollisionShape::MeshCollisionShape(const std::string &fname, const Eigen::Affine3f &tr)
+MeshCollisionShape::MeshCollisionShape(const std::string &fname, float scale)
 {
     const aiScene *sc = aiImportFile(fname.c_str(),
                                      aiProcess_PreTransformVertices
@@ -19,15 +19,15 @@ MeshCollisionShape::MeshCollisionShape(const std::string &fname, const Eigen::Af
     if ( !sc ) return ;
 
     handle_.reset(new btCompoundShape()) ;
-    create(sc, tr) ;
+    create(sc, scale) ;
 }
 
-MeshCollisionShape::MeshCollisionShape(const aiScene *scene, const Eigen::Affine3f &tr) {
+MeshCollisionShape::MeshCollisionShape(const aiScene *scene, float scale) {
     handle_.reset(new btCompoundShape()) ;
-    create(scene,  tr) ;
+    create(scene,  scale) ;
 }
 
-void MeshCollisionShape::create(const aiScene *scene, const Eigen::Affine3f &tr) {
+void MeshCollisionShape::create(const aiScene *scene, float scale) {
     for(int i=0 ; i<scene->mNumMeshes ; i++) {
         aiMesh *mesh = scene->mMeshes[i] ;
         if ( mesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE ) continue ;
@@ -43,7 +43,7 @@ void MeshCollisionShape::create(const aiScene *scene, const Eigen::Affine3f &tr)
 
         for( int j=0 ; j<mesh->mNumVertices ; j++ ) {
             aiVector3D &v = mesh->mVertices[j] ;
-            cmesh.vtx_.emplace_back(v.x, v.y, v.z) ;
+            cmesh.vtx_.emplace_back(scale * v.x, scale * v.y, scale * v.z) ;
         }
 
         btIndexedMesh bulletMesh;
@@ -67,7 +67,8 @@ void MeshCollisionShape::create(const aiScene *scene, const Eigen::Affine3f &tr)
         //! which allows concavity if the object is static
         cmesh.mesh_shape_.reset(new btBvhTriangleMeshShape(cmesh.indexed_vertex_array_.get(),true));
 
-        btTransform bt = toBulletTransform(tr) ;
+        btTransform bt  ;
+        bt.setIdentity() ;
         static_cast<btCompoundShape *>(handle_.get())->addChildShape(bt, cmesh.mesh_shape_.get()) ;
 
         meshes_.emplace_back(std::move(cmesh)) ;

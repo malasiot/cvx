@@ -11,7 +11,7 @@
 #include <cvx/viz/scene/scene_fwd.hpp>
 #include <cvx/viz/scene/node.hpp>
 #include <cvx/viz/scene/drawable.hpp>
-#include <assimp/scene.h>
+
 
 
 namespace cvx { namespace viz {
@@ -28,11 +28,6 @@ class Scene: public Node {
 public:
 
     Scene() ;
-
-    enum { IMPORT_ANIMATIONS = 0x1, IMPORT_SKELETONS = 0x2, IMPORT_LIGHTS = 0x4, MAKE_PICKABLE = 0x8 } ;
-
-    void load(const std::string &fname, int flags = 0, const NodePtr &parent = nullptr ) ;
-    void load(const aiScene *sc, const std::string &fname, int flags = 0, const NodePtr &parent = nullptr) ;
 
     Eigen::Vector3f geomCenter() const ;
     float geomRadius(const Eigen::Vector3f &center) const ;

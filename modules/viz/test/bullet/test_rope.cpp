@@ -44,6 +44,7 @@ public:
                 cout << c.a_->name() << ' ' << c.b_->name() << endl ;
             }
         }
+
     }
 
 private:
@@ -103,24 +104,19 @@ void createScene() {
     meshTransform.setIdentity() ;
 
 
-    meshTransform.translate(Vector3f{2.5, 0.0, 1.5}) ;
-    meshTransform.scale(0.005) ;
+    meshTransform.translate(Vector3f{2.4, 0.5, 1.5}) ;
 
  //   meshTransform.translate(Vector3f{0.5, 0.5, 0}) ;
 
     NodePtr meshNode(new Node) ;
-    scene->load("/home/malasiot/Downloads/mpm_f14__Noguchi_coffee_table.obj", 0, meshNode) ;
-
+    meshNode->load("/home/malasiot/Downloads/CoffeeTable.obj", 0, 3.5f) ;
     meshNode->matrix() = meshTransform;
 
     scene->addChild(meshNode) ;
 
-    Affine3f scaling ;
-    scaling.setIdentity() ;
-    scaling.scale(0.005) ;
 
-    Affine3f meshTransformUnscaled(Translation3f{2.5, 0.0, 1.5}) ;
-    RigidBody mesh(CollisionShape::Ptr(new MeshCollisionShape("/home/malasiot/Downloads/mpm_f14__Noguchi_coffee_table.obj", scaling)), meshTransformUnscaled);
+    Affine3f meshTransformUnscaled(Translation3f{2.4, 0.5, 1.5}) ;
+    RigidBody mesh(CollisionShape::Ptr(new MeshCollisionShape("/home/malasiot/Downloads/CoffeeTable.obj", 3.5)), meshTransformUnscaled);
     mesh.setName("mesh") ;
     physics.addBody(mesh) ;
 
