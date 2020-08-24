@@ -86,22 +86,50 @@ void createScene() {
 
     Vector3f ground_hs{50., 50., 50.} ;
     scene->addBox(ground_hs, tr.matrix(), {0.5, 0.5, 0.5, 1})->setName("ground") ;
-    RigidBody ground(BoxCollisionShape(ground_hs), tr);
+    RigidBody ground(CollisionShape::Ptr(new BoxCollisionShape(ground_hs)), tr);
     ground.setName("ground") ;
     physics.addBody(ground) ;
 
     // create static pole
-    Affine3f poleTransform(Translation3f{0.5, 5, 0}) ;
-    scene->addCylinder(0.25, 10, poleTransform.matrix(), {0, 1, 0, 1})->setName("pole") ;
-    RigidBody pole(CylinderCollisionShape(0.25, 10), poleTransform);
-    pole.setName("pole") ;
-    physics.addBody(pole) ;
+ //   Affine3f poleTransform(Translation3f{0.5, 5, 0}) ;
+ //   scene->addCylinder(0.25, 10, poleTransform.matrix(), {0, 1, 0, 1})->setName("pole") ;
+ //   RigidBody pole(CylinderCollisionShape(0.25, 10), poleTransform);
+ //   pole.setName("pole") ;
+ //   physics.addBody(pole) ;
+
+    // create static box from mesh
+    Affine3f meshTransform ;
+
+    meshTransform.setIdentity() ;
+
+
+    meshTransform.translate(Vector3f{2.5, 0.0, 1.5}) ;
+    meshTransform.scale(0.005) ;
+
+ //   meshTransform.translate(Vector3f{0.5, 0.5, 0}) ;
+
+    NodePtr meshNode(new Node) ;
+    scene->load("/home/malasiot/Downloads/mpm_f14__Noguchi_coffee_table.obj", 0, meshNode) ;
+
+    meshNode->matrix() = meshTransform;
+
+    scene->addChild(meshNode) ;
+
+    Affine3f scaling ;
+    scaling.setIdentity() ;
+    scaling.scale(0.005) ;
+
+    Affine3f meshTransformUnscaled(Translation3f{2.5, 0.0, 1.5}) ;
+    RigidBody mesh(CollisionShape::Ptr(new MeshCollisionShape("/home/malasiot/Downloads/mpm_f14__Noguchi_coffee_table.obj", scaling)), meshTransformUnscaled);
+    mesh.setName("mesh") ;
+    physics.addBody(mesh) ;
+
 
     // create collision shape for chain element
 
     btScalar mass(1.0) ;
 
-    CylinderCollisionShape colShape(chain_radius, chain_length) ;
+    CollisionShape::Ptr colShape(new CylinderCollisionShape(chain_radius, chain_length)) ;
 
     int lastBoxIndex = TOTAL_BOXES - 1;
 

@@ -15,13 +15,13 @@ namespace cvx { namespace viz {
 class RigidBody {
 public :
     // dynamic body with given inertia
-    RigidBody(btScalar mass, btMotionState *ms, const CollisionShape &shape, const Eigen::Vector3f &localInertia) ;
+    RigidBody(btScalar mass, btMotionState *ms, const CollisionShape::Ptr &shape, const Eigen::Vector3f &localInertia) ;
 
     // dynamic body with intertia computed by collision shape and mass
-    RigidBody(btScalar mass, btMotionState *ms, const CollisionShape &shape) ;
+    RigidBody(btScalar mass, btMotionState *ms, const CollisionShape::Ptr &shape) ;
 
     // static body
-    RigidBody(const CollisionShape &shape, const Eigen::Affine3f &tr) ;
+    RigidBody(const CollisionShape::Ptr &shape, const Eigen::Affine3f &tr) ;
 
     btRigidBody *handle() const { return data_->handle_.get() ; }
 
@@ -38,7 +38,7 @@ private:
     struct Data {
         std::string name_ ;
         std::unique_ptr<btRigidBody> handle_ ;
-        CollisionShape collision_shape_ ;
+        CollisionShape::Ptr collision_shape_ ;
         std::unique_ptr<btMotionState> motion_state_ ;
     } ;
 

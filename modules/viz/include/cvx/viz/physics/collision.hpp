@@ -15,6 +15,7 @@ namespace cvx { namespace viz {
 class CollisionShape {
 
 public:
+    using Ptr = std::shared_ptr<CollisionShape> ;
 
     btCollisionShape *handle() const { return handle_.get() ; }
 
@@ -28,7 +29,7 @@ protected:
 
     friend class RigidBody ;
 
-    std::shared_ptr<btCollisionShape> handle_ ;
+    std::unique_ptr<btCollisionShape> handle_ ;
 };
 
 class BoxCollisionShape: public CollisionShape {
@@ -47,12 +48,21 @@ public:
 
 class MeshCollisionShape: public CollisionShape {
 public:
-    MeshCollisionShape(const std::string &mesh) ;
-    MeshCollisionShape(const aiScene *scene) ;
+    MeshCollisionShape(const std::string &mesh, const Eigen::Affine3f &tr) ;
+    MeshCollisionShape(const aiScene *scene, const Eigen::Affine3f &tr) ;
 
 private:
 
-    void create(const aiScene *scene) ;
+    void create(const aiScene *scene, const Eigen::Affine3f &tr) ;
+
+    struct MeshData {
+        std::vector<uint> tridx_ ;
+        std::vector<Eigen::Vector3f> vtx_ ;
+        std::unique_ptr<btTriangleIndexVertexArray> indexed_vertex_array_ ;
+        std::unique_ptr<btBvhTriangleMeshShape> mesh_shape_ ;
+    } ;
+
+    std::vector<MeshData> meshes_ ;
 };
 
 } // namespace viz
