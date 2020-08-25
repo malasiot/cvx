@@ -2,6 +2,7 @@
 #define CVX_VIZ_PHYSICS_COLLISION_HPP
 
 #include <memory>
+#include <map>
 
 #include <bullet/btBulletCollisionCommon.h>
 #include <Eigen/Geometry>
@@ -27,6 +28,10 @@ public:
         return toEigenVector(inertia) ;
     }
 
+    void setLocalScale(float scale) {
+        handle_->setLocalScaling(btVector3(scale, scale, scale)) ;
+    }
+
 protected:
 
     friend class RigidBody ;
@@ -48,24 +53,49 @@ public:
     }
 };
 
-class MeshCollisionShape: public CollisionShape {
-public:
-    MeshCollisionShape(const std::string &mesh, float scale) ;
-    MeshCollisionShape(const aiScene *scene, float scale) ;
+class TriangleMeshCollisionShape: public CollisionShape {
+protected:
 
-private:
-
-    void create(const aiScene *scene, float scale) ;
+    void importMeshes(const aiScene *scene) ;
 
     struct MeshData {
         std::vector<uint> tridx_ ;
         std::vector<Eigen::Vector3f> vtx_ ;
-        std::unique_ptr<btTriangleIndexVertexArray> indexed_vertex_array_ ;
-       // std::unique_ptr<btBvhTriangleMeshShape> mesh_shape_ ;
-         std::unique_ptr<btGImpactMeshShape> mesh_shape_ ;
     } ;
 
+    virtual void create(const aiScene *scene) ;
+    virtual void create(const std::string &fname) ;
+
+    virtual void import(const aiScene *scene) ;
+
     std::vector<MeshData> meshes_ ;
+    std::unique_ptr<btTriangleIndexVertexArray> indexed_vertex_array_ ;
+
+    virtual btCollisionShape *makeShape(btTriangleIndexVertexArray *va)  = 0 ;
+};
+
+class StaticMeshCollisionShape: public TriangleMeshCollisionShape {
+public:
+    StaticMeshCollisionShape(const std::string &mesh) { create(mesh) ; } ;
+
+    // use aiProcess_PreTransformVertices and  aiProcess_Triangulate to prepare the geometries
+    StaticMeshCollisionShape(const aiScene *scene) { create(scene) ; }
+
+private:
+
+    virtual btCollisionShape *makeShape(btTriangleIndexVertexArray *va) override ;
+
+};
+
+class DynamicMeshCollisionShape: public TriangleMeshCollisionShape {
+public:
+    DynamicMeshCollisionShape(const std::string &mesh) { create(mesh) ; } ;
+    DynamicMeshCollisionShape(const aiScene *scene) { create(scene) ; }
+
+private:
+
+    virtual btCollisionShape *makeShape(btTriangleIndexVertexArray *va) override ;
+
 };
 
 } // namespace viz

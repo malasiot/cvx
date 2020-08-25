@@ -2,16 +2,15 @@
 
 #include <bullet/BulletCollision/Gimpact/btGImpactShape.h>
 
-#include <map>
-
 using namespace std ;
+using namespace Eigen ;
 
 namespace cvx { namespace viz {
 
-MeshCollisionShape::MeshCollisionShape(const std::string &fname, float scale)
+void TriangleMeshCollisionShape::create(const std::string &fname)
 {
     const aiScene *sc = aiImportFile(fname.c_str(),
-                                     aiProcess_PreTransformVertices
+                                       aiProcess_PreTransformVertices
                                      | aiProcess_Triangulate
                                      | aiProcess_JoinIdenticalVertices
                                      | aiProcess_SortByPType
@@ -20,16 +19,22 @@ MeshCollisionShape::MeshCollisionShape(const std::string &fname, float scale)
 
     if ( !sc ) return ;
 
-    handle_.reset(new btCompoundShape()) ;
-    create(sc, scale) ;
+    import(sc) ;
 }
 
-MeshCollisionShape::MeshCollisionShape(const aiScene *scene, float scale) {
-    handle_.reset(new btCompoundShape()) ;
-    create(scene,  scale) ;
+void TriangleMeshCollisionShape::import(const aiScene *scene) {
+    importMeshes(scene) ;
 }
 
-void MeshCollisionShape::create(const aiScene *scene, float scale) {
+void TriangleMeshCollisionShape::create(const aiScene *scene) {
+    import(scene) ;
+}
+
+
+
+void TriangleMeshCollisionShape::importMeshes(const aiScene *scene) {
+    indexed_vertex_array_.reset(new btTriangleIndexVertexArray);
+
     for(int i=0 ; i<scene->mNumMeshes ; i++) {
         aiMesh *mesh = scene->mMeshes[i] ;
         if ( mesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE ) continue ;
@@ -45,7 +50,7 @@ void MeshCollisionShape::create(const aiScene *scene, float scale) {
 
         for( int j=0 ; j<mesh->mNumVertices ; j++ ) {
             aiVector3D &v = mesh->mVertices[j] ;
-            cmesh.vtx_.emplace_back(scale * v.x, scale * v.y, scale * v.z) ;
+            cmesh.vtx_.emplace_back(v.x, v.y, v.z) ;
         }
 
         btIndexedMesh bulletMesh;
@@ -61,21 +66,24 @@ void MeshCollisionShape::create(const aiScene *scene, float scale) {
         bulletMesh.m_vertexStride = sizeof(Eigen::Vector3f);
         bulletMesh.m_indexType = PHY_INTEGER;
         bulletMesh.m_vertexType = PHY_FLOAT;
-        cmesh.indexed_vertex_array_.reset(new btTriangleIndexVertexArray);
-        cmesh.indexed_vertex_array_->addIndexedMesh(bulletMesh, PHY_INTEGER);  // exact shape
 
-        //! Embed 3D mesh into bullet shape
-        //! btBvhTriangleMeshShape is the most generic/slow choice
-        //! which allows concavity if the object is static
-      //  cmesh.mesh_shape_.reset(new btBvhTriangleMeshShape(cmesh.indexed_vertex_array_.get(),true));
-          cmesh.mesh_shape_.reset(new btGImpactMeshShape(cmesh.indexed_vertex_array_.get()));
-          cmesh.mesh_shape_->updateBound();
-
-        btTransform bt  ;
-        bt.setIdentity() ;
-        static_cast<btCompoundShape *>(handle_.get())->addChildShape(bt, cmesh.mesh_shape_.get()) ;
-
+        indexed_vertex_array_->addIndexedMesh(bulletMesh, PHY_INTEGER);  // exact shape
         meshes_.emplace_back(std::move(cmesh)) ;
     }
+
+    handle_.reset(makeShape(indexed_vertex_array_.get())) ;
 }
+
+
+btCollisionShape *StaticMeshCollisionShape::makeShape(btTriangleIndexVertexArray *va) {
+    return new btBvhTriangleMeshShape(va ,true);
+}
+
+// does not work
+btCollisionShape *DynamicMeshCollisionShape::makeShape(btTriangleIndexVertexArray *va) {
+    btGImpactMeshShape *shape = new btGImpactMeshShape(va) ;
+    shape->updateBound();
+    return shape ;
+}
+
 }}

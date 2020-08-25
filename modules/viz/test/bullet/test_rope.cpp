@@ -99,16 +99,17 @@ void createScene() {
  //   physics.addBody(pole) ;
 
     // create static box from mesh
-    Affine3f meshTransform ;
-    meshTransform.setIdentity() ;
-    meshTransform.translate(Vector3f{2.4, 0.5, 1.5}) ;
+    Affine3f meshTransform(Translation3f{2.5, 0.5, 1.5}) ;
 
     NodePtr meshNode(new Node) ;
     meshNode->load("/home/malasiot/Downloads/CoffeeTable.obj", 0, 3.5f) ;
     meshNode->matrix() = meshTransform;
     scene->addChild(meshNode) ;
 
-    RigidBody mesh(1, new UpdateSceneMotionState(meshNode),  CollisionShape::Ptr(new MeshCollisionShape("/home/malasiot/Downloads/CoffeeTable.obj", 3.5)));
+    CollisionShape::Ptr meshColShape(new StaticMeshCollisionShape("/home/malasiot/Downloads/CoffeeTable.obj")) ;
+    meshColShape->setLocalScale(3.5);
+
+    RigidBody mesh(1.0, new UpdateSceneMotionState(meshNode), meshColShape);
     mesh.setName("mesh") ;
     physics.addBody(mesh) ;
 
