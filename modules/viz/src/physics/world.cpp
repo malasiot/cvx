@@ -1,6 +1,7 @@
 #include <cvx/viz/physics/world.hpp>
 #include <cvx/viz/physics/convert.hpp>
 #include <bullet/BulletCollision/CollisionDispatch/btCollisionWorld.h>
+#include <bullet/BulletCollision/Gimpact/btGImpactCollisionAlgorithm.h>
 
 using namespace Eigen ;
 
@@ -10,19 +11,19 @@ PhysicsWorld::PhysicsWorld() {}
 
 void PhysicsWorld::createDefaultDynamicsWorld() {
     collision_config_.reset( new btDefaultCollisionConfiguration() ) ;
-    //m_collisionConfiguration->setConvexConvexMultipointIterations();
 
     ///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
     dispatcher_.reset( new btCollisionDispatcher(collision_config_.get()) ) ;
 
     broadphase_.reset(new btDbvtBroadphase() ) ;
 
-    ///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
     solver_.reset( new btSequentialImpulseConstraintSolver() ) ;
 
     dynamics_world_.reset( new btDiscreteDynamicsWorld(dispatcher_.get(), broadphase_.get(), solver_.get(), collision_config_.get()));
 
     dynamics_world_->setGravity(btVector3(0, -10, 0));
+
+
 }
 
 PhysicsWorld::~PhysicsWorld()

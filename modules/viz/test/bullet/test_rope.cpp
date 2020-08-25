@@ -104,7 +104,7 @@ void createScene() {
     meshTransform.setIdentity() ;
 
 
-    meshTransform.translate(Vector3f{2.4, 0.5, 1.5}) ;
+    meshTransform.translate(Vector3f{2.4, 1.75, 1.5}) ;
 
  //   meshTransform.translate(Vector3f{0.5, 0.5, 0}) ;
 
@@ -114,12 +114,12 @@ void createScene() {
 
     scene->addChild(meshNode) ;
 
+    CollisionShape::Ptr meshColShape(new StaticMeshCollisionShape("/home/malasiot/Downloads/CoffeeTable.obj")) ;
+    meshColShape->setLocalScale(3.5);
 
-    Affine3f meshTransformUnscaled(Translation3f{2.4, 0.5, 1.5}) ;
-    RigidBody mesh(CollisionShape::Ptr(new MeshCollisionShape("/home/malasiot/Downloads/CoffeeTable.obj", 3.5)), meshTransformUnscaled);
+    RigidBody mesh(1.0, new UpdateSceneMotionState(meshNode), meshColShape);
     mesh.setName("mesh") ;
     physics.addBody(mesh) ;
-
 
     // create collision shape for chain element
 
