@@ -9,12 +9,12 @@ namespace cvx { namespace viz {
 
 class Constraint {
 public:
-    btTypedConstraint *handle() const { return handle_ ; }
+    btTypedConstraint *handle() const { return handle_.get() ; }
 protected:
 
-    btTypedConstraint *handle_ ;
-
+    std::shared_ptr<btTypedConstraint> handle_ ;
 };
+
 class Point2PointConstraint: public Constraint {
 
 public:

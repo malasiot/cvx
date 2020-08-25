@@ -100,26 +100,17 @@ void createScene() {
 
     // create static box from mesh
     Affine3f meshTransform ;
-
     meshTransform.setIdentity() ;
-
-
     meshTransform.translate(Vector3f{2.4, 0.5, 1.5}) ;
-
- //   meshTransform.translate(Vector3f{0.5, 0.5, 0}) ;
 
     NodePtr meshNode(new Node) ;
     meshNode->load("/home/malasiot/Downloads/CoffeeTable.obj", 0, 3.5f) ;
     meshNode->matrix() = meshTransform;
-
     scene->addChild(meshNode) ;
 
-
-    Affine3f meshTransformUnscaled(Translation3f{2.4, 0.5, 1.5}) ;
-    RigidBody mesh(CollisionShape::Ptr(new MeshCollisionShape("/home/malasiot/Downloads/CoffeeTable.obj", 3.5)), meshTransformUnscaled);
+    RigidBody mesh(1, new UpdateSceneMotionState(meshNode),  CollisionShape::Ptr(new MeshCollisionShape("/home/malasiot/Downloads/CoffeeTable.obj", 3.5)));
     mesh.setName("mesh") ;
     physics.addBody(mesh) ;
-
 
     // create collision shape for chain element
 

@@ -101,6 +101,7 @@ uint PhysicsWorld::addBody(const RigidBody &body) {
 
 void PhysicsWorld::addConstraint(const Constraint &c) {
     dynamics_world_->addConstraint(c.handle());
+    constraints_.emplace_back(std::move(c)) ;
 }
 
 RigidBody *PhysicsWorld::findObjectById(int id)  {

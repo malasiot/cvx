@@ -54,6 +54,7 @@ private:
 
     uint body_count_ = 0 ;
     std::map<uint, RigidBody> bodies_ ;
+    std::vector<Constraint> constraints_ ;
 };
 
 // MotionState for dynamic objects that updates the transform of the associated node in the scene

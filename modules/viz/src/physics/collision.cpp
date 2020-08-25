@@ -1,5 +1,7 @@
 #include <cvx/viz/physics/collision.hpp>
 
+#include <bullet/BulletCollision/Gimpact/btGImpactShape.h>
+
 #include <map>
 
 using namespace std ;
@@ -65,7 +67,9 @@ void MeshCollisionShape::create(const aiScene *scene, float scale) {
         //! Embed 3D mesh into bullet shape
         //! btBvhTriangleMeshShape is the most generic/slow choice
         //! which allows concavity if the object is static
-        cmesh.mesh_shape_.reset(new btBvhTriangleMeshShape(cmesh.indexed_vertex_array_.get(),true));
+      //  cmesh.mesh_shape_.reset(new btBvhTriangleMeshShape(cmesh.indexed_vertex_array_.get(),true));
+          cmesh.mesh_shape_.reset(new btGImpactMeshShape(cmesh.indexed_vertex_array_.get()));
+          cmesh.mesh_shape_->updateBound();
 
         btTransform bt  ;
         bt.setIdentity() ;

@@ -11,6 +11,8 @@
 #include <assimp/postprocess.h>
 #include <assimp/cimport.h>
 
+#include <bullet/BulletCollision/Gimpact/btGImpactShape.h>
+
 namespace cvx { namespace viz {
 class CollisionShape {
 
@@ -59,7 +61,8 @@ private:
         std::vector<uint> tridx_ ;
         std::vector<Eigen::Vector3f> vtx_ ;
         std::unique_ptr<btTriangleIndexVertexArray> indexed_vertex_array_ ;
-        std::unique_ptr<btBvhTriangleMeshShape> mesh_shape_ ;
+       // std::unique_ptr<btBvhTriangleMeshShape> mesh_shape_ ;
+         std::unique_ptr<btGImpactMeshShape> mesh_shape_ ;
     } ;
 
     std::vector<MeshData> meshes_ ;
