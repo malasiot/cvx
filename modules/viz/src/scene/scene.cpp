@@ -67,14 +67,14 @@ public:
     Vector3f center_ ;
 };
 
-Vector3f Scene::geomCenter() const
+Vector3f Node::geomCenter() const
 {
     GeometryCenterVisitor v ;
     v.visit(*this) ;
     return v.center() ;
 }
 
-float Scene::geomRadius(const Vector3f &center) const
+float Node::geomRadius(const Vector3f &center) const
 {
     GeometryRadiusVisitor v(center) ;
     v.visit(*this) ;

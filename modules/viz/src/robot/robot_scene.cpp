@@ -3,7 +3,7 @@
 #include <cvx/viz/scene/material.hpp>
 #include <cvx/viz/robot/urdf_robot.hpp>
 
-#include "urdf_loader.hpp"
+#include <cvx/viz/robot/urdf_loader.hpp>
 
 using namespace std ;
 using namespace Eigen ;
@@ -23,9 +23,7 @@ static NodePtr createLinkGeometry(const urdf::Geometry *urdf_geom, MaterialInsta
         NodePtr geom(new Node) ;
 
         geom->setName(mesh->path_) ;
-
-        NodePtr scene(new Node) ;
-        scene->load(mesh->path_, 0) ;
+        geom->load(mesh->path_, 0) ;
 
         // replace all materials in loaded model with that provided in urdf
         if ( mat ) {

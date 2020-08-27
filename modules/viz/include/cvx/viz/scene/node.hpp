@@ -44,6 +44,9 @@ public:
     void setName(const std::string &name) { name_ = name ; }
 
 
+    Eigen::Vector3f geomCenter() const ;
+    float geomRadius(const Eigen::Vector3f &center) const ;
+
     enum { IMPORT_ANIMATIONS = 0x1, IMPORT_SKELETONS = 0x2, IMPORT_LIGHTS = 0x4, MAKE_PICKABLE = 0x8 } ;
 
     void load(const std::string &fname, int flags = 0, float scale = 1.f ) ;

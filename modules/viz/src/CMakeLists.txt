@@ -77,7 +77,7 @@ set(LIB_SOURCES
 
     robot/robot_scene.cpp
     robot/urdf_loader.cpp
-    robot/urdf_loader.hpp
+
 
     image/widget.cpp
     image/view.cpp
@@ -100,6 +100,7 @@ set(LIB_SOURCES
     ${LIBRARY_INCLUDE_DIR}/gui/simple_qt_viewer.hpp
    
     ${LIBRARY_INCLUDE_DIR}/robot/robot_scene.hpp
+    ${LIBRARY_INCLUDE_DIR}/robot/urdf_loader.hpp
 
     ${LIBRARY_INCLUDE_DIR}/renderer/renderer.hpp
     ${LIBRARY_INCLUDE_DIR}/renderer/text.hpp
@@ -119,11 +120,14 @@ LIST(APPEND LIB_SOURCES
     physics/rigid_body.cpp
     physics/constraints.cpp
     physics/collision.cpp
+    physics/kinematic.cpp
+
     ${LIBRARY_INCLUDE_DIR}/physics/world.hpp
     ${LIBRARY_INCLUDE_DIR}/physics/rigid_body.hpp
     ${LIBRARY_INCLUDE_DIR}/physics/collision.hpp
     ${LIBRARY_INCLUDE_DIR}/physics/convert.hpp
     ${LIBRARY_INCLUDE_DIR}/physics/constraints.hpp
+    ${LIBRARY_INCLUDE_DIR}/physics/kinematic.hpp
 )
 ENDIF( BULLET_FOUND )
 

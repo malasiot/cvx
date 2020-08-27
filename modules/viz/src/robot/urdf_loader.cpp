@@ -1,10 +1,11 @@
-#include "urdf_loader.hpp"
+#include <cvx/viz/robot/urdf_loader.hpp>
 #include <cvx/viz/scene/drawable.hpp>
 #include <cvx/viz/scene/geometry.hpp>
 #include <cvx/viz/scene/material.hpp>
 #include <cvx/util/misc/strings.hpp>
 #include <cvx/util/misc/path.hpp>
 #include <set>
+
 using namespace std ;
 using namespace pugi ;
 

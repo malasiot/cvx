@@ -29,8 +29,6 @@ public:
 
     Scene() ;
 
-    Eigen::Vector3f geomCenter() const ;
-    float geomRadius(const Eigen::Vector3f &center) const ;
 
 };
 

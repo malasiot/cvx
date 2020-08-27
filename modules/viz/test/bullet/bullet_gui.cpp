@@ -9,7 +9,8 @@ using namespace cvx::viz ;
 TestSimulation::TestSimulation(ScenePtr scene, PhysicsWorld &physics): SimpleQtViewer(), physics_(physics), picker_(physics) {
     setScene(scene) ;
 
-    initCamera({0, 0, 0}, 10.0) ;
+    auto c = scene->geomCenter();
+    initCamera(c, scene->geomRadius(c)) ;
 
     camera_->setBgColor({1, 1, 1, 1}) ;
 
