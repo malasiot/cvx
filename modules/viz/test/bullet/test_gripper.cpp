@@ -72,12 +72,27 @@ private:
 
 void createScene() {
 
+    physics.createDefaultDynamicsWorld();
+
     string package_path = "/home/malasiot/Downloads/robotiq_arg85/" ;
 
-    RobotScenePtr rs = RobotScene::loadURDF(package_path + "robots/robotiq_arg85_description.URDF", { { "robotiq_arg85_description", package_path } }, false) ;
+    Affine3f rot ;
+    rot.setIdentity() ;
+
+    rot.translate(Vector3f(0, 1.0, 0)) ;
+    rot.rotate( AngleAxisf(0.5*M_PI,  Vector3f::UnitX())) ;
+
+    urdf::Robot rb = urdf::Robot::load(package_path + "robots/robotiq_arg85_description.URDF",
+    { { "robotiq_arg85_description", package_path } }, true) ;
+
+    RobotScenePtr rs = RobotScene::fromURDF(rb) ;
 
     joint = std::dynamic_pointer_cast<RevoluteJoint>(rs->getJoint("finger_joint")) ;
 
+    ArticulatedCollisionShape *cs = new ArticulatedCollisionShape(rb) ;
+
+    RigidBody abody(CollisionShape::Ptr(cs), rot) ;
+    physics.addBody(abody) ;
 
     DirectionalLight *dl = new DirectionalLight(Vector3f(0.5, 0.5, 1)) ;
     dl->diffuse_color_ = Vector3f(1, 1, 1) ;
@@ -85,9 +100,11 @@ void createScene() {
 
     scene->addChild(rs) ;
 
+    scene->matrix() = rot ;
+
         // init physics
 
-    physics.createDefaultDynamicsWorld();
+
 
 
 }

@@ -114,6 +114,25 @@ void Loader::parseLink(const xml_node &node, Robot &rb) {
         link.collision_geom_.reset(geom) ;
     }
 
+    if ( xml_node inertial_node = node.child("inertial") ) {
+
+        Inertial inr ;
+        inr.origin_.setIdentity() ;
+        inr.mass_ = 0.0;
+        inr.inertia_.setIdentity() ;
+
+        if ( xml_node origin_node = inertial_node.child("origin") )
+            inr.origin_ = parseOrigin(origin_node) ;
+
+        if ( xml_node mass_node = inertial_node.child("mass") )
+            inr.mass_ = mass_node.attribute("value").as_float() ;
+
+        if ( xml_node inertia_node = inertial_node.child("inertia") )
+            inr.inertia_ = parseInertia(inertia_node) ;
+
+        link.inertial_.reset(new Inertial(std::move(inr)));
+    }
+
     rb.links_.insert(std::make_pair(name, std::move(link))) ;
 }
 
@@ -201,6 +220,23 @@ Isometry3f Loader::parseOrigin(const xml_node &node) {
     }
 
     return tr ;
+}
+
+Matrix3f Loader::parseInertia(const xml_node &node) {
+
+    float ixx = node.attribute("ixx").as_float() ;
+    float ixy = node.attribute("ixy").as_float() ;
+    float ixz = node.attribute("ixz").as_float() ;
+    float iyy = node.attribute("iyy").as_float() ;
+    float iyz = node.attribute("iyz").as_float() ;
+    float izz = node.attribute("izz").as_float() ;
+
+    Matrix3f i ;
+    i << ixx, ixy, ixz,
+         ixy, iyy, iyz,
+         ixz, iyz, izz ;
+
+    return i ;
 }
 
 bool Loader::resolveUri(const std::string &uri, std::string &path) {

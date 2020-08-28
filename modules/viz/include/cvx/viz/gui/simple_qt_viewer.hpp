@@ -78,9 +78,12 @@ protected:
     cvx::viz::TrackBall trackball_ ;
 
     bool draw_axes_ = true ;
+    float aradius_ ;
 
     QElapsedTimer et_ ;
     std::function<void(float)> anim_cb_ = nullptr ;
+
+
 
 };
 

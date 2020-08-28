@@ -49,14 +49,21 @@ struct Material {
     Eigen::Vector4f diffuse_color_ ;
 };
 
+struct Inertial {
+   Eigen::Isometry3f origin_ ;
+   float mass_ ;
+   Eigen::Matrix3f inertia_ ;
+} ;
+
 struct Link {
     std::string name_ ;
+    std::unique_ptr<Inertial> inertial_ ;
     std::unique_ptr<Geometry> visual_geom_, collision_geom_ ;
 };
 
 struct Robot {
 
-    static Robot load(const std::map<std::string, std::string> package_map, bool load_collision_geometry) ;
+    static Robot load(const std::string &fname, const std::map<std::string, std::string> package_map, bool load_collision_geometry) ;
 
     std::string name_ ;
     std::map<std::string, Joint> joints_ ;

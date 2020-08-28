@@ -77,6 +77,7 @@ set(LIB_SOURCES
 
     robot/robot_scene.cpp
     robot/urdf_loader.cpp
+    robot/urdf_robot.cpp
 
 
     image/widget.cpp

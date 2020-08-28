@@ -29,10 +29,12 @@ private:
     Geometry *parseGeometry(const pugi::xml_node &node, const std::string &mat, Eigen::Vector3f &sc) ;
     void parseMaterial(const pugi::xml_node &node, Robot &rb) ;
     bool resolveUri(const std::string &uri, std::string &path);
+    Eigen::Matrix3f parseInertia(const pugi::xml_node &node);
 
     std::map<std::string, std::string> package_map_ ;
 
     bool parse_collision_geometry_ ;
+
 };
 
 } // namespace urdf

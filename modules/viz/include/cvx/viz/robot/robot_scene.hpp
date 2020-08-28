@@ -53,6 +53,8 @@ public:
 
     static RobotScenePtr loadURDF(const std::string &filename, const std::map<std::string, std::string> &packages, bool load_collision_geometry = false) ;
 
+    static RobotScenePtr fromURDF(const urdf::Robot &r) ;
+
     JointNodePtr getJoint(const std::string &name) {
         auto it = joints_.find(name) ;
         if ( it != joints_.end() ) return it->second ;

@@ -98,6 +98,17 @@ private:
 
 };
 
+class GroupCollisionShape: public CollisionShape {
+public:
+    GroupCollisionShape() ;
+
+    void addChild(CollisionShape::Ptr c, const Eigen::Affine3f &tr) ;
+
+private:
+
+    std::vector<CollisionShape::Ptr> children_ ;
+};
+
 } // namespace viz
 } // namespace cvx
 

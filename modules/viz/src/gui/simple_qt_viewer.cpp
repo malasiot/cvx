@@ -15,6 +15,8 @@ SimpleQtViewer::SimpleQtViewer() {
 
 void SimpleQtViewer::initCamera(const Vector3f &c, float r) {
 
+    aradius_ = 10 * r ;
+
    camera_.reset(new PerspectiveCamera(1.0, 50*M_PI/180, 0.0001, 100*r)) ;
    trackball_.setCamera(camera_, c + Vector3f{0.0, 0, 4*r}, c, {0, 1, 0}) ;
    trackball_.setZoomScale(0.1*r) ;
@@ -110,13 +112,13 @@ void SimpleQtViewer::paintGL()
     if ( draw_axes_ ) {
         rdr_.clearZBuffer();
 
-        rdr_.line({0, 0, 0}, {10, 0, 0}, {1, 0, 0, 1}, 3);
-        rdr_.line({0, 0, 0}, {0, 10, 0}, {0, 1, 0, 1}, 3);
-        rdr_.line({0, 0, 0}, {0, 0, 10}, {0, 0, 1, 1}, 3);
+        rdr_.line({0, 0, 0}, {aradius_, 0, 0}, {1, 0, 0, 1}, 3);
+        rdr_.line({0, 0, 0}, {0, aradius_, 0}, {0, 1, 0, 1}, 3);
+        rdr_.line({0, 0, 0}, {0, 0, aradius_}, {0, 0, 1, 1}, 3);
 
-        rdr_.text("X", Vector3f{10, 0, 0}, Font("Arial", 12), Vector3f{1, 0, 0}) ;
-        rdr_.text("Y", Vector3f{0, 10, 0}, Font("Arial", 12), Vector3f{0, 1, 0}) ;
-        rdr_.text("Z", Vector3f{0, 0, 10}, Font("Arial", 12), Vector3f{0, 0, 1}) ;
+        rdr_.text("X", Vector3f{aradius_, 0, 0}, Font("Arial", 12), Vector3f{1, 0, 0}) ;
+        rdr_.text("Y", Vector3f{0, aradius_, 0}, Font("Arial", 12), Vector3f{0, 1, 0}) ;
+        rdr_.text("Z", Vector3f{0, 0, aradius_}, Font("Arial", 12), Vector3f{0, 0, 1}) ;
 
         rdr_.circle({0, 0, 0}, {0, 1, 0}, 5.0, {0, 1, 0, 1}) ;
     }

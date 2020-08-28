@@ -86,4 +86,14 @@ btCollisionShape *DynamicMeshCollisionShape::makeShape(btTriangleIndexVertexArra
     return shape ;
 }
 
+GroupCollisionShape::GroupCollisionShape() {
+    handle_.reset(new btCompoundShape()) ;
+}
+
+void GroupCollisionShape::addChild(CollisionShape::Ptr c, const Affine3f &tr)
+{
+    children_.emplace_back(c) ;
+    static_cast<btCompoundShape *>(handle_.get())->addChildShape(toBulletTransform(tr), c->handle());
+}
+
 }}

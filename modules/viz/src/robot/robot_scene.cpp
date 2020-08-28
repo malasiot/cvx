@@ -17,6 +17,10 @@ RobotScenePtr RobotScene::loadURDF(const string &filename, const map<string, str
     return parseRobotURDF(rb) ;
 }
 
+RobotScenePtr RobotScene::fromURDF(const urdf::Robot &r) {
+     return parseRobotURDF(r) ;
+}
+
 static NodePtr createLinkGeometry(const urdf::Geometry *urdf_geom, MaterialInstancePtr mat, Vector3f &scale) {
 
     if ( const urdf::MeshGeometry *mesh = dynamic_cast<const urdf::MeshGeometry *>(urdf_geom) ) {
