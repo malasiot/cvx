@@ -45,7 +45,7 @@ public:
     }
 
     void onUpdate(float delta) override {
-        TestSimulation::onUpdate(delta) ;
+        TestSimulation::onUpdate(0.01) ;
 
 
 
@@ -70,6 +70,36 @@ private:
     float joint_pos_ ;
 };
 
+void makeRobot(PhysicsWorld &physics, RobotScenePtr scene, const urdf::Robot &robot) {
+
+
+    for( const auto &bp: robot.links_ ) {
+        const string &name = bp.first ;
+        const urdf::Link &link = bp.second ;
+
+        if ( link.collision_geom_ ) {
+
+            urdf::Geometry *geom = link.collision_geom_.get() ;
+
+             CollisionShape::Ptr shape ;
+
+             if ( const urdf::BoxGeometry *g = dynamic_cast<const urdf::BoxGeometry *>(geom) ) {
+                    shape.reset(new BoxCollisionShape(g->he_))  ;
+             } else if ( const urdf::CylinderGeometry *g = dynamic_cast<const urdf::CylinderGeometry *>(geom) ) {
+                    shape.reset(new CylinderCollisionShape(g->radius_, g->height_))  ;
+             } else if ( const urdf::MeshGeometry *g = dynamic_cast<const urdf::MeshGeometry *>(geom) ) {
+                    shape.reset(new StaticMeshCollisionShape(g->path_));
+             }
+
+             NodePtr node = scene->findNodeByName(link.name_);
+
+             RigidBody body(1.0, new UpdateSceneMotionState(node->getChild(0)), shape) ;
+
+             physics.addBody(body) ;
+        }
+    }
+}
+
 void createScene() {
 
     physics.createDefaultDynamicsWorld();
@@ -89,10 +119,7 @@ void createScene() {
 
     joint = std::dynamic_pointer_cast<RevoluteJoint>(rs->getJoint("finger_joint")) ;
 
-    ArticulatedCollisionShape *cs = new ArticulatedCollisionShape(rb) ;
-
-    RigidBody abody(CollisionShape::Ptr(cs), rot) ;
-    physics.addBody(abody) ;
+ //   makeRobot(physics, rs, rb) ;
 
     DirectionalLight *dl = new DirectionalLight(Vector3f(0.5, 0.5, 1)) ;
     dl->diffuse_color_ = Vector3f(1, 1, 1) ;

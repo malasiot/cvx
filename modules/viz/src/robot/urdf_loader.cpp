@@ -36,9 +36,9 @@ Robot Loader::parse(const string &urdf_file) {
 
     parseRobot(root, robot) ;
 
-    return robot ;
+    buildTree(robot) ;
 
-
+    return std::move(robot) ;
 }
 
 void Loader::parseRobot(const xml_node &node, Robot &rb) {
@@ -195,6 +195,48 @@ void Loader::parseJoint(const xml_node &node, Robot &rb) {
 
     rb.joints_.emplace(name, j) ;
 
+}
+
+bool Loader::buildTree(Robot &rb) {
+    map<string, string> parent_link_tree ;
+
+    for( auto &jp: rb.joints_ ) {
+        Joint &j = jp.second ;
+
+        if ( j.child_.empty() || j.parent_.empty() ) return false ;
+
+        Link *child_link = rb.getLink(j.child_) ;
+        Link *parent_link = rb.getLink(j.parent_) ;
+
+        if ( child_link == nullptr || parent_link == nullptr ) return false ;
+
+        child_link->parent_link_ = parent_link ;
+        child_link->parent_joint_ = &j ;
+        parent_link->child_joints_.push_back(&j) ;
+        parent_link->child_links_.push_back(child_link) ;
+        parent_link_tree[child_link->name_] = j.parent_;
+    }
+
+    // find root
+
+    rb.root_ = nullptr ;
+
+    for ( const auto &lp: rb.links_ ) {
+        const string &name = lp.first ;
+        const Link &l = lp.second ;
+        auto it = parent_link_tree.find(name) ;
+        if ( it == parent_link_tree.end() ) { // no parent thus root
+            if ( rb.root_ == nullptr ) {
+                Link *l = rb.getLink(name) ;
+                rb.root_ = l ;
+            }
+            else return false ;
+        }
+    }
+
+    if ( rb.root_ == nullptr ) return false ;
+
+    return true ;
 }
 
 Isometry3f Loader::parseOrigin(const xml_node &node) {

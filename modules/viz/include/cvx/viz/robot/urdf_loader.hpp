@@ -21,7 +21,7 @@ private:
     void parseRobot(const pugi::xml_node &node, Robot &rb) ;
     void parseLink(const pugi::xml_node &node, Robot &rb) ;
     void parseJoint(const pugi::xml_node &node, Robot &rb) ;
-    bool buildTree();
+    bool buildTree(Robot &rb);
 
  //   RobotScenePtr exportScene() ;
 

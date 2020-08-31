@@ -10,6 +10,12 @@ Robot Robot::load(const std::string &filename, const std::map<std::string, std::
     return rb ;
 }
 
+Link *Robot::getLink(const std::string &name)  {
+    auto it = links_.find(name) ;
+    if ( it == links_.end() ) return nullptr ;
+    else return &(it->second) ;
+}
+
 
 }
 }
