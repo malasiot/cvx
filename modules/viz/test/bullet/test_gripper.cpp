@@ -45,7 +45,7 @@ public:
     }
 
     void onUpdate(float delta) override {
-        TestSimulation::onUpdate(0.01) ;
+        TestSimulation::onUpdate(1) ;
 
 
 
@@ -70,8 +70,9 @@ private:
     float joint_pos_ ;
 };
 
-void makeRobot(PhysicsWorld &physics, RobotScenePtr scene, const urdf::Robot &robot) {
+void makeRobot(PhysicsWorld &physics, ScenePtr scene, const urdf::Robot &robot) {
 
+    map<string, RigidBody> bodies ;
 
     for( const auto &bp: robot.links_ ) {
         const string &name = bp.first ;
@@ -93,9 +94,19 @@ void makeRobot(PhysicsWorld &physics, RobotScenePtr scene, const urdf::Robot &ro
 
              NodePtr node = scene->findNodeByName(link.name_);
 
-             RigidBody body(1.0, new UpdateSceneMotionState(node->getChild(0)), shape) ;
+             RigidBody body(1.0, new UpdateSceneMotionState(node), shape) ;
 
              physics.addBody(body) ;
+
+             bodies.emplace(name, body) ;
+        }
+
+        for( const auto &jp: robot.joints_ ) {
+            const string &name = jp.first ;
+            const urdf::Joint &joint = jp.second ;
+
+
+
         }
     }
 }
@@ -119,7 +130,7 @@ void createScene() {
 
     joint = std::dynamic_pointer_cast<RevoluteJoint>(rs->getJoint("finger_joint")) ;
 
- //   makeRobot(physics, rs, rb) ;
+
 
     DirectionalLight *dl = new DirectionalLight(Vector3f(0.5, 0.5, 1)) ;
     dl->diffuse_color_ = Vector3f(1, 1, 1) ;
@@ -127,7 +138,9 @@ void createScene() {
 
     scene->addChild(rs) ;
 
-    scene->matrix() = rot ;
+//    scene->matrix() = rot ;
+
+    makeRobot(physics, scene, rb) ;
 
         // init physics
 

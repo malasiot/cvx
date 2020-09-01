@@ -121,10 +121,10 @@ void UpdateSceneMotionState::getWorldTransform(btTransform &centerOfMassWorldTra
     centerOfMassWorldTrans = world_trans_;
 }
 
-void UpdateSceneMotionState::setWorldTransform(const btTransform &centerOfMassWorldTrans)
-{
+void UpdateSceneMotionState::setWorldTransform(const btTransform &centerOfMassWorldTrans) {
     world_trans_ = centerOfMassWorldTrans;
-    node_->matrix() = toEigenTransform(world_trans_);
+    Node *parent = node_->getParent() ;
+    node_->matrix() = ( parent == nullptr ) ? toEigenTransform(world_trans_).matrix() : parent->globalTransform().matrix().inverse() * toEigenTransform(world_trans_).matrix() ;
 }
 
 bool RayPicker::movePickedBody(const Ray &ray)
