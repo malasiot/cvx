@@ -53,6 +53,14 @@ public:
     }
 };
 
+
+class SphereCollisionShape: public CollisionShape {
+public:
+    SphereCollisionShape(float radius) {
+        handle_.reset(new btSphereShape(radius));
+    }
+};
+
 class TriangleMeshCollisionShape: public CollisionShape {
 protected:
 

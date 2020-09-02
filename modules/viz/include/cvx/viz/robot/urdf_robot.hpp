@@ -13,7 +13,7 @@ namespace urdf {
 struct Joint {
     std::string parent_, child_, type_, mimic_joint_, name_ ;
     Eigen::Vector3f axis_ ;
-    Eigen::Isometry3f origin_ ;
+    Eigen::Isometry3f origin_ = Eigen::Isometry3f::Identity() ;
     float upper_, lower_, mimic_offset_, mimic_multiplier_ ;
 };
 
@@ -22,7 +22,7 @@ struct Material ;
 struct Geometry {
     virtual ~Geometry() {}
     std::string material_ref_ ;
-    Eigen::Isometry3f tr_ ;
+    Eigen::Isometry3f tr_ = Eigen::Isometry3f::Identity() ;
 } ;
 
 struct MeshGeometry: public Geometry {
@@ -51,7 +51,7 @@ struct Material {
 };
 
 struct Inertial {
-   Eigen::Isometry3f origin_ ;
+   Eigen::Isometry3f origin_ = Eigen::Isometry3f::Identity() ;
    float mass_ ;
    Eigen::Matrix3f inertia_ ;
 } ;

@@ -70,9 +70,63 @@ private:
     float joint_pos_ ;
 };
 
+struct BodyData {
+    const urdf::Link *link_ ;
+    CollisionShape::Ptr shape_ ;
+    btVector3 inertia_ ;
+    std::unique_ptr<btMultiBodyLinkCollider> collider_ ;
+};
+
+void buildJoints(int link_idx, Isometry3f &parent_transform_in_world_space, const vector<BodyData> &links, map<string, int> &link_map, PhysicsWorld &physics) {
+    btTransform link_transform_in_world_space;
+    link_transform_in_world_space.setIdentity();
+
+    const urdf::Link *link = links[link_idx].link_ ;
+    int parent_link_idx = -1 ;
+    if ( link->parent_link_ ) {
+        parent_link_idx = link_map[link->parent_link_->name_] ;
+    }
+
+    btRigidBody* parentRigidBody = 0;
+
+        //b3Printf("mb link index = %d\n",mbLinkIndex);
+
+     btTransform parentLocalInertialFrame;
+     parentLocalInertialFrame.setIdentity();
+     btScalar parentMass(1);
+     btVector3 parentLocalInertiaDiagonal(1, 1, 1);
+
+        btScalar mass = 0;
+        btTransform localInertialFrame;
+        localInertialFrame.setIdentity();
+        btVector3 localInertiaDiagonal(0, 0, 0);
+
+        btTransform parent2joint, linkTransform;
+        parent2joint.setIdentity();
+
+        btTransform parentTransform = toBulletTransform(parent_transform_in_world_space) ;
+
+        if ( link->parent_joint_ ) {
+            const urdf::Joint *j  = link->parent_joint_ ;
+            parent2joint = toBulletTransform(j->origin_) ;
+            linkTransform = parentTransform * parent2joint;
+
+
+            btTransform offsetInA, offsetInB;
+            offsetInA = parentLocalInertialFrame.inverse() * parent2joint;
+            offsetInB = localInertialFrame.inverse();
+            btQuaternion parentRotToThis = offsetInB.getRotation() * offsetInA.inverse().getRotation();
+
+        }
+
+
+
+}
+
 void makeRobot(PhysicsWorld &physics, ScenePtr scene, const urdf::Robot &robot) {
 
-    map<string, RigidBody> bodies ;
+    vector<BodyData> links ;
+    map<string, int> link_map ;
 
     for( const auto &bp: robot.links_ ) {
         const string &name = bp.first ;
@@ -80,34 +134,52 @@ void makeRobot(PhysicsWorld &physics, ScenePtr scene, const urdf::Robot &robot) 
 
         if ( link.collision_geom_ ) {
 
+            BodyData data ;
+
             urdf::Geometry *geom = link.collision_geom_.get() ;
 
              CollisionShape::Ptr shape ;
 
              if ( const urdf::BoxGeometry *g = dynamic_cast<const urdf::BoxGeometry *>(geom) ) {
-                    shape.reset(new BoxCollisionShape(g->he_))  ;
+                 shape.reset(new BoxCollisionShape(g->he_))  ;
              } else if ( const urdf::CylinderGeometry *g = dynamic_cast<const urdf::CylinderGeometry *>(geom) ) {
-                    shape.reset(new CylinderCollisionShape(g->radius_, g->height_))  ;
+                 shape.reset(new CylinderCollisionShape(g->radius_, g->height_))  ;
              } else if ( const urdf::MeshGeometry *g = dynamic_cast<const urdf::MeshGeometry *>(geom) ) {
-                    shape.reset(new StaticMeshCollisionShape(g->path_));
+                 shape.reset(new StaticMeshCollisionShape(g->path_));
+             } else if ( const urdf::SphereGeometry *g = dynamic_cast<const urdf::SphereGeometry *>(geom) ) {
+                 shape.reset(new SphereCollisionShape(g->radius_));
              }
 
-             NodePtr node = scene->findNodeByName(link.name_);
-
-             RigidBody body(1.0, new UpdateSceneMotionState(node), shape) ;
-
-             physics.addBody(body) ;
-
-             bodies.emplace(name, body) ;
+             if ( shape ) {
+                 data.shape_ = shape ;
+                 shape->handle()->calculateLocalInertia(1.0, data.inertia_) ;
+                 data.link_ = &link ;
+                 link_map[link.name_] = links.size() ;
+                 links.emplace_back(std::move(data)) ;
+             }
         }
 
-        for( const auto &jp: robot.joints_ ) {
-            const string &name = jp.first ;
-            const urdf::Joint &joint = jp.second ;
+         btMultiBody *body = new btMultiBody(links.size(), 0.0, {0.0, 0.0, 0.0}, true, false) ;
+         body->setBaseWorldTransform(btTransform::getIdentity());
 
 
 
+         for (int i = 0; i < body->getNumLinks(); ++i) {
+            BodyData &link = links[i] ;
+            btMultiBodyLinkCollider* col = new btMultiBodyLinkCollider(body, i);
+            col->setCollisionShape(link.shape_->handle());
+            int collisionFilterGroup = int(btBroadphaseProxy::DefaultFilter) ;
+            int collisionFilterMask = int(btBroadphaseProxy::AllFilter) ;
+            link.collider_.reset(col) ;
+            physics.getDynamicsWorld()->addCollisionObject(col, collisionFilterGroup, collisionFilterMask);  //,2,1+2);
+            body->getLink(i).m_collider = col;
         }
+
+         int root_idx = link_map[robot.root_->name_] ;
+         Eigen::Isometry3f tr = Eigen::Isometry3f::Identity() ;
+
+         buildJoints(root_idx, tr, links, link_map, physics) ;
+
     }
 }
 
@@ -123,12 +195,13 @@ void createScene() {
     rot.translate(Vector3f(0, 1.0, 0)) ;
     rot.rotate( AngleAxisf(0.5*M_PI,  Vector3f::UnitX())) ;
 
-    urdf::Robot rb = urdf::Robot::load(package_path + "robots/robotiq_arg85_description.URDF",
+    string path = "/home/malasiot/local/bullet3/examples/pybullet/gym/pybullet_data/r2d2.urdf" ;
+    urdf::Robot rb = urdf::Robot::load(path, /* "robots/robotiq_arg85_description.URDF",*/
     { { "robotiq_arg85_description", package_path } }, true) ;
 
     RobotScenePtr rs = RobotScene::fromURDF(rb) ;
 
-    joint = std::dynamic_pointer_cast<RevoluteJoint>(rs->getJoint("finger_joint")) ;
+    joint = std::dynamic_pointer_cast<RevoluteJoint>(rs->getJoint("left_gripper_joint")) ;
 
 
 

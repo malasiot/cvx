@@ -34,26 +34,26 @@ Robot Loader::parse(const string &urdf_file) {
 
     robot.name_ = root.attribute("name").as_string() ;
 
-    parseRobot(root, robot) ;
+    parseRobot(root, robot, urdf_file) ;
 
     buildTree(robot) ;
 
-    return std::move(robot) ;
+    return robot ;
 }
 
-void Loader::parseRobot(const xml_node &node, Robot &rb) {
+void Loader::parseRobot(const xml_node &node, Robot &rb, const string &path) {
 
     for( const xml_node &n: node.children("material") )
-        parseMaterial(n, rb) ;
+        parseMaterial(n, rb, path) ;
 
     for( const xml_node &n: node.children("link") )
-        parseLink(n, rb) ;
+        parseLink(n, rb, path) ;
 
     for( const xml_node &n: node.children("joint") )
         parseJoint(n, rb) ;
 }
 
-void Loader::parseLink(const xml_node &node, Robot &rb) {
+void Loader::parseLink(const xml_node &node, Robot &rb, const string &path) {
 
     Link link ;
 
@@ -82,7 +82,7 @@ void Loader::parseLink(const xml_node &node, Robot &rb) {
         Geometry *geom = nullptr ;
 
         if ( xml_node geom_node = visual_node.child("geometry") )
-            geom = parseGeometry(geom_node, matid, scale) ;
+            geom = parseGeometry(geom_node, matid, scale, path) ;
         else
             throw LoadException("<geometry> element is missing from <visual>") ;
 
@@ -104,7 +104,7 @@ void Loader::parseLink(const xml_node &node, Robot &rb) {
         Geometry *geom ;
 
         if ( xml_node geom_node = collision_node.child("geometry") )
-            geom = parseGeometry(geom_node, std::string(), scale) ;
+            geom = parseGeometry(geom_node, std::string(), scale, path) ;
         else
             throw LoadException("<geometry> element is missing from <collision>") ;
 
@@ -281,35 +281,41 @@ Matrix3f Loader::parseInertia(const xml_node &node) {
     return i ;
 }
 
-bool Loader::resolveUri(const std::string &uri, std::string &path) {
+string Loader::resolveUri(const std::string &uri, const std::string &path) {
+
+    string rpath ;
 
     if ( startsWith(uri, "package://") ) {
         size_t pos = uri.find_first_of('/', 10) ;
-        if ( pos == string::npos ) return false ;
+        if ( pos == string::npos ) return rpath ;
         string package_str = uri.substr(10, pos-10) ;
         string package_subpath = uri.substr(pos+1) ;
 
         auto it = package_map_.find(package_str) ;
-        if ( it == package_map_.end() ) return false ;
-        path = Path(it->second, package_subpath).toString() ;
-        return true ;
+        if ( it == package_map_.end() ) return rpath ;
+        rpath = Path(it->second, package_subpath).toString() ;
+    } else {
+        Path rp = Path(path).parentPath() / uri ;
+        if ( rp.exists() ) rpath = rp.toString() ;
     }
 
-    return false;
+    return rpath;
 
 }
 
-Geometry *Loader::parseGeometry(const xml_node &node, const std::string &mat, Vector3f &sc) {
+Geometry *Loader::parseGeometry(const xml_node &node, const std::string &mat, Vector3f &sc, const string &path) {
 
     if ( xml_node mesh_node = node.child("mesh") ) {
 
         MeshGeometry *geom = new MeshGeometry() ;
 
-        string uri = mesh_node.attribute("filename").as_string(), path ;
+        string uri = mesh_node.attribute("filename").as_string() ;
 
-        if ( !resolveUri(uri, path) ) return nullptr ;
+        string rpath = resolveUri(uri, path) ;
 
-        geom->path_ = path ;
+        if ( rpath.empty() ) return nullptr ;
+
+        geom->path_ = rpath ;
 
         string scale = mesh_node.attribute("scale").as_string() ;
 
@@ -348,7 +354,7 @@ Geometry *Loader::parseGeometry(const xml_node &node, const std::string &mat, Ve
     return nullptr ;
 }
 
-void Loader::parseMaterial(const xml_node &node, Robot &rb)
+void Loader::parseMaterial(const xml_node &node, Robot &rb, const string &path)
 {
     string name = node.attribute("name").as_string() ;
     if ( name.empty() ) return ;
@@ -366,12 +372,13 @@ void Loader::parseMaterial(const xml_node &node, Robot &rb)
     }
 
     if ( xml_node texture_node = node.child("texture") ) {
-        string uri = texture_node.attribute("filename").as_string(), path ;
+        string uri = texture_node.attribute("filename").as_string() ;
 
-        if ( resolveUri(uri, path) ) {
+        string rpath = resolveUri(uri, path) ;
+        if ( !rpath.empty() ) {
 
             Material *mat = new Material ;
-            mat->texture_path_ = path ;
+            mat->texture_path_ = rpath ;
 
             rb.materials_.emplace(name, std::shared_ptr<Material>(mat)) ;
             return ;
