@@ -75,6 +75,7 @@ void Loader::parseLink(const xml_node &node, Robot &rb, const string &path) {
 
         if ( xml_node material_node = visual_node.child("material") ) {
             matid = material_node.attribute("name").as_string() ;
+            parseMaterial(material_node, rb, path) ;
         }
 
         Vector3f scale{1, 1, 1} ;
@@ -333,6 +334,8 @@ Geometry *Loader::parseGeometry(const xml_node &node, const std::string &mat, Ve
 
 
         BoxGeometry *geom = new BoxGeometry(hs) ;
+        geom->material_ref_ = mat ;
+
         return geom ;
     } else if ( xml_node cylinder_node = node.child("cylinder") ) {
 
@@ -341,12 +344,16 @@ Geometry *Loader::parseGeometry(const xml_node &node, const std::string &mat, Ve
 
         CylinderGeometry *geom = new CylinderGeometry(radius, length) ;
 
+        geom->material_ref_ = mat ;
+
         return geom ;
     } else if ( xml_node cylinder_node = node.child("sphere") ) {
 
         float radius = cylinder_node.attribute("radius").as_float(0) ;
 
         SphereGeometry *geom = new SphereGeometry(radius) ;
+
+        geom->material_ref_ = mat ;
 
         return geom ;
     }

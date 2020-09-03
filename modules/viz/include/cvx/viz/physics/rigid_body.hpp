@@ -33,8 +33,6 @@ private:
 
     friend class PhysicsWorld ;
 
-    RigidBody() = default ;
-
     struct Data {
         std::string name_ ;
         std::unique_ptr<btRigidBody> handle_ ;

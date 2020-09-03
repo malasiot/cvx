@@ -74,14 +74,27 @@ struct BodyData {
     const urdf::Link *link_ ;
     CollisionShape::Ptr shape_ ;
     btVector3 inertia_ ;
-    std::unique_ptr<btMultiBodyLinkCollider> collider_ ;
+    btTransform local_inertial_frame_ ;
+    float mass_ ;
+    int mb_idx_ ;
+    NodePtr node_ ;
 };
 
-void buildJoints(int link_idx, Isometry3f &parent_transform_in_world_space, const vector<BodyData> &links, map<string, int> &link_map, PhysicsWorld &physics) {
+struct MultiBody {
+    vector<RigidBody> bodies_ ;
+    vector<std::unique_ptr<btGeneric6DofSpring2Constraint>> constraints_ ;
+};
+
+void buildJoints(int link_idx, const btTransform &parent_transform_in_world_space, MultiBody &body, vector<BodyData> &links, map<string, int> &link_map, PhysicsWorld &physics) {
+
     btTransform link_transform_in_world_space;
     link_transform_in_world_space.setIdentity();
 
-    const urdf::Link *link = links[link_idx].link_ ;
+    BodyData &linkData = links[link_idx] ;
+
+    const urdf::Link *link = linkData.link_, *parent_link = nullptr ;
+
+    cout << link->name_ << endl ;
     int parent_link_idx = -1 ;
     if ( link->parent_link_ ) {
         parent_link_idx = link_map[link->parent_link_->name_] ;
@@ -96,32 +109,143 @@ void buildJoints(int link_idx, Isometry3f &parent_transform_in_world_space, cons
      btScalar parentMass(1);
      btVector3 parentLocalInertiaDiagonal(1, 1, 1);
 
-        btScalar mass = 0;
-        btTransform localInertialFrame;
-        localInertialFrame.setIdentity();
-        btVector3 localInertiaDiagonal(0, 0, 0);
-
-        btTransform parent2joint, linkTransform;
-        parent2joint.setIdentity();
-
-        btTransform parentTransform = toBulletTransform(parent_transform_in_world_space) ;
-
-        if ( link->parent_joint_ ) {
-            const urdf::Joint *j  = link->parent_joint_ ;
-            parent2joint = toBulletTransform(j->origin_) ;
-            linkTransform = parentTransform * parent2joint;
+      btScalar mass = linkData.mass_;
+      btTransform localInertialFrame = linkData.local_inertial_frame_;
 
 
-            btTransform offsetInA, offsetInB;
-            offsetInA = parentLocalInertialFrame.inverse() * parent2joint;
-            offsetInB = localInertialFrame.inverse();
-            btQuaternion parentRotToThis = offsetInB.getRotation() * offsetInA.inverse().getRotation();
+      btTransform parent2joint, linkTransform;
+      parent2joint.setIdentity();
 
-        }
+      btTransform parentTransform = parent_transform_in_world_space ;
 
+      if ( link->parent_joint_ ) {
+          const urdf::Joint *j  = link->parent_joint_ ;
+          parent2joint = toBulletTransform(j->origin_) ;
+      }
+
+      linkTransform = parentTransform * parent2joint;
+
+      btTransform inertialFrameInWorldSpace = linkTransform * localInertialFrame;
+
+      body.bodies_.emplace_back(mass, new UpdateSceneMotionState(linkData.node_), linkData.shape_, toEigenVector(linkData.inertia_)) ;
+
+      linkData.mb_idx_ = body.bodies_.size() - 1 ;
+
+      if ( link->parent_joint_ ) {
+
+          BodyData &parentLinkData = links[parent_link_idx] ;
+
+          btTransform offsetInA, offsetInB;
+          offsetInA = parentLinkData.local_inertial_frame_.inverse() * parent2joint;
+          offsetInB = localInertialFrame.inverse();
+          btQuaternion parentRotToThis = offsetInB.getRotation() * offsetInA.inverse().getRotation();
+
+          const urdf::Joint *j  = link->parent_joint_ ;
+          btRigidBody *linkRigidBody = body.bodies_.back().handle() ;
+          btRigidBody *parentRigidBody = body.bodies_[parentLinkData.mb_idx_].handle() ;
+
+          if ( j->type_ == "fixed" ) {
+             btGeneric6DofSpring2Constraint* dof6 =  new btGeneric6DofSpring2Constraint(*linkRigidBody, *parentRigidBody, offsetInB, offsetInA);
+             dof6->setLinearLowerLimit(btVector3(0, 0, 0));
+             dof6->setLinearUpperLimit(btVector3(0, 0, 0));
+
+             dof6->setAngularLowerLimit(btVector3(0, 0, 0));
+             dof6->setAngularUpperLimit(btVector3(0, 0, 0));
+
+             body.constraints_.emplace_back(std::move(std::unique_ptr<btGeneric6DofSpring2Constraint>(dof6)));
+
+          } else if ( j->type_ == "revolute" ) {
+              int principleAxis = toBulletVector(j->axis_).closestAxis();
+
+              btGeneric6DofSpring2Constraint* dof6 = nullptr ;
+
+              switch (principleAxis)
+              {
+                  case 0:
+                  {
+                      dof6 = new btGeneric6DofSpring2Constraint(*linkRigidBody, *parentRigidBody, offsetInB, offsetInA, RO_ZYX) ;
+
+                      dof6->setLinearLowerLimit(btVector3(0, 0, 0));
+                      dof6->setLinearUpperLimit(btVector3(0, 0, 0));
+
+                      dof6->setAngularLowerLimit(btVector3(j->lower_, 0, 0));
+                      dof6->setAngularUpperLimit(btVector3(j->upper_, 0, 0));
+
+                      break;
+                  }
+                  case 1:
+                  {
+                      dof6 = new btGeneric6DofSpring2Constraint(*linkRigidBody, *parentRigidBody, offsetInB, offsetInA, RO_XZY) ;
+
+                      dof6->setLinearLowerLimit(btVector3(0, 0, 0));
+                      dof6->setLinearUpperLimit(btVector3(0, 0, 0));
+
+                      dof6->setAngularLowerLimit(btVector3(0, j->lower_, 0));
+                      dof6->setAngularUpperLimit(btVector3(0, j->upper_, 0));
+                      break;
+                  }
+                  case 2:
+                  default:
+                  {
+                    dof6 = new btGeneric6DofSpring2Constraint(*linkRigidBody, *parentRigidBody, offsetInB, offsetInA, RO_XYZ) ;
+
+                      dof6->setLinearLowerLimit(btVector3(0, 0, 0));
+                      dof6->setLinearUpperLimit(btVector3(0, 0, 0));
+
+                      dof6->setAngularLowerLimit(btVector3(0, 0, j->lower_));
+                      dof6->setAngularUpperLimit(btVector3(0, 0, j->upper_));
+                  }
+              }
+
+             body.constraints_.emplace_back(std::move(std::unique_ptr<btGeneric6DofSpring2Constraint>(dof6)));
+
+          } else if ( j->type_ == "prismatic" ) {
+             int principleAxis = toBulletVector(j->axis_).closestAxis();
+
+             btGeneric6DofSpring2Constraint* dof6 = new btGeneric6DofSpring2Constraint(*linkRigidBody, *parentRigidBody, offsetInB, offsetInA, (RotateOrder)0) ;
+
+             switch (principleAxis)
+             {
+                 case 0:
+                 {
+                     dof6->setLinearLowerLimit(btVector3(j->lower_, 0, 0));
+                     dof6->setLinearUpperLimit(btVector3(j->upper_, 0, 0));
+                     break;
+                 }
+                 case 1:
+                 {
+                     dof6->setLinearLowerLimit(btVector3(0, j->lower_, 0));
+                     dof6->setLinearUpperLimit(btVector3(0, j->upper_, 0));
+                     break;
+                 }
+                 case 2:
+                 default:
+                 {
+                     dof6->setLinearLowerLimit(btVector3(0, 0, j->lower_));
+                     dof6->setLinearUpperLimit(btVector3(0, 0, j->upper_));
+                 }
+             };
+
+             dof6->setAngularLowerLimit(btVector3(0, 0, 0));
+             dof6->setAngularUpperLimit(btVector3(0, 0, 0));
+
+             body.constraints_.emplace_back(std::move(std::unique_ptr<btGeneric6DofSpring2Constraint>(dof6)));
+          }
+      }
+
+      for( const urdf::Link *c: link->child_links_ ) {
+          int child_link_idx = link_map[c->name_] ;
+
+          buildJoints(child_link_idx, linkTransform, body, links, link_map, physics  ) ;
+
+
+      }
 
 
 }
+
+
+MultiBody body ;
 
 void makeRobot(PhysicsWorld &physics, ScenePtr scene, const urdf::Robot &robot) {
 
@@ -152,34 +276,43 @@ void makeRobot(PhysicsWorld &physics, ScenePtr scene, const urdf::Robot &robot) 
 
              if ( shape ) {
                  data.shape_ = shape ;
-                 shape->handle()->calculateLocalInertia(1.0, data.inertia_) ;
+
+
+                 float mass = 0.0 ;
+                 Isometry3f local_inertial_frame = Isometry3f::Identity() ;
+
+                 if ( link.inertial_ ) {
+                     mass = link.inertial_->mass_ ;
+                     local_inertial_frame = link.inertial_->origin_ ;
+                 }
+
+                 data.mass_ = mass ;
+                 data.local_inertial_frame_ = toBulletTransform(local_inertial_frame) ;
+
                  data.link_ = &link ;
+
+                 data.node_ = scene->findNodeByName(link.name_) ;
+
                  link_map[link.name_] = links.size() ;
                  links.emplace_back(std::move(data)) ;
+
              }
         }
+    }
 
-         btMultiBody *body = new btMultiBody(links.size(), 0.0, {0.0, 0.0, 0.0}, true, false) ;
-         body->setBaseWorldTransform(btTransform::getIdentity());
+    int root_idx = link_map[robot.root_->name_] ;
+    btTransform tr ;
+    tr.setIdentity() ;
 
 
+    buildJoints(root_idx, tr, body, links, link_map, physics) ;
 
-         for (int i = 0; i < body->getNumLinks(); ++i) {
-            BodyData &link = links[i] ;
-            btMultiBodyLinkCollider* col = new btMultiBodyLinkCollider(body, i);
-            col->setCollisionShape(link.shape_->handle());
-            int collisionFilterGroup = int(btBroadphaseProxy::DefaultFilter) ;
-            int collisionFilterMask = int(btBroadphaseProxy::AllFilter) ;
-            link.collider_.reset(col) ;
-            physics.getDynamicsWorld()->addCollisionObject(col, collisionFilterGroup, collisionFilterMask);  //,2,1+2);
-            body->getLink(i).m_collider = col;
-        }
+    for( RigidBody &b: body.bodies_ ) {
+        physics.addBody(b) ;
+    }
 
-         int root_idx = link_map[robot.root_->name_] ;
-         Eigen::Isometry3f tr = Eigen::Isometry3f::Identity() ;
-
-         buildJoints(root_idx, tr, links, link_map, physics) ;
-
+    for ( const auto &c: body.constraints_ ) {
+        physics.getDynamicsWorld()->addConstraint(c.get(), true) ;
     }
 }
 
@@ -215,7 +348,7 @@ void createScene() {
 
     makeRobot(physics, scene, rb) ;
 
-        // init physics
+
 
 
 
