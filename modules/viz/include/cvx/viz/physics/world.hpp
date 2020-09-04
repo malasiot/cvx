@@ -62,13 +62,14 @@ class UpdateSceneMotionState: public btMotionState {
     public:
 
     UpdateSceneMotionState (const cvx::viz::NodePtr &node);
+    UpdateSceneMotionState (const cvx::viz::NodePtr &node, const btTransform &local);
 
     virtual void getWorldTransform( btTransform& centerOfMassWorldTrans ) const override;
     virtual void setWorldTransform( const btTransform& centerOfMassWorldTrans ) override;
 
 private:
 
-    btTransform	world_trans_;
+    btTransform	world_trans_, local_frame_;
     cvx::viz::NodePtr node_ ;
 };
 

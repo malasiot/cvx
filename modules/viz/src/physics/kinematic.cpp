@@ -20,7 +20,7 @@ void ArticulatedCollisionShape::create(const urdf::Robot &robot) {
             if ( cs ) {
                 addChild(cs, Affine3f::Identity()) ;
                 cl.col_shape_index_ = count++ ;
-                cl.origin_ = link.collision_geom_->tr_ ;
+                cl.origin_ = link.collision_geom_->origin_ ;
                 links_.emplace(name, cl) ;
             }
         }
@@ -64,7 +64,7 @@ void ArticulatedCollisionShape::create(const urdf::Robot &robot) {
 }
 
 CollisionShape::Ptr ArticulatedCollisionShape::makeCollisionShape(const urdf::Geometry *geom) {
-    float scale = geom->tr_.linear()(0, 0) ;
+    float scale = 1.0 ;
     CollisionShape::Ptr shape ;
 
     if ( const urdf::BoxGeometry *g = dynamic_cast<const urdf::BoxGeometry *>(geom) ) {

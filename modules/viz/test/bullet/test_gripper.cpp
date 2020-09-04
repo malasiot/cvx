@@ -45,7 +45,7 @@ public:
     }
 
     void onUpdate(float delta) override {
-        TestSimulation::onUpdate(1) ;
+        TestSimulation::onUpdate(delta) ;
 
 
 
@@ -80,9 +80,21 @@ struct BodyData {
     NodePtr node_ ;
 };
 
+struct Motor {
+    float velocity_ = 0.0 ;
+    bool enabled_ = true ;
+    int axis_ = -1 ;
+    btGeneric6DofSpring2Constraint *constraint_ = nullptr ;
+
+    void setTargetVelocity(float value) {
+        constraint_->setTargetVelocity(axis_, value) ;
+    }
+};
+
 struct MultiBody {
     vector<RigidBody> bodies_ ;
     vector<std::unique_ptr<btGeneric6DofSpring2Constraint>> constraints_ ;
+    map<std::string, Motor> motors_ ;
 };
 
 void buildJoints(int link_idx, const btTransform &parent_transform_in_world_space, MultiBody &body, vector<BodyData> &links, map<string, int> &link_map, PhysicsWorld &physics) {
@@ -106,7 +118,7 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
 
      btTransform parentLocalInertialFrame;
      parentLocalInertialFrame.setIdentity();
-     btScalar parentMass(1);
+
      btVector3 parentLocalInertiaDiagonal(1, 1, 1);
 
       btScalar mass = linkData.mass_;
@@ -127,21 +139,26 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
 
       btTransform inertialFrameInWorldSpace = linkTransform * localInertialFrame;
 
-      body.bodies_.emplace_back(mass, new UpdateSceneMotionState(linkData.node_), linkData.shape_, toEigenVector(linkData.inertia_)) ;
+      body.bodies_.emplace_back(mass, new UpdateSceneMotionState(linkData.node_), linkData.shape_) ;
 
+      btRigidBody *linkRigidBody = body.bodies_.back().handle() ;
       linkData.mb_idx_ = body.bodies_.size() - 1 ;
+
+      linkRigidBody->setActivationState(DISABLE_DEACTIVATION) ;
 
       if ( link->parent_joint_ ) {
 
           BodyData &parentLinkData = links[parent_link_idx] ;
 
           btTransform offsetInA, offsetInB;
-          offsetInA = parentLinkData.local_inertial_frame_.inverse() * parent2joint;
-          offsetInB = localInertialFrame.inverse();
-          btQuaternion parentRotToThis = offsetInB.getRotation() * offsetInA.inverse().getRotation();
+         // offsetInA = parentLinkData.local_inertial_frame_.inverse() * parent2joint;
+          offsetInA = parent2joint;
+         // offsetInB = localInertialFrame.inverse();
+          offsetInB.setIdentity() ;
+        //  btQuaternion parentRotToThis = offsetInB.getRotation() * offsetInA.inverse().getRotation();
 
           const urdf::Joint *j  = link->parent_joint_ ;
-          btRigidBody *linkRigidBody = body.bodies_.back().handle() ;
+
           btRigidBody *parentRigidBody = body.bodies_[parentLinkData.mb_idx_].handle() ;
 
           if ( j->type_ == "fixed" ) {
@@ -152,10 +169,14 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
              dof6->setAngularLowerLimit(btVector3(0, 0, 0));
              dof6->setAngularUpperLimit(btVector3(0, 0, 0));
 
-             body.constraints_.emplace_back(std::move(std::unique_ptr<btGeneric6DofSpring2Constraint>(dof6)));
+             body.constraints_.emplace_back(std::unique_ptr<btGeneric6DofSpring2Constraint>(dof6));
 
-          } else if ( j->type_ == "revolute" ) {
+          } else if ( j->type_ == "revolute" || j->type_ == "continuous" ) {
               int principleAxis = toBulletVector(j->axis_).closestAxis();
+              float lower = j->lower_, upper = j->upper_ ;
+              if ( j->type_ == "continuous" ) {
+                  lower = -1 ; upper = 1 ;
+              }
 
               btGeneric6DofSpring2Constraint* dof6 = nullptr ;
 
@@ -168,8 +189,8 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
                       dof6->setLinearLowerLimit(btVector3(0, 0, 0));
                       dof6->setLinearUpperLimit(btVector3(0, 0, 0));
 
-                      dof6->setAngularLowerLimit(btVector3(j->lower_, 0, 0));
-                      dof6->setAngularUpperLimit(btVector3(j->upper_, 0, 0));
+                      dof6->setAngularLowerLimit(btVector3(lower, 0, 0));
+                      dof6->setAngularUpperLimit(btVector3(upper, 0, 0));
 
                       break;
                   }
@@ -180,8 +201,8 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
                       dof6->setLinearLowerLimit(btVector3(0, 0, 0));
                       dof6->setLinearUpperLimit(btVector3(0, 0, 0));
 
-                      dof6->setAngularLowerLimit(btVector3(0, j->lower_, 0));
-                      dof6->setAngularUpperLimit(btVector3(0, j->upper_, 0));
+                      dof6->setAngularLowerLimit(btVector3(0, lower, 0));
+                      dof6->setAngularUpperLimit(btVector3(0, upper, 0));
                       break;
                   }
                   case 2:
@@ -192,12 +213,20 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
                       dof6->setLinearLowerLimit(btVector3(0, 0, 0));
                       dof6->setLinearUpperLimit(btVector3(0, 0, 0));
 
-                      dof6->setAngularLowerLimit(btVector3(0, 0, j->lower_));
-                      dof6->setAngularUpperLimit(btVector3(0, 0, j->upper_));
+                      dof6->setAngularLowerLimit(btVector3(0, 0, lower));
+                      dof6->setAngularUpperLimit(btVector3(0, 0, upper));
                   }
               }
 
-             body.constraints_.emplace_back(std::move(std::unique_ptr<btGeneric6DofSpring2Constraint>(dof6)));
+             body.constraints_.emplace_back(std::unique_ptr<btGeneric6DofSpring2Constraint>(dof6));
+
+             Motor motor ;
+
+
+             motor.constraint_ = dof6 ;
+             motor.axis_ = principleAxis ;
+
+             body.motors_.emplace(j->name_, motor) ;
 
           } else if ( j->type_ == "prismatic" ) {
              int principleAxis = toBulletVector(j->axis_).closestAxis();
@@ -229,7 +258,15 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
              dof6->setAngularLowerLimit(btVector3(0, 0, 0));
              dof6->setAngularUpperLimit(btVector3(0, 0, 0));
 
-             body.constraints_.emplace_back(std::move(std::unique_ptr<btGeneric6DofSpring2Constraint>(dof6)));
+             body.constraints_.emplace_back(std::unique_ptr<btGeneric6DofSpring2Constraint>(dof6));
+
+
+             Motor motor ;
+
+             motor.axis_ = principleAxis ;
+             motor.constraint_ = dof6 ;
+
+             body.motors_.emplace(j->name_, motor) ;
           }
       }
 
@@ -261,6 +298,7 @@ void makeRobot(PhysicsWorld &physics, ScenePtr scene, const urdf::Robot &robot) 
             BodyData data ;
 
             urdf::Geometry *geom = link.collision_geom_.get() ;
+            const Isometry3f &col_origin = geom->origin_ ;
 
              CollisionShape::Ptr shape ;
 
@@ -274,27 +312,24 @@ void makeRobot(PhysicsWorld &physics, ScenePtr scene, const urdf::Robot &robot) 
                  shape.reset(new SphereCollisionShape(g->radius_));
              }
 
+             float mass = 0.0 ;
+             Isometry3f local_inertial_frame = Isometry3f::Identity() ;
+
+             if ( link.inertial_ ) {
+                 mass = link.inertial_->mass_ ;
+                 local_inertial_frame = link.inertial_->origin_ ;
+             }
+
              if ( shape ) {
-                 data.shape_ = shape ;
-
-
-                 float mass = 0.0 ;
-                 Isometry3f local_inertial_frame = Isometry3f::Identity() ;
-
-                 if ( link.inertial_ ) {
-                     mass = link.inertial_->mass_ ;
-                     local_inertial_frame = link.inertial_->origin_ ;
-                 }
-
-                 data.mass_ = mass ;
-                 data.local_inertial_frame_ = toBulletTransform(local_inertial_frame) ;
-
-                 data.link_ = &link ;
-
-                 data.node_ = scene->findNodeByName(link.name_) ;
-
-                 link_map[link.name_] = links.size() ;
-                 links.emplace_back(std::move(data)) ;
+                GroupCollisionShape *proxy = new GroupCollisionShape() ;
+                proxy->addChild(shape,  col_origin) ;
+                data.shape_.reset(proxy) ;
+                data.mass_ = mass ;
+                data.local_inertial_frame_ = toBulletTransform(local_inertial_frame) ;
+                data.link_ = &link ;
+                data.node_ = scene->findNodeByName(link.name_) ;
+                link_map[link.name_] = links.size() ;
+                links.emplace_back(std::move(data)) ;
 
              }
         }
@@ -314,11 +349,25 @@ void makeRobot(PhysicsWorld &physics, ScenePtr scene, const urdf::Robot &robot) 
     for ( const auto &c: body.constraints_ ) {
         physics.getDynamicsWorld()->addConstraint(c.get(), true) ;
     }
+
+    for( const auto &rp: body.motors_ ) {
+        const Motor &motor = rp.second ;
+     //   motor.constraint_->enableMotor(motor.axis_, true);
+     //   motor.constraint_->setMaxMotorForce(motor.axis_, 10000);
+    //    motor.constraint_->setTargetVelocity(motor.axis_, 0);
+    }
 }
 
 void createScene() {
 
     physics.createDefaultDynamicsWorld();
+
+    Affine3f tr(Translation3f{0, -3.5, 0}) ;
+
+    Vector3f ground_hs{10.5f, 1.5f, 10.5f} ;
+    scene->addBox(ground_hs, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
+    physics.addBody(RigidBody(CollisionShape::Ptr(new BoxCollisionShape(ground_hs)), tr)) ;
+
 
     string package_path = "/home/malasiot/Downloads/robotiq_arg85/" ;
 
@@ -347,6 +396,8 @@ void createScene() {
 //    scene->matrix() = rot ;
 
     makeRobot(physics, scene, rb) ;
+
+ //   body.motors_["head_swivel"].setTargetVelocity(5.2) ;
 
 
 

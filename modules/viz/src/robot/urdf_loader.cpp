@@ -88,7 +88,7 @@ void Loader::parseLink(const xml_node &node, Robot &rb, const string &path) {
             throw LoadException("<geometry> element is missing from <visual>") ;
 
         tr.linear() *= scale.asDiagonal() ;
-        geom->tr_ = tr ;
+        geom->origin_ = tr ;
 
         link.visual_geom_.reset(geom) ;
     }
@@ -110,7 +110,7 @@ void Loader::parseLink(const xml_node &node, Robot &rb, const string &path) {
             throw LoadException("<geometry> element is missing from <collision>") ;
 
         tr.linear() *= scale.asDiagonal() ;
-        geom->tr_ = tr ;
+        geom->origin_ = tr ;
 
         link.collision_geom_.reset(geom) ;
     }
@@ -185,7 +185,8 @@ void Loader::parseJoint(const xml_node &node, Robot &rb) {
     if ( xml_node limits_node = node.child("limit") ) {
         j.lower_ = limits_node.attribute("lower").as_float(0) ;
         j.upper_ = limits_node.attribute("upper").as_float(0) ;
-
+        j.effort_ = limits_node.attribute("effort").as_float(0) ;
+        j.velocity_ = limits_node.attribute("velocity").as_float(0) ;
     }
 
     if ( xml_node mimic_node = node.child("mimic") ) {

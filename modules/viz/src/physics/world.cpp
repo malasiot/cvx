@@ -115,10 +115,16 @@ RigidBody *PhysicsWorld::findObjectById(int id)  {
 UpdateSceneMotionState::UpdateSceneMotionState(const NodePtr &node): node_(node) {
     Affine3f world = node->globalTransform() ;
     world_trans_ = toBulletTransform(world) ;
+    local_frame_.setIdentity() ;
+}
+
+UpdateSceneMotionState::UpdateSceneMotionState(const NodePtr &node, const btTransform &local): node_(node), local_frame_(local) {
+    Affine3f world = node->globalTransform() ;
+    world_trans_ = toBulletTransform(world) ;
 }
 
 void UpdateSceneMotionState::getWorldTransform(btTransform &centerOfMassWorldTrans) const {
-    centerOfMassWorldTrans = world_trans_;
+    centerOfMassWorldTrans = world_trans_ ;
 }
 
 void UpdateSceneMotionState::setWorldTransform(const btTransform &centerOfMassWorldTrans) {

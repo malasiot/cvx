@@ -137,7 +137,7 @@ RobotScenePtr RobotScene::parseRobotURDF(const urdf::Robot &rb)
             NodePtr geom_node = createLinkGeometry(geom, mat, scale) ;
 
             Isometry3f tr ;
-            tr = link.visual_geom_->tr_ ;
+            tr = link.visual_geom_->origin_ ;
         //    tr.linear() *= scale.asDiagonal() ;
             geom_node->matrix() = tr ;
 
