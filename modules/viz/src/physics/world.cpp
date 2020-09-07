@@ -2,6 +2,11 @@
 #include <cvx/viz/physics/convert.hpp>
 #include <bullet/BulletCollision/CollisionDispatch/btCollisionWorld.h>
 #include <bullet/BulletCollision/Gimpact/btGImpactCollisionAlgorithm.h>
+#include <bullet/BulletDynamics/ConstraintSolver/btNNCGConstraintSolver.h>
+#include <bullet/BulletDynamics/MLCPSolvers/btMLCPSolver.h>
+#include <bullet/BulletDynamics/MLCPSolvers/btSolveProjectedGaussSeidel.h>
+#include <bullet/BulletDynamics/MLCPSolvers/btLemkeSolver.h>
+#include <bullet/BulletDynamics/MLCPSolvers/btDantzigSolver.h>
 
 using namespace Eigen ;
 
@@ -15,11 +20,22 @@ void PhysicsWorld::createDefaultDynamicsWorld() {
     ///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
     dispatcher_.reset( new btCollisionDispatcher(collision_config_.get()) ) ;
 
-    broadphase_.reset(new btDbvtBroadphase() ) ;
+  //  broadphase_.reset(new btDbvtBroadphase() ) ;
 
-    solver_.reset( new btSequentialImpulseConstraintSolver() ) ;
+    btVector3 worldAabbMin(-10000, -10000, -10000);
+        btVector3 worldAabbMax(10000, 10000, 10000);
+         broadphase_.reset(new btAxisSweep3(worldAabbMin, worldAabbMax));
+
+
+   // solver_.reset(new btNNCGConstraintSolver());
+        //solver_.reset(new btMLCPSolver(new btSolveProjectedGaussSeidel()));
+        solver_.reset(new btMLCPSolver(new btDantzigSolver()));
+        //m_solver = new btMLCPSolver(new btLemkeSolver());
+
+  // solver_.reset( new btSequentialImpulseConstraintSolver() ) ;
 
     dynamics_world_.reset( new btDiscreteDynamicsWorld(dispatcher_.get(), broadphase_.get(), solver_.get(), collision_config_.get()));
+    dynamics_world_->getDispatchInfo().m_useContinuous = true;
 
     dynamics_world_->setGravity(btVector3(0, -10, 0));
 
@@ -44,7 +60,7 @@ btDynamicsWorld *PhysicsWorld::getDynamicsWorld() {
 
 void PhysicsWorld::stepSimulation(float deltaTime) {
     if ( dynamics_world_ ) {
-        dynamics_world_->stepSimulation(deltaTime);
+        dynamics_world_->stepSimulation(deltaTime, 10, 1. / 240.);
     }
 }
 

@@ -48,8 +48,18 @@ public:
 
 class CylinderCollisionShape: public CollisionShape {
 public:
-    CylinderCollisionShape(float radius, float len) {
-        handle_.reset(new btCylinderShape(btVector3(radius, len/2.0, radius)));
+    enum Axis { XAxis, YAxis, ZAxis } ;
+    CylinderCollisionShape(float radius, float len, Axis a = YAxis ) {
+        switch ( a ) {
+        case XAxis:
+            handle_.reset(new btCylinderShapeX(btVector3(radius, len/2.0, radius)));
+            break ;
+        case ZAxis:
+            handle_.reset(new btCylinderShapeZ(btVector3(radius, len/2.0, radius)));
+            break ;
+        default:
+            handle_.reset(new btCylinderShape(btVector3(radius, len/2.0, radius)));
+        }
     }
 };
 

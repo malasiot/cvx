@@ -35,6 +35,25 @@ std::shared_ptr<RevoluteJoint> joint ;
 RNG g_rng ;
 
 
+struct Motor {
+    float velocity_ = 0.0 ;
+    bool enabled_ = true ;
+    int axis_ = -1 ;
+    btGeneric6DofSpring2Constraint *constraint_ = nullptr ;
+
+    void setTargetVelocity(float value) {
+        constraint_->setTargetVelocity(axis_, value) ;
+    }
+};
+
+struct MultiBody {
+    vector<RigidBody> bodies_ ;
+    vector<std::unique_ptr<btGeneric6DofSpring2Constraint>> constraints_ ;
+    map<std::string, Motor> motors_ ;
+};
+
+MultiBody body ;
+
 class GUI: public TestSimulation {
 public:
     GUI(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics,
@@ -45,8 +64,9 @@ public:
     }
 
     void onUpdate(float delta) override {
-        TestSimulation::onUpdate(delta) ;
 
+        body.motors_["finger_joint"].setTargetVelocity(0.2) ;
+         TestSimulation::onUpdate(1) ;
 
 
     }
@@ -80,22 +100,6 @@ struct BodyData {
     NodePtr node_ ;
 };
 
-struct Motor {
-    float velocity_ = 0.0 ;
-    bool enabled_ = true ;
-    int axis_ = -1 ;
-    btGeneric6DofSpring2Constraint *constraint_ = nullptr ;
-
-    void setTargetVelocity(float value) {
-        constraint_->setTargetVelocity(axis_, value) ;
-    }
-};
-
-struct MultiBody {
-    vector<RigidBody> bodies_ ;
-    vector<std::unique_ptr<btGeneric6DofSpring2Constraint>> constraints_ ;
-    map<std::string, Motor> motors_ ;
-};
 
 void buildJoints(int link_idx, const btTransform &parent_transform_in_world_space, MultiBody &body, vector<BodyData> &links, map<string, int> &link_map, PhysicsWorld &physics) {
 
@@ -151,9 +155,9 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
           BodyData &parentLinkData = links[parent_link_idx] ;
 
           btTransform offsetInA, offsetInB;
-         // offsetInA = parentLinkData.local_inertial_frame_.inverse() * parent2joint;
+     //     offsetInA = parentLinkData.local_inertial_frame_.inverse() * parent2joint;
           offsetInA = parent2joint;
-         // offsetInB = localInertialFrame.inverse();
+        //  offsetInB = localInertialFrame.inverse();
           offsetInB.setIdentity() ;
         //  btQuaternion parentRotToThis = offsetInB.getRotation() * offsetInA.inverse().getRotation();
 
@@ -163,6 +167,8 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
 
           if ( j->type_ == "fixed" ) {
              btGeneric6DofSpring2Constraint* dof6 =  new btGeneric6DofSpring2Constraint(*linkRigidBody, *parentRigidBody, offsetInB, offsetInA);
+
+
              dof6->setLinearLowerLimit(btVector3(0, 0, 0));
              dof6->setLinearUpperLimit(btVector3(0, 0, 0));
 
@@ -232,6 +238,7 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
              int principleAxis = toBulletVector(j->axis_).closestAxis();
 
              btGeneric6DofSpring2Constraint* dof6 = new btGeneric6DofSpring2Constraint(*linkRigidBody, *parentRigidBody, offsetInB, offsetInA, (RotateOrder)0) ;
+             dof6->setDamping(0, 0);
 
              switch (principleAxis)
              {
@@ -258,6 +265,7 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
              dof6->setAngularLowerLimit(btVector3(0, 0, 0));
              dof6->setAngularUpperLimit(btVector3(0, 0, 0));
 
+             dof6->setStiffness(principleAxis, 1000, true);
              body.constraints_.emplace_back(std::unique_ptr<btGeneric6DofSpring2Constraint>(dof6));
 
 
@@ -266,7 +274,7 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
              motor.axis_ = principleAxis ;
              motor.constraint_ = dof6 ;
 
-             body.motors_.emplace(j->name_, motor) ;
+            body.motors_.emplace(j->name_, motor) ;
           }
       }
 
@@ -282,7 +290,6 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
 }
 
 
-MultiBody body ;
 
 void makeRobot(PhysicsWorld &physics, ScenePtr scene, const urdf::Robot &robot) {
 
@@ -305,12 +312,15 @@ void makeRobot(PhysicsWorld &physics, ScenePtr scene, const urdf::Robot &robot) 
              if ( const urdf::BoxGeometry *g = dynamic_cast<const urdf::BoxGeometry *>(geom) ) {
                  shape.reset(new BoxCollisionShape(g->he_))  ;
              } else if ( const urdf::CylinderGeometry *g = dynamic_cast<const urdf::CylinderGeometry *>(geom) ) {
-                 shape.reset(new CylinderCollisionShape(g->radius_, g->height_))  ;
+                 shape.reset(new CylinderCollisionShape(g->radius_, g->height_/2.0, CylinderCollisionShape::ZAxis))  ;
              } else if ( const urdf::MeshGeometry *g = dynamic_cast<const urdf::MeshGeometry *>(geom) ) {
                  shape.reset(new StaticMeshCollisionShape(g->path_));
              } else if ( const urdf::SphereGeometry *g = dynamic_cast<const urdf::SphereGeometry *>(geom) ) {
                  shape.reset(new SphereCollisionShape(g->radius_));
              }
+
+
+             shape->handle()->setMargin(0.001) ;
 
              float mass = 0.0 ;
              Isometry3f local_inertial_frame = Isometry3f::Identity() ;
@@ -352,9 +362,9 @@ void makeRobot(PhysicsWorld &physics, ScenePtr scene, const urdf::Robot &robot) 
 
     for( const auto &rp: body.motors_ ) {
         const Motor &motor = rp.second ;
-     //   motor.constraint_->enableMotor(motor.axis_, true);
-     //   motor.constraint_->setMaxMotorForce(motor.axis_, 10000);
-    //    motor.constraint_->setTargetVelocity(motor.axis_, 0);
+        motor.constraint_->enableMotor(motor.axis_, true);
+   //     motor.constraint_->setMaxMotorForce(motor.axis_, 10000);
+        motor.constraint_->setTargetVelocity(motor.axis_, 0);
     }
 }
 
@@ -362,9 +372,9 @@ void createScene() {
 
     physics.createDefaultDynamicsWorld();
 
-    Affine3f tr(Translation3f{0, -3.5, 0}) ;
+    Affine3f tr(Translation3f{0, -1.5, 0}) ;
 
-    Vector3f ground_hs{10.5f, 1.5f, 10.5f} ;
+    Vector3f ground_hs{3.5f, 0.05f, 3.5f} ;
     scene->addBox(ground_hs, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
     physics.addBody(RigidBody(CollisionShape::Ptr(new BoxCollisionShape(ground_hs)), tr)) ;
 
@@ -377,13 +387,14 @@ void createScene() {
     rot.translate(Vector3f(0, 1.0, 0)) ;
     rot.rotate( AngleAxisf(0.5*M_PI,  Vector3f::UnitX())) ;
 
-    string path = "/home/malasiot/local/bullet3/examples/pybullet/gym/pybullet_data/r2d2.urdf" ;
-    urdf::Robot rb = urdf::Robot::load(path, /* "robots/robotiq_arg85_description.URDF",*/
+  //  string path = "/home/malasiot/local/bullet3/examples/pybullet/gym/pybullet_data/r2d2.urdf" ;
+    string path = "/home/malasiot/Downloads/robotiq_arg85/" ;
+    urdf::Robot rb = urdf::Robot::load(path + "robots/robotiq_arg85_description.URDF",
     { { "robotiq_arg85_description", package_path } }, true) ;
 
     RobotScenePtr rs = RobotScene::fromURDF(rb) ;
 
-    joint = std::dynamic_pointer_cast<RevoluteJoint>(rs->getJoint("left_gripper_joint")) ;
+    joint = std::dynamic_pointer_cast<RevoluteJoint>(rs->getJoint("finger_joint")) ;
 
 
 
@@ -397,7 +408,7 @@ void createScene() {
 
     makeRobot(physics, scene, rb) ;
 
- //   body.motors_["head_swivel"].setTargetVelocity(5.2) ;
+
 
 
 
