@@ -65,7 +65,7 @@ public:
 
     void onUpdate(float delta) override {
 
-        body.motors_["finger_joint"].setTargetVelocity(0.2) ;
+
          TestSimulation::onUpdate(1) ;
 
 
@@ -238,7 +238,7 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
              int principleAxis = toBulletVector(j->axis_).closestAxis();
 
              btGeneric6DofSpring2Constraint* dof6 = new btGeneric6DofSpring2Constraint(*linkRigidBody, *parentRigidBody, offsetInB, offsetInA, (RotateOrder)0) ;
-             dof6->setDamping(0, 0);
+
 
              switch (principleAxis)
              {
@@ -265,7 +265,7 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
              dof6->setAngularLowerLimit(btVector3(0, 0, 0));
              dof6->setAngularUpperLimit(btVector3(0, 0, 0));
 
-             dof6->setStiffness(principleAxis, 1000, true);
+
              body.constraints_.emplace_back(std::unique_ptr<btGeneric6DofSpring2Constraint>(dof6));
 
 
@@ -363,7 +363,7 @@ void makeRobot(PhysicsWorld &physics, ScenePtr scene, const urdf::Robot &robot) 
     for( const auto &rp: body.motors_ ) {
         const Motor &motor = rp.second ;
         motor.constraint_->enableMotor(motor.axis_, true);
-   //     motor.constraint_->setMaxMotorForce(motor.axis_, 10000);
+        motor.constraint_->setMaxMotorForce(motor.axis_, 10);
         motor.constraint_->setTargetVelocity(motor.axis_, 0);
     }
 }
@@ -410,7 +410,7 @@ void createScene() {
 
 
 
-
+    body.motors_["finger_joint"].setTargetVelocity(1.5) ;
 
 
 
