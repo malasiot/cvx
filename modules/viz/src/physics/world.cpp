@@ -10,6 +10,7 @@
 #include <bullet/BulletDynamics/Featherstone/btMultiBodyConstraintSolver.h>
 #include <bullet/BulletDynamics/Featherstone/btMultiBodyDynamicsWorld.h>
 
+
 using namespace Eigen ;
 
 namespace cvx { namespace viz {
@@ -195,6 +196,19 @@ bool RayPicker::movePickedBody(const Ray &ray)
             return true;
         }
     }
+
+    if ( mb_picked_constraint_ ) {
+        //keep it at the same picking distance
+
+        btVector3 dir = rayToWorld - rayFromWorld;
+        dir.normalize();
+        dir *= old_picking_dist_ ;
+
+        btVector3 newPivotB = rayFromWorld + dir;
+
+        mb_picked_constraint_->setPivotInB(newPivotB);
+    }
+
     return false;
 
 }
@@ -232,6 +246,29 @@ bool RayPicker::pickBody(const Ray &ray)
                 //very weak constraint for picking
                 p2p->m_setting.m_tau = 0.001f;
             }
+        } else {
+            btMultiBodyLinkCollider* multiCol = (btMultiBodyLinkCollider*)btMultiBodyLinkCollider::upcast(rayCallback.m_collisionObject);
+            if (multiCol && multiCol->m_multiBody)
+            {
+                prev_can_sleep_ = multiCol->m_multiBody->getCanSleep();
+                multiCol->m_multiBody->setCanSleep(false);
+
+                btVector3 pivotInA = multiCol->m_multiBody->worldPosToLocal(multiCol->m_link, pickPos);
+
+                btMultiBodyPoint2Point* p2p = new btMultiBodyPoint2Point(multiCol->m_multiBody, multiCol->m_link, 0, pivotInA, pickPos);
+                //if you add too much energy to the system, causing high angular velocities, simulation 'explodes'
+                //see also http://www.bulletphysics.org/Bullet/phpBB3/viewtopic.php?f=4&t=949
+                //so we try to avoid it by clamping the maximum impulse (force) that the mouse pick can apply
+                //it is not satisfying, hopefully we find a better solution (higher order integrator, using joint friction using a zero-velocity target motor with limited force etc?)
+                btScalar scaling = 1;
+                p2p->setMaxAppliedImpulse(2 * scaling);
+
+                btMultiBodyDynamicsWorld* world = (btMultiBodyDynamicsWorld*)world_;
+                world->addMultiBodyConstraint(p2p);
+
+                mb_picked_constraint_ = p2p;
+
+            }
         }
 
         //					pickObject(pickPos, rayCallback.m_collisionObject);
@@ -252,8 +289,16 @@ void RayPicker::removePickingConstraint()
         picked_body_->activate();
         world_->removeConstraint(picked_constraint_);
         delete picked_constraint_;
-        picked_constraint_ = 0;
-        picked_body_ = 0;
+        picked_constraint_ = nullptr ;
+        picked_body_ = nullptr;
+    }
+
+    if ( mb_picked_constraint_ ) {
+       mb_picked_constraint_->getMultiBodyA()->setCanSleep(prev_can_sleep_);
+       btMultiBodyDynamicsWorld* world = (btMultiBodyDynamicsWorld*)world_;
+       world->removeMultiBodyConstraint(mb_picked_constraint_);
+       delete mb_picked_constraint_ ;
+       mb_picked_constraint_ = nullptr ;
     }
 
 }

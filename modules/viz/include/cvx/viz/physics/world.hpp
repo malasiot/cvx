@@ -11,6 +11,7 @@
 #include <bullet/BulletSoftBody/btSoftBodyHelpers.h>
 #include <bullet/BulletSoftBody/btSoftBodyRigidBodyCollisionConfiguration.h>
 #include <bullet/BulletCollision/NarrowPhaseCollision/btRaycastCallback.h>
+#include <bullet/BulletDynamics/Featherstone/btMultiBodyPoint2Point.h>
 
 #include <cvx/viz/physics/collision.hpp>
 #include <cvx/viz/physics/rigid_body.hpp>
@@ -91,11 +92,13 @@ private:
 
     btDynamicsWorld *world_ ;
     btRigidBody* picked_body_ = nullptr;
-    btTypedConstraint* picked_constraint_ = nullptr;
+    btTypedConstraint* picked_constraint_ = nullptr ;
+    btMultiBodyPoint2Point *mb_picked_constraint_ = nullptr ;
     int saved_state_;
     btVector3 old_picking_pos_;
     btVector3 hit_pos_;
     btScalar old_picking_dist_;
+    bool prev_can_sleep_ ;
 };
 
 
