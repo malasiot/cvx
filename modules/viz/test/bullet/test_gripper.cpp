@@ -146,6 +146,8 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
       body.bodies_.emplace_back(mass, new UpdateSceneMotionState(linkData.node_), linkData.shape_) ;
 
       btRigidBody *linkRigidBody = body.bodies_.back().handle() ;
+
+      linkRigidBody->setDamping(0.0f, 0.0f) ;
       linkData.mb_idx_ = body.bodies_.size() - 1 ;
 
       linkRigidBody->setActivationState(DISABLE_DEACTIVATION) ;
@@ -232,12 +234,12 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
              motor.constraint_ = dof6 ;
              motor.axis_ = principleAxis ;
 
-             body.motors_.emplace(j->name_, motor) ;
+            body.motors_.emplace(j->name_, motor) ;
 
           } else if ( j->type_ == "prismatic" ) {
              int principleAxis = toBulletVector(j->axis_).closestAxis();
 
-             btGeneric6DofSpring2Constraint* dof6 = new btGeneric6DofSpring2Constraint(*linkRigidBody, *parentRigidBody, offsetInB, offsetInA, (RotateOrder)0) ;
+             btGeneric6DofSpring2Constraint* dof6 = new btGeneric6DofSpring2Constraint(*linkRigidBody, *parentRigidBody, offsetInB, offsetInA, (RotateOrder)RO_XYZ) ;
 
 
              switch (principleAxis)
@@ -274,7 +276,7 @@ void buildJoints(int link_idx, const btTransform &parent_transform_in_world_spac
              motor.axis_ = principleAxis ;
              motor.constraint_ = dof6 ;
 
-            body.motors_.emplace(j->name_, motor) ;
+           body.motors_.emplace(j->name_, motor) ;
           }
       }
 
@@ -363,7 +365,7 @@ void makeRobot(PhysicsWorld &physics, ScenePtr scene, const urdf::Robot &robot) 
     for( const auto &rp: body.motors_ ) {
         const Motor &motor = rp.second ;
         motor.constraint_->enableMotor(motor.axis_, true);
-        motor.constraint_->setMaxMotorForce(motor.axis_, 10);
+        motor.constraint_->setMaxMotorForce(motor.axis_, 0);
         motor.constraint_->setTargetVelocity(motor.axis_, 0);
     }
 }
@@ -371,10 +373,11 @@ void makeRobot(PhysicsWorld &physics, ScenePtr scene, const urdf::Robot &robot) 
 void createScene() {
 
     physics.createDefaultDynamicsWorld();
+    physics.setGravity({0, 0, -10}) ;
 
-    Affine3f tr(Translation3f{0, -1.5, 0}) ;
+    Affine3f tr(Translation3f{0, 0, -1.5}) ;
 
-    Vector3f ground_hs{3.5f, 0.05f, 3.5f} ;
+    Vector3f ground_hs{1.5f, 1.5f, 0.05f} ;
     scene->addBox(ground_hs, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
     physics.addBody(RigidBody(CollisionShape::Ptr(new BoxCollisionShape(ground_hs)), tr)) ;
 
@@ -387,9 +390,9 @@ void createScene() {
     rot.translate(Vector3f(0, 1.0, 0)) ;
     rot.rotate( AngleAxisf(0.5*M_PI,  Vector3f::UnitX())) ;
 
-  //  string path = "/home/malasiot/local/bullet3/examples/pybullet/gym/pybullet_data/r2d2.urdf" ;
-    string path = "/home/malasiot/Downloads/robotiq_arg85/" ;
-    urdf::Robot rb = urdf::Robot::load(path + "robots/robotiq_arg85_description.URDF",
+    string path = "/home/malasiot/local/bullet3/examples/pybullet/gym/pybullet_data/cartpole.urdf" ;
+  //  string path = "/home/malasiot/Downloads/robotiq_arg85/" ;
+    urdf::Robot rb = urdf::Robot::load(path /*+ "robots/robotiq_arg85_description.URDF"*/,
     { { "robotiq_arg85_description", package_path } }, true) ;
 
     RobotScenePtr rs = RobotScene::fromURDF(rb) ;
@@ -410,7 +413,7 @@ void createScene() {
 
 
 
-    body.motors_["finger_joint"].setTargetVelocity(1.5) ;
+ //  body.motors_["finger_joint"].setTargetVelocity(1.5) ;
 
 
 

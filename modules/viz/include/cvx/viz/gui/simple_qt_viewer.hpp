@@ -42,7 +42,7 @@ public:
 
     // should be called to initialized camera and trackball with given scene center and radius
 
-    void initCamera(const Eigen::Vector3f &c, float r);
+    void initCamera(const Eigen::Vector3f &c, float r, const Eigen::Vector3f &up_axis= {0.f, 1.f, 0.f});
 
     void setScene(const ScenePtr &scene) ;
 

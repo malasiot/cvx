@@ -1,4 +1,4 @@
-#ifndef CVX_VIZ_PHYSICS_WORLD_HPP
+﻿#ifndef CVX_VIZ_PHYSICS_WORLD_HPP
 #define CVX_VIZ_PHYSICS_WORLD_HPP
 
 #include <cvx/viz/scene/node.hpp>
@@ -30,7 +30,11 @@ public:
     ~PhysicsWorld() ;
 
     void createDefaultDynamicsWorld();
+    void createMultiBodyDynamicsWorld();
+
     btDynamicsWorld* getDynamicsWorld();
+
+    void setGravity(const Eigen::Vector3f &g) ;
 
     void stepSimulation(float deltaTime);
 

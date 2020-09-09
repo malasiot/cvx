@@ -7,6 +7,8 @@
 #include <bullet/BulletDynamics/MLCPSolvers/btSolveProjectedGaussSeidel.h>
 #include <bullet/BulletDynamics/MLCPSolvers/btLemkeSolver.h>
 #include <bullet/BulletDynamics/MLCPSolvers/btDantzigSolver.h>
+#include <bullet/BulletDynamics/Featherstone/btMultiBodyConstraintSolver.h>
+#include <bullet/BulletDynamics/Featherstone/btMultiBodyDynamicsWorld.h>
 
 using namespace Eigen ;
 
@@ -32,7 +34,7 @@ void PhysicsWorld::createDefaultDynamicsWorld() {
         solver_.reset(new btMLCPSolver(new btDantzigSolver()));
         //m_solver = new btMLCPSolver(new btLemkeSolver());
 
-  // solver_.reset( new btSequentialImpulseConstraintSolver() ) ;
+   solver_.reset( new btSequentialImpulseConstraintSolver() ) ;
 
     dynamics_world_.reset( new btDiscreteDynamicsWorld(dispatcher_.get(), broadphase_.get(), solver_.get(), collision_config_.get()));
     dynamics_world_->getDispatchInfo().m_useContinuous = true;
@@ -40,6 +42,23 @@ void PhysicsWorld::createDefaultDynamicsWorld() {
     dynamics_world_->setGravity(btVector3(0, -10, 0));
 
 
+}
+
+void PhysicsWorld::createMultiBodyDynamicsWorld()
+{
+    collision_config_.reset( new btDefaultCollisionConfiguration() ) ;
+
+    ///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
+    dispatcher_.reset( new btCollisionDispatcher(collision_config_.get()) ) ;
+
+    broadphase_.reset(new btDbvtBroadphase() ) ;
+
+    solver_.reset(new btMultiBodyConstraintSolver()) ;
+
+    dynamics_world_.reset( new btMultiBodyDynamicsWorld(dispatcher_.get(), broadphase_.get(), static_cast<btMultiBodyConstraintSolver *>(solver_.get()), collision_config_.get()));
+    dynamics_world_->getDispatchInfo().m_useContinuous = true;
+
+    dynamics_world_->setGravity(btVector3(0, -10, 0));
 }
 
 PhysicsWorld::~PhysicsWorld()
@@ -56,6 +75,10 @@ PhysicsWorld::~PhysicsWorld()
 
 btDynamicsWorld *PhysicsWorld::getDynamicsWorld() {
     return dynamics_world_.get();
+}
+
+void PhysicsWorld::setGravity(const Vector3f &g) {
+    dynamics_world_->setGravity(toBulletVector(g)) ;
 }
 
 void PhysicsWorld::stepSimulation(float deltaTime) {

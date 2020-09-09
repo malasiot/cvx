@@ -13,12 +13,12 @@ SimpleQtViewer::SimpleQtViewer() {
     setFocusPolicy(Qt::StrongFocus) ;
 }
 
-void SimpleQtViewer::initCamera(const Vector3f &c, float r) {
+void SimpleQtViewer::initCamera(const Vector3f &c, float r, const Vector3f &upAxis) {
 
     aradius_ = 10 * r ;
 
    camera_.reset(new PerspectiveCamera(1.0, 50*M_PI/180, 0.0001, 100*r)) ;
-   trackball_.setCamera(camera_, c + Vector3f{0.0, 0, 4*r}, c, {0, 1, 0}) ;
+   trackball_.setCamera(camera_, c + Vector3f{0.0, 0, 4*r}, c, upAxis) ;
    trackball_.setZoomScale(0.1*r) ;
 
    camera_->setBgColor({1, 1, 1, 1}) ;
