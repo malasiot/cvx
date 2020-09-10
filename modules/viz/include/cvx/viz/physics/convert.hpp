@@ -12,14 +12,17 @@ inline Eigen::Vector3f toEigenVector(const std::vector<float>& vec) {return Eige
 inline Eigen::Vector3f toEigenVector(const btVector3& vec) {return Eigen::Vector3f(vec.x(),vec.y(),vec.z());}
 inline btVector3 toBulletVector(const Eigen::Vector3f& vec) {return btVector3(vec[0],vec[1],vec[2]);}
 
-inline Eigen::Affine3f toEigenTransform(const btTransform& transform) {
+inline Eigen::Isometry3f toEigenTransform(const btTransform& transform) {
   btVector3 transBullet = transform.getOrigin();
   btQuaternion quatBullet = transform.getRotation();
   Eigen::Translation3f transEig;
   transEig = Eigen::Translation3f(toEigenVector(transBullet));
   Eigen::Matrix3f rotEig = Eigen::Quaternionf(quatBullet.w(),quatBullet.x(),quatBullet.y(),quatBullet.z()).toRotationMatrix();
   Eigen::Affine3f out(transEig*rotEig);
-  return out;
+  /*Eigen::Isometry3f out ;
+  out.translationExt() = transEig.vector() ;
+  out.linearExt() = rotEig ;*/
+  return Eigen::Isometry3f(out.matrix());
 }
 
 inline btTransform toBulletTransform(const Eigen::Affine3f& affine) {

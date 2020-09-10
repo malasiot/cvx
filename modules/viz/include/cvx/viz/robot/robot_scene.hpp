@@ -55,6 +55,8 @@ public:
 
     static RobotScenePtr fromURDF(const urdf::Robot &r) ;
 
+
+
     JointNodePtr getJoint(const std::string &name) {
         auto it = joints_.find(name) ;
         if ( it != joints_.end() ) return it->second ;

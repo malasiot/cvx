@@ -109,6 +109,15 @@ public:
             c->stopAnimations() ;
     }
 
+    void updateTransforms(const std::map<std::string, Eigen::Isometry3f> &trs) {
+        for( const auto &tp: trs ) {
+            auto node = findNodeByName(tp.first) ;
+            if ( node ) {
+                node->matrix() = tp.second ;
+            }
+        }
+    }
+
 
     Eigen::Affine3f globalTransform() const {
         if ( parent_ ) return parent_->globalTransform() * mat_ ;

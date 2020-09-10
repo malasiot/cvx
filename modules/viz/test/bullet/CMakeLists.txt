@@ -17,11 +17,11 @@ add_executable(test_rope test_rope.cpp bullet_gui.cpp bullet_gui.hpp)
 set_target_properties(test_rope PROPERTIES AUTOMOC TRUE)
 target_link_libraries(test_rope cvx_viz ${BULLET_LIBRARIES})
 
-add_executable(test_gripper test_gripper.cpp bullet_gui.cpp bullet_gui.hpp)
+add_executable(test_gripper test_gripper.cpp multi_body.cpp bullet_gui.cpp bullet_gui.hpp)
 set_target_properties(test_gripper PROPERTIES AUTOMOC TRUE)
 target_link_libraries(test_gripper cvx_viz ${BULLET_LIBRARIES})
 
-add_executable(test_bullet_robot test_robot.cpp bullet_gui.cpp bullet_gui.hpp)
+add_executable(test_bullet_robot test_robot.cpp multi_body.cpp bullet_gui.cpp bullet_gui.hpp)
 set_target_properties(test_bullet_robot PROPERTIES AUTOMOC TRUE)
 target_link_libraries(test_bullet_robot cvx_viz ${BULLET_LIBRARIES})
 

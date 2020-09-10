@@ -15,6 +15,9 @@ struct Joint {
     Eigen::Vector3f axis_ ;
     Eigen::Isometry3f origin_ = Eigen::Isometry3f::Identity() ;
     float upper_, lower_, mimic_offset_, mimic_multiplier_, effort_, velocity_ ;
+    float position_ = 0;
+
+    Eigen::Isometry3f getMatrix() const ;
 };
 
 struct Material ;
@@ -73,12 +76,20 @@ struct Robot {
     static Robot load(const std::string &fname, const std::map<std::string, std::string> package_map, bool load_collision_geometry) ;
 
     Link *getLink(const std::string &name)  ;
+    Joint *findJoint(const std::string &name);
+
+    float setJointPosition(const std::string &jname, float pos) ;
 
     std::string name_ ;
     std::map<std::string, Joint> joints_ ;
     std::map<std::string, Link> links_ ;
     std::map<std::string, std::shared_ptr<Material>> materials_ ;
     Link *root_ ;
+
+public:
+
+    void computeLinkTransforms(std::map<std::string, Eigen::Isometry3f> &transforms) const ;
+    void computeLinkTransformRecursive(std::map<std::string, Eigen::Isometry3f> &transforms, const Link *link, const Eigen::Isometry3f &parent) const;
 };
 
 class LoadException: public std::runtime_error {

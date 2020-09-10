@@ -142,99 +142,18 @@ RobotScenePtr RobotScene::parseRobotURDF(const urdf::Robot &rb)
             geom_node->matrix() = tr ;
 
             link_node->addChild(geom_node) ;
+
+            scene->addChild(link_node) ;
         }
 
 
         link_nodes.emplace(link.name_, link_node) ;
     }
 
-    // create joints and link into hierarchy
 
-    map<string, JointNodePtr> mimic_joints ;
-
-    for( const auto &jp: rb.joints_ ) {
-
-        const urdf::Joint &j = jp.second ;
-
-        NodePtr joint(new Node) ;
-        joint->setName(j.name_) ;
-        joint->matrix() = j.origin_ ;
-
-        string parent_link_name = j.parent_ ;
-        string child_link_name = j.child_ ;
-
-        NodePtr parent_link, child_link ;
-
-        auto pl_it = link_nodes.find(parent_link_name) ;
-        if ( pl_it == link_nodes.end() ) continue ;
-        else parent_link = pl_it->second ;
-
-        auto cl_it = link_nodes.find(child_link_name) ;
-        if ( cl_it == link_nodes.end() ) continue ;
-        else child_link = cl_it->second ;
-
-        NodePtr ctrl_node(new Node) ;
-        ctrl_node->setName(j.name_ + "_ctrl") ;
-
-        joint->addChild(ctrl_node) ;
-
-        parent_link->addChild(joint) ;
-
-        ctrl_node->addChild(child_link) ;
-
-        parent_link_tree[child_link_name] = parent_link_name ;
-
-        JointNodePtr jnode ;
-
-        if ( j.type_ == "revolute" ) {
-            RevoluteJoint *rj = new RevoluteJoint ;
-            rj->lower_limit_ = j.lower_ ;
-            rj->upper_limit_ = j.upper_ ;
-            rj->axis_ = j.axis_ ;
-            rj->node_ = ctrl_node ;
-            jnode.reset(rj) ;
-        }
-
-        if ( jnode ) {
-            if ( j.mimic_joint_.empty() )
-                scene->joints_.emplace(j.name_, jnode) ;
-            else
-                mimic_joints[j.name_] = jnode ;
-        }
-    }
-
-    // setup mimic joints
-
-    for( const auto &jp: rb.joints_ ) {
-            const urdf::Joint &j = jp.second ;
-
-            if ( j.mimic_joint_.empty() ) continue ;
-
-            auto it = scene->joints_.find(j.mimic_joint_) ;
-            if ( it == scene->joints_.end() ) continue ;
-
-            auto jit = mimic_joints.find(j.name_) ;
-            if ( jit != mimic_joints.end() ) {
-                JointNodePtr dof = it->second ;
-                dof->multipliers_.push_back(j.mimic_multiplier_) ;
-                dof->offsets_.push_back(j.mimic_offset_) ;
-                dof->dependent_.push_back(jit->second) ;
-            }
-    }
-
-    // find root
-
-    for( const auto &lp: link_nodes ) {
-        auto it = parent_link_tree.find(lp.first) ;
-        if ( it == parent_link_tree.end() ) {
-            root_node = lp.second ;
-            break ;
-        }
-    }
-
-
-    scene->addChild(root_node) ;
-
+    map<string, Isometry3f> trs ;
+    rb.computeLinkTransforms(trs) ;
+    scene->updateTransforms(trs) ;
     return scene ;
 
 }
