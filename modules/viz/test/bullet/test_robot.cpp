@@ -40,6 +40,16 @@ public:
     struct Joint ;
 
     struct Link {
+
+        Link & setLocalInertialFrame(const Isometry3f &f) {
+            local_inertial_frame_ = toBulletTransform(f);
+            return *this ;
+        }
+
+        Link() {
+            local_inertial_frame_.setIdentity() ;
+        }
+
         float mass_ ;
         string name_ ;
         Link *parent_link_ = nullptr ;
@@ -47,39 +57,60 @@ public:
         vector<Link *> child_links_ ;
         vector<Joint *> child_joints_ ;
         CollisionShape::Ptr shape_ ;
+        std::unique_ptr<btCollisionShape> proxy_ ;
         std::unique_ptr<btMultiBodyLinkCollider> collider_ ;
         btVector3 inertia_ ;
+        Isometry3f origin_ ;
+        btTransform local_inertial_frame_ ;
         int mb_index_ ;
     };
 
+
+    enum JointType { RevoluteJoint, ContinuousJoint, PrismaticJoint, FixedJoint } ;
     struct Joint {
         string parent_, child_ ;
-        string type_ ;
-        btVector3 axis_ ;
+        JointType type_ ;
+        btVector3 axis_ = {1, 0, 0};
         btTransform j2p_ ;
+        float lower_, upper_ ;
+
+        Joint& setAxis(const Vector3f &axis) {
+             axis_ = toBulletVector(axis) ;
+             return *this ;
+        }
+
+        Joint& setLimits(float l, float u) {
+             lower_ = l ;
+             upper_ = u ;
+             return *this ;
+        }
+
     };
 
-    void addLink(const string &name, float mass, CollisionShape::Ptr cshape) {
+    Link &addLink(const string &name, float mass, CollisionShape::Ptr cshape, const Isometry3f &origin = Isometry3f::Identity()) {
         Link l ;
         l.name_ = name ;
         l.mass_ = mass ;
+        l.origin_ = origin ;
         l.shape_ = cshape ;
         l.shape_->handle()->calculateLocalInertia(l.mass_, l.inertia_) ;
-
         links_.emplace_back(std::move(l)) ;
         link_map_.emplace(name, links_.size()-1) ;
+        return links_.back(); ;
     }
 
-    Joint &addRevoluteJoint(const std::string &name, string parent, string child, const Vector3f &axis, const Isometry3f &j2p) {
+    Joint &addJoint(const std::string &name, JointType type, string parent, string child, const Isometry3f &j2p) {
         Joint j ;
-        j.type_ = "revolute" ;
+        j.type_ = type ;
         j.parent_ = parent  ;
         j.child_ = child ;
-        j.axis_ = toBulletVector(axis) ;
         j.j2p_ = toBulletTransform(j2p) ;
+
         auto it = joints_.emplace(name, std::move(j)) ;
         return it.first->second ;
     }
+
+
 
 
     int findLink(const std::string &name) {
@@ -142,7 +173,10 @@ public:
 
           btMultiBodyLinkCollider* col = new btMultiBodyLinkCollider(body_.get(), link.mb_index_);
 
-          col->setCollisionShape(link.shape_->handle());
+          btCompoundShape *proxy = new btCompoundShape() ;
+          proxy->addChildShape(link.local_inertial_frame_.inverse() * toBulletTransform(link.origin_), link.shape_->handle()) ;
+          link.proxy_.reset(proxy) ;
+          col->setCollisionShape(proxy);
 
           col->setWorldTransform(link_transform);
 
@@ -156,33 +190,39 @@ public:
 
         Link &link = links_[link_idx] ;
 
-        int parent_link_idx = -1 ;
         Link *parent_link = link.parent_link_ ;
 
         btTransform parent2joint, linkTransform;
         parent2joint.setIdentity();
 
         btTransform parentTransform = parent_transform_in_world_space ;
+        btTransform parent_local_inertial_frame ;
+        parent_local_inertial_frame.setIdentity() ;
+        btTransform local_inertial_frame = link.local_inertial_frame_ ;
+
         const Joint *parent_joint  = nullptr ;
 
         if ( parent_link ) {
               parent_joint  = link.parent_joint_ ;
               parent2joint = parent_joint->j2p_ ;
+              parent_local_inertial_frame = parent_link->local_inertial_frame_ ;
         }
 
         linkTransform = parentTransform * parent2joint;
 
         if ( parent_joint ) {
-            if ( parent_joint->type_ == "revolute" ) {
-                btTransform offsetInA = parent2joint ;
-                btTransform offsetInB ;
-                offsetInB.setIdentity();
-                btQuaternion parentRotToThis = offsetInB.getRotation() * offsetInA.inverse().getRotation();
+            btTransform offsetInA = parent_local_inertial_frame.inverse() * parent2joint ;
+            btTransform offsetInB = local_inertial_frame.inverse();
+            btQuaternion parentRotToThis = offsetInB.getRotation() * offsetInA.inverse().getRotation();
 
+            if ( parent_joint->type_ == RevoluteJoint  || parent_joint->type_ == ContinuousJoint ) {
                 body_->setupRevolute(link.mb_index_, link.mass_, link.inertia_, parent_link->mb_index_,
                                      parentRotToThis, quatRotate(offsetInB.getRotation(), parent_joint->axis_), offsetInA.getOrigin(),
                                                                                                     -offsetInB.getOrigin(),
                                                                                                     true) ;
+            } else if ( parent_joint->type_ == FixedJoint ) {
+                body_->setupFixed(link.mb_index_, link.mass_, link.inertia_, parent_link->mb_index_,
+                               parentRotToThis, offsetInA.getOrigin(), -offsetInB.getOrigin());
             }
         }
 
@@ -245,8 +285,7 @@ public:
 
     void onUpdate(float delta) override {
 
-
-         btTransform tr_base = body.links_[0].collider_->getWorldTransform() ;
+        btTransform tr_base = body.links_[0].collider_->getWorldTransform() ;
          btTransform tr_link1 = body.links_[1].collider_->getWorldTransform() ;
          btTransform tr_link2 = body.links_[2].collider_->getWorldTransform() ;
          btTransform tr_link3 = body.links_[3].collider_->getWorldTransform() ;
@@ -255,7 +294,8 @@ public:
          scene->findNodeByName("link1")->matrix() = toEigenTransform(tr_link1) ;
          scene->findNodeByName("link2")->matrix() = toEigenTransform(tr_link2) ;
          scene->findNodeByName("link3")->matrix() = toEigenTransform(tr_link3) ;
-TestSimulation::onUpdate(delta) ;
+
+    TestSimulation::onUpdate(delta) ;
     }
 
 };
@@ -265,6 +305,24 @@ NodePtr makeCube(const string &name, const Vector3f &hs, const Vector4f &clr, No
     mat->setDiffuse(clr) ;
 
     auto node = parent->addSimpleShapeNode(GeometryPtr(new BoxGeometry(hs)), MaterialInstancePtr(mat)) ;
+    node->setName(name) ;
+    return node ;
+}
+
+NodePtr makeSphere(const string &name, float radious, const Vector4f &clr, NodePtr parent) {
+    PhongMaterialInstance *mat = new PhongMaterialInstance() ;
+    mat->setDiffuse(clr) ;
+
+    auto node = parent->addSimpleShapeNode(GeometryPtr(new SphereGeometry(radious)), MaterialInstancePtr(mat)) ;
+    node->setName(name) ;
+    return node ;
+}
+
+NodePtr makeCylinder(const string &name, float radious, float len, const Vector4f &clr, NodePtr parent) {
+    PhongMaterialInstance *mat = new PhongMaterialInstance() ;
+    mat->setDiffuse(clr) ;
+
+    auto node = parent->addSimpleShapeNode(GeometryPtr(new CylinderGeometry(radious, len)), MaterialInstancePtr(mat)) ;
     node->setName(name) ;
     return node ;
 }
@@ -299,18 +357,22 @@ void createScene() {
 
     CollisionShape::Ptr box_shape(new BoxCollisionShape(box_hs)) ;
 
-    body.addLink("base", box_mass, box_shape) ;
-    body.addLink("link1", box_mass, box_shape) ;
-    body.addLink("link2", box_mass, box_shape) ;
-    body.addLink("link3", box_mass, box_shape) ;
+    Isometry3f offset ;
+    offset.setIdentity() ;
+    offset.translate(Vector3f{0, -link_size/2, 0}) ;
+
+    body.addLink("base", box_mass, box_shape, offset).setLocalInertialFrame(offset) ;
+    body.addLink("link1", box_mass, box_shape, offset).setLocalInertialFrame(offset) ;
+    body.addLink("link2", box_mass, box_shape, offset).setLocalInertialFrame(offset) ;
+    body.addLink("link3", box_mass, box_shape, offset).setLocalInertialFrame(offset) ;
 
     Vector3f axis = {1, 0, 0} ;
     Isometry3f j2p ;
     j2p.setIdentity() ;
     j2p.translate(Vector3f{0, -link_size, 0}) ;
-    body.addRevoluteJoint("j1", "base", "link1", axis, j2p) ;
-    body.addRevoluteJoint("j2", "link1", "link2", axis, j2p) ;
-    body.addRevoluteJoint("j3", "link2", "link3", axis, j2p) ;
+    body.addJoint("j1", MultiBody::RevoluteJoint, "base", "link1", j2p).setAxis(axis) ;
+    body.addJoint("j2", MultiBody::RevoluteJoint, "link1", "link2", j2p).setAxis(axis) ;
+    body.addJoint("j3", MultiBody::RevoluteJoint, "link2", "link3", j2p).setAxis(axis) ;
 
     body.create(physics) ;
 
@@ -335,6 +397,8 @@ void createScene() {
 
 
 }
+
+
 
 
 
