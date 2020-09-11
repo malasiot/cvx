@@ -13,7 +13,9 @@ MultiBody::Link &MultiBody::addLink(const string &name, float mass, CollisionSha
     l.mass_ = mass ;
     l.origin_ = origin ;
     l.shape_ = cshape ;
-    l.shape_->handle()->calculateLocalInertia(l.mass_, l.inertia_) ;
+    if ( cshape ) {
+        l.shape_->handle()->calculateLocalInertia(l.mass_, l.inertia_) ;
+    }
     links_.emplace_back(std::move(l)) ;
     link_map_.emplace(name, links_.size()-1) ;
     return links_.back(); ;
@@ -77,16 +79,18 @@ void MultiBody::buildTree() {
 void MultiBody::buildCollisionObject(int link_idx, const btTransform &link_transform) {
     Link &link = links_[link_idx] ;
 
-    btMultiBodyLinkCollider* col = new btMultiBodyLinkCollider(body_.get(), link.mb_index_);
+    if ( link.shape_ ) {
+        btMultiBodyLinkCollider* col = new btMultiBodyLinkCollider(body_.get(), link.mb_index_);
 
-    btCompoundShape *proxy = new btCompoundShape() ;
-    proxy->addChildShape(link.local_inertial_frame_.inverse() * toBulletTransform(link.origin_), link.shape_->handle()) ;
-    link.proxy_.reset(proxy) ;
-    col->setCollisionShape(proxy);
+        btCompoundShape *proxy = new btCompoundShape() ;
+        proxy->addChildShape(link.local_inertial_frame_.inverse() * toBulletTransform(link.origin_), link.shape_->handle()) ;
+        link.proxy_.reset(proxy) ;
+        col->setCollisionShape(proxy);
 
-    col->setWorldTransform(link_transform);
+        col->setWorldTransform(link_transform);
 
-    link.collider_.reset(col) ;
+        link.collider_.reset(col) ;
+    }
 }
 
 void MultiBody::buildJoints(int link_idx, const btTransform &parent_transform_in_world_space) {
@@ -129,6 +133,12 @@ void MultiBody::buildJoints(int link_idx, const btTransform &parent_transform_in
         } else if ( parent_joint->type_ == FixedJoint ) {
             body_->setupFixed(link.mb_index_, link.mass_, link.inertia_, parent_link->mb_index_,
                               parentRotToThis, offsetInA.getOrigin(), -offsetInB.getOrigin());
+        } else if ( parent_joint->type_ == PrismaticJoint ) {
+            body_->setupPrismatic(link.mb_index_, link.mass_, link.inertia_, parent_link->mb_index_,
+                                                                            parentRotToThis, quatRotate(offsetInB.getRotation(), parent_joint->axis_), offsetInA.getOrigin(),
+                                                                            -offsetInB.getOrigin(),
+                                                                            true);
+
         }
     }
 
@@ -157,6 +167,7 @@ void MultiBody::create(PhysicsWorld &physics)  {
     w->addMultiBody(body_.get()) ;
 
     for( const Link &l: links_ ) {
+        if ( l.collider_ == nullptr ) continue ;
         //base and fixed? -> static, otherwise flag as dynamic
         bool isDynamic = (l.mb_index_ < 0 && body_->hasFixedBase()) ? false : true;
         int collisionFilterGroup = isDynamic ? int(btBroadphaseProxy::DefaultFilter) : int(btBroadphaseProxy::StaticFilter);
@@ -176,7 +187,8 @@ void MultiBody::createFromURDF(PhysicsWorld &physics, urdf::Robot &rb) {
         const urdf::Link &link = lp.second ;
 
         urdf::Geometry *geom = link.collision_geom_.get() ;
-        const Isometry3f &col_origin = geom->origin_ ;
+        Isometry3f col_origin = Isometry3f::Identity();
+        if ( geom ) col_origin = geom->origin_ ;
 
          CollisionShape::Ptr shape ;
 
@@ -190,7 +202,8 @@ void MultiBody::createFromURDF(PhysicsWorld &physics, urdf::Robot &rb) {
              shape.reset(new SphereCollisionShape(g->radius_));
          }
 
-         shape->handle()->setMargin(0.001) ;
+         if ( shape )
+             shape->handle()->setMargin(0.001) ;
 
          float mass = 1 ;
          Isometry3f inertial_frame ;
@@ -232,8 +245,10 @@ void MultiBody::createFromURDF(PhysicsWorld &physics, urdf::Robot &rb) {
 void MultiBody::getLinkTransforms(std::map<string, Isometry3f> &names) const
 {
     for( const Link &l: links_ ) {
-        btTransform tr = l.collider_->getWorldTransform() ;
-        names.emplace(l.name_, Isometry3f(toEigenTransform(tr))) ;
+        if ( l.collider_ ) {
+            btTransform tr = l.collider_->getWorldTransform() ;
+            names.emplace(l.name_, Isometry3f(toEigenTransform(tr))) ;
+        }
     }
 }
 

@@ -63,7 +63,10 @@ void Robot::computeLinkTransformRecursive(std::map<std::string, Isometry3f> &tra
 
     Isometry3f tr = parent * p2j ;
 
-    transforms.emplace(link->name_, tr) ;
+    if ( link->visual_geom_ )
+        transforms.emplace(link->name_, tr * link->visual_geom_->origin_) ;
+    else
+        transforms.emplace(link->name_, tr) ;
 
     for( const Link *l: link->child_links_ ) {
         computeLinkTransformRecursive(transforms, l, tr) ;
@@ -77,6 +80,8 @@ Isometry3f Joint::getMatrix() const {
 
     if ( type_ == "revolute" || type_ == "continuous" ) {
         tr.rotate(AngleAxisf(position_, axis_)) ;
+    } else if ( type_ == "prismatic" ) {
+        tr.translate(axis_* position_) ;
     }
 
     return origin_ * tr ;

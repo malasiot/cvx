@@ -46,9 +46,9 @@ public:
 
     void onUpdate(float delta) override {
 
-        map<string, Isometry3f> transforms ;
-        body.getLinkTransforms(transforms) ;
-        scene->updateTransforms(transforms) ;
+   //     map<string, Isometry3f> transforms ;
+   //     body.getLinkTransforms(transforms) ;
+   //     scene->updateTransforms(transforms) ;
          TestSimulation::onUpdate(delta) ;
 
 
@@ -180,9 +180,9 @@ void createScene() {
     rot.translate(Vector3f(0, 1.0, 0)) ;
     rot.rotate( AngleAxisf(0.5*M_PI,  Vector3f::UnitX())) ;
 
-    //string path = "/home/malasiot/local/bullet3/examples/pybullet/gym/pybullet_data/cartpole.urdf" ;
-    string path = "/home/malasiot/Downloads/robotiq_arg85/" ;
-    robot = urdf::Robot::load(path + "robots/robotiq_arg85_description.URDF",
+    string path = "/home/malasiot/local/bullet3/examples/pybullet/gym/pybullet_data/cartpole.urdf" ;
+    //string path = "/home/malasiot/Downloads/robotiq_arg85/" ;
+    robot = urdf::Robot::load(path /*+ "robots/robotiq_arg85_description.URDF"*/,
     { { "robotiq_arg85_description", package_path } }, true) ;
 
     RobotScenePtr rs = RobotScene::fromURDF(robot) ;
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
     cvx::viz::SimpleQtViewer::initDefaultGLContext() ;
 
     QMainWindow window ;
-    window.setCentralWidget(new GUI(scene, physics, robot, "finger_joint")) ;
+    window.setCentralWidget(new GUI(scene, physics, robot, "slider_to_cart")) ;
     window.resize(512, 512) ;
     window.show() ;
 
