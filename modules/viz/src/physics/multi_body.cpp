@@ -1,14 +1,16 @@
-#include "multi_body.hpp"
+#include <cvx/viz/physics/multi_body.hpp>
 
 #include <bullet/BulletDynamics/Featherstone/btMultiBodyDynamicsWorld.h>
 #include <bullet/BulletDynamics/Featherstone/btMultiBodyJointLimitConstraint.h>
 
 
-using namespace cvx::viz;
 using namespace std ;
 using namespace Eigen ;
 
-MultiBody::Link &MultiBody::addLink(const string &name, float mass, CollisionShape::Ptr cshape, const Isometry3f &origin) {
+namespace cvx { namespace viz {
+
+
+Link &MultiBody::addLink(const string &name, float mass, CollisionShape::Ptr cshape, const Isometry3f &origin) {
     Link l ;
     l.name_ = name ;
     l.mass_ = mass ;
@@ -28,7 +30,7 @@ int MultiBody::findLink(const std::string &name) {
     else return it->second ;
 }
 
-MultiBody::Joint *MultiBody::findJoint(const string &name) {
+Joint *MultiBody::findJoint(const string &name) {
     auto it = joints_.find(name) ;
     if ( it == joints_.end() ) return nullptr ;
     else return &(it->second) ;
@@ -193,8 +195,6 @@ void MultiBody::create(PhysicsWorld &physics)  {
 
     buildJoints(findLink(root_->name_), tr) ;
 
-
-
     btMultiBodyDynamicsWorld *w = static_cast<btMultiBodyDynamicsWorld *>(physics.getDynamicsWorld()) ;
 
     w->addMultiBody(body_.get()) ;
@@ -227,13 +227,10 @@ void MultiBody::create(PhysicsWorld &physics)  {
 
         if ( mb_link.m_jointType == btMultibodyLink::eRevolute || mb_link.m_jointType == btMultibodyLink::ePrismatic)
         {
-            Motor motor ;
-            motor.name_ = l.parent_joint_->name_ ;
-            motor.motor_ = new btMultiBodyJointMotor(body_.get(), mb_link_idx, 0, 0, 0.0);
-            motor.motor_->setVelocityTarget(0) ;
-
-            constraints_.emplace_back(unique_ptr<btMultiBodyConstraint>(motor.motor_)) ;
-            motors_.emplace(motor.name_, std::move(motor)) ;
+            btMultiBodyJointMotor *motor = new btMultiBodyJointMotor(body_.get(), mb_link_idx, 0, 0, l.parent_joint_->motor_max_force_);
+            l.parent_joint_->motor_ = motor;
+            motor->setVelocityTarget(0) ;
+            constraints_.emplace_back(unique_ptr<btMultiBodyConstraint>(motor)) ;
         }
     }
 
@@ -241,8 +238,6 @@ void MultiBody::create(PhysicsWorld &physics)  {
         c.get()->finalizeMultiDof();
         w->addMultiBodyConstraint(c.get()) ;
     }
-
-
 
     body_->finalizeMultiDof() ;
 }
@@ -339,7 +334,7 @@ void MultiBody::getLinkTransforms(std::map<string, Isometry3f> &names) const
     }
 }
 
-MultiBody::Joint &MultiBody::addJoint(const std::string &name, MultiBody::JointType type, const string &parent,
+Joint &MultiBody::addJoint(const std::string &name, JointType type, const string &parent,
                                       const string &child, const Isometry3f &j2p) {
     Joint j ;
     j.name_ = name ;
@@ -350,13 +345,6 @@ MultiBody::Joint &MultiBody::addJoint(const std::string &name, MultiBody::JointT
 
     auto it = joints_.emplace(name, std::move(j)) ;
     return it.first->second ;
-}
-
-MultiBody::Motor *MultiBody::getMotor(const string &name)
-{
-    auto it = motors_.find(name) ;
-    if ( it == motors_.end() ) return nullptr ;
-    else return &(it->second) ;
 }
 
 int MultiBody::getJointIndex(const string &name) {
@@ -391,36 +379,47 @@ void MultiBody::setJointTorque(const string &name, float v) {
 }
 
 
-void MultiBody::Motor::setTargetVelocity(float v) {
-    motor_->setVelocityTarget(v) ;
+void Joint::setTargetVelocity(float v) {
+    motor_->setVelocityTarget(static_cast<btScalar>(v)) ;
 }
 
-float MultiBody::Joint::getPosition() {
+void Joint::setTargetPosition(float v) {
+    motor_->setPositionTarget(static_cast<btScalar>(v));
+}
+
+Joint & Joint::setMotorMaxImpulse(float v) {
+    motor_max_force_ = v ;
+    return *this ;
+}
+
+float Joint::getPosition() {
     assert(body_) ;
     return static_cast<float>(body_->getJointPos(child_link_->mb_index_)) ;
 }
 
-float MultiBody::Joint::getVelocity() {
+float Joint::getVelocity() {
     assert(body_) ;
     return static_cast<float>(body_->getJointVel(child_link_->mb_index_)) ;
 }
 
-float MultiBody::Joint::getTorque() {
+float Joint::getTorque() {
     assert(body_) ;
     return static_cast<float>(body_->getJointTorque(child_link_->mb_index_)) ;
 }
 
-void MultiBody::Joint::setPosition(float v) {
+void Joint::setPosition(float v) {
     assert(body_) ;
     body_->setJointPos(child_link_->mb_index_, static_cast<btScalar>(v)) ;
 }
 
-void MultiBody::Joint::setVelocity(float v) {
+void Joint::setVelocity(float v) {
     assert(body_) ;
     body_->setJointVel(child_link_->mb_index_, static_cast<btScalar>(v)) ;
 }
 
-void MultiBody::Joint::setTorque(float v) {
+void Joint::setTorque(float v) {
     assert(body_) ;
     body_->addJointTorque(child_link_->mb_index_, static_cast<btScalar>(v)) ;
 }
+
+}}

@@ -16,9 +16,9 @@
 #include <iostream>
 #include <thread>
 #include <cvx/viz/physics/world.hpp>
+#include <cvx/viz/physics/multi_body.hpp>
 
 #include "bullet_gui.hpp"
-#include "multi_body.hpp"
 
 #include <QApplication>
 #include <QMainWindow>
@@ -44,17 +44,9 @@ public:
     }
 
     void onUpdate(float delta) override {
-
-        btTransform tr_base = body.links_[0].collider_->getWorldTransform() ;
-         btTransform tr_link1 = body.links_[1].collider_->getWorldTransform() ;
-         btTransform tr_link2 = body.links_[2].collider_->getWorldTransform() ;
-         btTransform tr_link3 = body.links_[3].collider_->getWorldTransform() ;
-         cout << toEigenTransform(tr_link3).matrix() << endl ;
-         scene->findNodeByName("base")->matrix() = toEigenTransform(tr_base) ;
-         scene->findNodeByName("link1")->matrix() = toEigenTransform(tr_link1) ;
-         scene->findNodeByName("link2")->matrix() = toEigenTransform(tr_link2) ;
-         scene->findNodeByName("link3")->matrix() = toEigenTransform(tr_link3) ;
-
+         map<string, Isometry3f> transforms ;
+        body.getLinkTransforms(transforms) ;
+        scene->updateTransforms(transforms) ;
     TestSimulation::onUpdate(delta) ;
     }
 
@@ -109,8 +101,6 @@ void createScene() {
     dl->diffuse_color_ = Vector3f(1, 1, 1) ;
     scene->addLight(LightPtr(dl)) ;
 
-
-
     float link_size = 0.2 ;
     Vector3f box_hs{0.05, link_size/2, 0.05} ;
     float box_mass = 0.1 ;
@@ -130,34 +120,16 @@ void createScene() {
     Isometry3f j2p ;
     j2p.setIdentity() ;
     j2p.translate(Vector3f{0, -link_size, 0}) ;
-    body.addJoint("j1", MultiBody::RevoluteJoint, "base", "link1", j2p).setAxis(axis) ;
-    body.addJoint("j2", MultiBody::RevoluteJoint, "link1", "link2", j2p).setAxis(axis) ;
-    body.addJoint("j3", MultiBody::RevoluteJoint, "link2", "link3", j2p).setAxis(axis) ;
+    body.addJoint("j1", RevoluteJoint, "base", "link1", j2p).setAxis(axis).setMotorMaxImpulse(0) ;
+    body.addJoint("j2", RevoluteJoint, "link1", "link2", j2p).setAxis(axis).setMotorMaxImpulse(0) ;
+    body.addJoint("j3", RevoluteJoint, "link2", "link3", j2p).setAxis(axis).setMotorMaxImpulse(0) ;
 
     body.create(physics) ;
 
-
-
-    Isometry3f base_tr ;
-    base_tr.setIdentity() ;
-/*
-    NodePtr base_node = makeCube(box_hs, {1, 0, 0, 1}, scene);
-    NodePtr j1_node = makeJoint(j2p, base_node) ;
-    NodePtr link1_node = makeCube(box_hs, {1, 1, 0, 1}, j1_node) ;
-    NodePtr j2_node = makeJoint(j2p, link1_node) ;
-    NodePtr link2_node = makeCube(box_hs, {1, 0, 1, 1}, j2_node) ;
-    NodePtr j3_node = makeJoint(j2p, link2_node) ;
-    NodePtr link3_node = makeCube(box_hs, {0, 0, 1, 1}, j3_node) ;
-*/
     NodePtr base_node = makeCube("base", box_hs, {1, 0, 0, 1}, scene);
-
     NodePtr link1_node = makeCube("link1", box_hs, {1, 1, 0, 1}, scene) ;
-
     NodePtr link2_node = makeCube("link2", box_hs, {1, 0, 1, 1}, scene) ;
-
     NodePtr link3_node = makeCube("link3", box_hs, {0, 0, 1, 1}, scene) ;
-
-
 }
 
 

@@ -18,7 +18,7 @@
 #include <cvx/viz/physics/world.hpp>
 
 #include "bullet_gui.hpp"
-#include "multi_body.hpp"
+#include <cvx/viz/physics/multi_body.hpp>
 
 #include <QApplication>
 #include <QMainWindow>
@@ -58,13 +58,13 @@ public:
 
     void keyPressEvent(QKeyEvent *event) override {
         joint_pos_ = body.getJointPosition(ctrl_joint_) ;
-        MultiBody::Motor *m = body.getMotor(ctrl_joint_) ;
+        Joint *j= body.findJoint(ctrl_joint_) ;
 
         if ( event->key() == Qt::Key_Q ) {
             joint_pos_ -= 0.1 ;
            // body.setJointPosition(ctrl_joint_, joint_pos_) ;
-          //  m->setTargetVelocity(0.5) ;
-            body.setJointTorque(ctrl_joint_, 0.5);
+          j->setTargetVelocity(0.5) ;
+           // body.setJointTorque(ctrl_joint_, 0.5);
             //joint_pos_ = robot_.setJointPosition(ctrl_joint_, joint_pos_) ;
             //map<string, Isometry3f> transforms ;
            // robot_.computeLinkTransforms(transforms) ;
@@ -73,8 +73,8 @@ public:
         } else if ( event->key() == Qt::Key_W ) {
             joint_pos_ += 0.1 ;
             //body.setJointPosition(ctrl_joint_, joint_pos_) ;
-            //m->setTargetVelocity(-0.5) ;
-            body.setJointTorque(ctrl_joint_, -0.5);
+            j->setTargetVelocity(-0.5) ;
+           // body.setJointTorque(ctrl_joint_, -0.5);
             //joint_pos_ = robot_.setJointPosition(ctrl_joint_, joint_pos_) ;
             //map<string, Isometry3f> transforms ;
             //robot_.computeLinkTransforms(transforms) ;

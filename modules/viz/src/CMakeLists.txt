@@ -121,14 +121,14 @@ LIST(APPEND LIB_SOURCES
     physics/rigid_body.cpp
     physics/constraints.cpp
     physics/collision.cpp
-    physics/kinematic.cpp
+    physics/multi_body.cpp
 
     ${LIBRARY_INCLUDE_DIR}/physics/world.hpp
     ${LIBRARY_INCLUDE_DIR}/physics/rigid_body.hpp
     ${LIBRARY_INCLUDE_DIR}/physics/collision.hpp
     ${LIBRARY_INCLUDE_DIR}/physics/convert.hpp
     ${LIBRARY_INCLUDE_DIR}/physics/constraints.hpp
-    ${LIBRARY_INCLUDE_DIR}/physics/kinematic.hpp
+    ${LIBRARY_INCLUDE_DIR}/physics/multi_body.hpp
 )
 ENDIF( BULLET_FOUND )
 
