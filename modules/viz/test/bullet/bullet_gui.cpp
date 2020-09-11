@@ -10,7 +10,7 @@ TestSimulation::TestSimulation(ScenePtr scene, PhysicsWorld &physics): SimpleQtV
     setScene(scene) ;
 
     auto c = scene->geomCenter();
-    initCamera(c, scene->geomRadius(c), {0, 1, 0}) ;
+    initCamera(c, scene->geomRadius(c)) ;
 
     camera_->setBgColor({1, 1, 1, 1}) ;
 

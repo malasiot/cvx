@@ -13,12 +13,20 @@ SimpleQtViewer::SimpleQtViewer() {
     setFocusPolicy(Qt::StrongFocus) ;
 }
 
-void SimpleQtViewer::initCamera(const Vector3f &c, float r, const Vector3f &upAxis) {
+void SimpleQtViewer::initCamera(const Vector3f &c, float r, UpAxis axis) {
 
-    aradius_ = 10 * r ;
+   axis_ = axis ;
+
+   aradius_ = 10 * r ;
 
    camera_.reset(new PerspectiveCamera(1.0, 50*M_PI/180, 0.0001, 100*r)) ;
-   trackball_.setCamera(camera_, c + Vector3f{0.0, 0, 4*r}, c, upAxis) ;
+   if ( axis == YAxis )
+       trackball_.setCamera(camera_, c + Vector3f{0.0, 0, 4*r}, c, {0, 1, 0}) ;
+   else if ( axis == XAxis )
+       trackball_.setCamera(camera_, c + Vector3f{0.0, 0, 4*r}, c, {1, 0, 0}) ;
+   else if ( axis == ZAxis )
+       trackball_.setCamera(camera_, c + Vector3f{0.0, 4*r, 0.0}, c, {0, 0, 1});
+
    trackball_.setZoomScale(0.1*r) ;
 
    camera_->setBgColor({1, 1, 1, 1}) ;
@@ -120,7 +128,12 @@ void SimpleQtViewer::paintGL()
         rdr_.text("Y", Vector3f{0, aradius_, 0}, Font("Arial", 12), Vector3f{0, 1, 0}) ;
         rdr_.text("Z", Vector3f{0, 0, aradius_}, Font("Arial", 12), Vector3f{0, 0, 1}) ;
 
-        rdr_.circle({0, 0, 0}, {0, 1, 0}, 5.0, {0, 1, 0, 1}) ;
+        if ( axis_ == YAxis )
+            rdr_.circle({0, 0, 0}, {0, 1, 0}, 5.0, {0, 1, 0, 1}) ;
+        else if ( axis_ == XAxis )
+            rdr_.circle({0, 0, 0}, {1, 0, 0}, 5.0, {0, 1, 0, 1}) ;
+        else if ( axis_ == ZAxis )
+            rdr_.circle({0, 0, 0}, {0, 0, 1}, 5.0, {0, 1, 0, 1}) ;
     }
 }
 

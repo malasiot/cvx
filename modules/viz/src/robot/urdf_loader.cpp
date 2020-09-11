@@ -134,6 +134,8 @@ void Loader::parseLink(const xml_node &node, Robot &rb, const string &path) {
         link.inertial_.reset(new Inertial(std::move(inr)));
     }
 
+
+
     rb.links_.insert(std::make_pair(name, std::move(link))) ;
 }
 
@@ -193,6 +195,11 @@ void Loader::parseJoint(const xml_node &node, Robot &rb) {
         j.mimic_joint_ = mimic_node.attribute("joint").as_string() ;
         j.mimic_offset_ = mimic_node.attribute("offset").as_float(0.0) ;
         j.mimic_multiplier_ = mimic_node.attribute("multiplier").as_float(1.0) ;
+    }
+
+    if ( xml_node dynamics_node = node.child("dynamics") ) {
+        j.friction_ = dynamics_node.attribute("friction").as_float() ;
+        j.damping_ = dynamics_node.attribute("damping").as_float() ;
     }
 
     rb.joints_.emplace(name, j) ;

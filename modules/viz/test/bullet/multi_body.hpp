@@ -6,6 +6,8 @@
 #include <cvx/viz/physics/convert.hpp>
 #include <cvx/viz/robot/urdf_robot.hpp>
 
+#include <bullet/BulletDynamics/Featherstone/btMultiBodyJointMotor.h>
+
 class MultiBody {
 public:
 
@@ -31,6 +33,7 @@ public:
         cvx::viz::CollisionShape::Ptr shape_ ;
         std::unique_ptr<btCollisionShape> proxy_ ;
         std::unique_ptr<btMultiBodyLinkCollider> collider_ ;
+
         btVector3 inertia_ ;
         Eigen::Isometry3f origin_ ;
         btTransform local_inertial_frame_ ;
@@ -38,13 +41,15 @@ public:
     };
 
 
-    enum JointType { RevoluteJoint, ContinuousJoint, PrismaticJoint, FixedJoint } ;
+    enum JointType { RevoluteJoint, ContinuousJoint, PrismaticJoint, FixedJoint, SphericalJoint, FloatingJoint, PlanarJoint } ;
+
     struct Joint {
+        std::string name_ ;
         std:: string parent_, child_ ;
         JointType type_ ;
         btVector3 axis_ = {1, 0, 0};
         btTransform j2p_ ;
-        float lower_, upper_ ;
+        float lower_, upper_, friction_, damping_, max_force_, max_velocity_ ;
 
         Joint& setAxis(const Eigen::Vector3f &axis) {
              axis_ = cvx::viz::toBulletVector(axis) ;
@@ -57,11 +62,42 @@ public:
              return *this ;
         }
 
+        Joint& setFriction(float f) {
+            friction_ = f ;
+            return *this ;
+        }
+
+        Joint& setDamping(float d) {
+            damping_ = d ;
+            return *this ;
+        }
+
+        Joint& setMaxVelocity(float v) {
+            max_velocity_ = v ;
+            return *this ;
+        }
+
+        Joint& setMaxForce(float v) {
+            max_force_ = v ;
+            return *this ;
+        }
+    };
+
+    struct Motor {
+        std::string name_ ;
+        btMultiBodyJointMotor* motor_ ;
+        float target_velocity_ = 0.f;
+        float max_impulse_ = 10.f ;
+
+        void setTargetVelocity(float v) ;
+
     };
 
     Link &addLink(const std::string &name, float mass, cvx::viz::CollisionShape::Ptr cshape, const Eigen::Isometry3f &origin = Eigen::Isometry3f::Identity());
 
     Joint &addJoint(const std::string &name, JointType type, const std::string &parent, const std::string &child, const Eigen::Isometry3f &j2p);
+
+    Motor *getMotor(const std::string &name) ;
 
     int findLink(const std::string &name);
 
@@ -82,5 +118,7 @@ public:
     std::map<std::string, int> link_map_ ;
     std::map<std::string, Joint> joints_ ;
     std::unique_ptr<btMultiBody> body_ ;
+    std::vector<std::unique_ptr<btMultiBodyConstraint>> constraints_ ;
+    std::map<std::string, Motor> motors_ ;
     Link *root_ ;
 };

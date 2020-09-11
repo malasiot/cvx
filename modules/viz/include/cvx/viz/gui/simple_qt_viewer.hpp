@@ -18,6 +18,9 @@ class SimpleQtViewer : public QOpenGLWidget
     Q_OBJECT
 
 public:
+
+    enum UpAxis { XAxis, YAxis, ZAxis } ;
+
     SimpleQtViewer()  ;
     virtual ~SimpleQtViewer() override = default;
 
@@ -42,7 +45,7 @@ public:
 
     // should be called to initialized camera and trackball with given scene center and radius
 
-    void initCamera(const Eigen::Vector3f &c, float r, const Eigen::Vector3f &up_axis= {0.f, 1.f, 0.f});
+    void initCamera(const Eigen::Vector3f &c, float r, UpAxis upAxis = YAxis );
 
     void setScene(const ScenePtr &scene) ;
 
@@ -78,6 +81,7 @@ protected:
     cvx::viz::TrackBall trackball_ ;
 
     bool draw_axes_ = true ;
+    UpAxis axis_ = YAxis ;
     float aradius_ ;
 
     QElapsedTimer et_ ;

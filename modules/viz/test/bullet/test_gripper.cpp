@@ -40,16 +40,17 @@ public:
     GUI(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics,
          urdf::Robot &rb, const string &ctrl_joint):
     TestSimulation(scene, physics), robot_(rb), ctrl_joint_(ctrl_joint) {
-
+        auto c = scene->geomCenter() ;
+        initCamera(c, scene->geomRadius(c), SimpleQtViewer::ZAxis) ;
         joint_pos_ = 0.0 ;
     }
 
     void onUpdate(float delta) override {
 
-   //     map<string, Isometry3f> transforms ;
-   //     body.getLinkTransforms(transforms) ;
-   //     scene->updateTransforms(transforms) ;
-         TestSimulation::onUpdate(delta) ;
+        map<string, Isometry3f> transforms ;
+        body.getLinkTransforms(transforms) ;
+        scene->updateTransforms(transforms) ;
+        TestSimulation::onUpdate(delta) ;
 
 
     }
@@ -81,89 +82,12 @@ private:
     string ctrl_joint_ ;
 };
 
-/*
-void makeRobot(PhysicsWorld &physics, ScenePtr scene, const urdf::Robot &robot) {
-
-    vector<BodyData> links ;
-    map<string, int> link_map ;
-
-    for( const auto &bp: robot.links_ ) {
-        const string &name = bp.first ;
-        const urdf::Link &link = bp.second ;
-
-        if ( link.collision_geom_ ) {
-
-            BodyData data ;
-
-            urdf::Geometry *geom = link.collision_geom_.get() ;
-            const Isometry3f &col_origin = geom->origin_ ;
-
-             CollisionShape::Ptr shape ;
-
-             if ( const urdf::BoxGeometry *g = dynamic_cast<const urdf::BoxGeometry *>(geom) ) {
-                 shape.reset(new BoxCollisionShape(g->he_))  ;
-             } else if ( const urdf::CylinderGeometry *g = dynamic_cast<const urdf::CylinderGeometry *>(geom) ) {
-                 shape.reset(new CylinderCollisionShape(g->radius_, g->height_/2.0, CylinderCollisionShape::ZAxis))  ;
-             } else if ( const urdf::MeshGeometry *g = dynamic_cast<const urdf::MeshGeometry *>(geom) ) {
-                 shape.reset(new StaticMeshCollisionShape(g->path_));
-             } else if ( const urdf::SphereGeometry *g = dynamic_cast<const urdf::SphereGeometry *>(geom) ) {
-                 shape.reset(new SphereCollisionShape(g->radius_));
-             }
-
-
-             shape->handle()->setMargin(0.001) ;
-
-             float mass = 0.0 ;
-             Isometry3f local_inertial_frame = Isometry3f::Identity() ;
-
-             if ( link.inertial_ ) {
-                 mass = link.inertial_->mass_ ;
-                 local_inertial_frame = link.inertial_->origin_ ;
-             }
-
-             if ( shape ) {
-                GroupCollisionShape *proxy = new GroupCollisionShape() ;
-                proxy->addChild(shape,  col_origin) ;
-                data.shape_.reset(proxy) ;
-                data.mass_ = mass ;
-                data.local_inertial_frame_ = toBulletTransform(local_inertial_frame) ;
-                data.link_ = &link ;
-                data.node_ = scene->findNodeByName(link.name_) ;
-                link_map[link.name_] = links.size() ;
-                links.emplace_back(std::move(data)) ;
-
-             }
-        }
-    }
-
-    int root_idx = link_map[robot.root_->name_] ;
-    btTransform tr ;
-    tr.setIdentity() ;
-
-
-    buildJoints(root_idx, tr, body, links, link_map, physics) ;
-
-    for( RigidBody &b: body.bodies_ ) {
-        physics.addBody(b) ;
-    }
-
-    for ( const auto &c: body.constraints_ ) {
-        physics.getDynamicsWorld()->addConstraint(c.get(), true) ;
-    }
-
-    for( const auto &rp: body.motors_ ) {
-        const Motor &motor = rp.second ;
-        motor.constraint_->enableMotor(motor.axis_, true);
-        motor.constraint_->setMaxMotorForce(motor.axis_, 0);
-        motor.constraint_->setTargetVelocity(motor.axis_, 0);
-    }
-}
-*/
 urdf::Robot robot ;
 
 void createScene() {
 
     physics.createMultiBodyDynamicsWorld();
+    physics.setGravity({0, 0, -10});
 
     Affine3f tr(Translation3f{0, -1.5, 0}) ;
 
@@ -195,15 +119,7 @@ void createScene() {
 
     body.createFromURDF(physics, robot) ;
 
-//    scene->matrix() = rot ;
-
-   // makeRobot(physics, scene, rb) ;
-
-
-
- //  body.motors_["finger_joint"].setTargetVelocity(1.5) ;
-
-
+    body.getMotor("slider_to_cart")->setTargetVelocity(0.5) ;
 
 
 }

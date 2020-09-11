@@ -1,6 +1,7 @@
 #include "multi_body.hpp"
 
 #include <bullet/BulletDynamics/Featherstone/btMultiBodyDynamicsWorld.h>
+#include <bullet/BulletDynamics/Featherstone/btMultiBodyJointLimitConstraint.h>
 
 
 using namespace cvx::viz;
@@ -121,6 +122,14 @@ void MultiBody::buildJoints(int link_idx, const btTransform &parent_transform_in
     linkTransform = parentTransform * parent2joint;
 
     if ( parent_joint ) {
+
+        body_->getLink(link.mb_index_).m_jointDamping = parent_joint->damping_;
+        body_->getLink(link.mb_index_).m_jointFriction = parent_joint->friction_;
+        body_->getLink(link.mb_index_).m_jointLowerLimit = parent_joint->lower_;
+        body_->getLink(link.mb_index_).m_jointUpperLimit = parent_joint->upper_;
+        body_->getLink(link.mb_index_).m_jointMaxForce = parent_joint->max_force_;
+        body_->getLink(link.mb_index_).m_jointMaxVelocity = parent_joint->max_velocity_;
+
         btTransform offsetInA = parent_local_inertial_frame.inverse() * parent2joint ;
         btTransform offsetInB = local_inertial_frame.inverse();
         btQuaternion parentRotToThis = offsetInB.getRotation() * offsetInA.inverse().getRotation();
@@ -139,6 +148,19 @@ void MultiBody::buildJoints(int link_idx, const btTransform &parent_transform_in
                                                                             -offsetInB.getOrigin(),
                                                                             true);
 
+            if ( parent_joint->lower_ <= parent_joint->upper_ ) {
+                btMultiBodyConstraint* con = new btMultiBodyJointLimitConstraint(body_.get(), link.mb_index_, parent_joint->lower_, parent_joint->upper_);
+                constraints_.emplace_back(unique_ptr<btMultiBodyConstraint>(con)) ;
+            }
+
+        } else if ( parent_joint->type_ == SphericalJoint ) {
+            body_->setupSpherical(link.mb_index_, link.mass_, link.inertia_, parent_link->mb_index_,
+                                        parentRotToThis, offsetInA.getOrigin(), -offsetInB.getOrigin(),
+                                        true);
+        } else if ( parent_joint->type_ == PlanarJoint ) {
+           body_->setupPlanar(link.mb_index_, link.mass_, link.inertia_, parent_link->mb_index_,
+                                        parentRotToThis, quatRotate(offsetInB.getRotation(), parent_joint->axis_), offsetInA.getOrigin(),
+                                        true);
         }
     }
 
@@ -177,6 +199,37 @@ void MultiBody::create(PhysicsWorld &physics)  {
 
         body_->getLink(l.mb_index_).m_collider = l.collider_.get();
     }
+
+    // create motors
+
+    // mb->setBaseName(name->c_str());
+    //create motors for each btMultiBody joint
+
+    for( const Link &l: links_ ) {
+        int mb_link_idx = l.mb_index_ ;
+        if ( mb_link_idx < 0 ) continue ;
+
+        btMultibodyLink &mb_link = body_->getLink(mb_link_idx) ;
+
+        mb_link.m_linkName = l.name_.c_str() ;
+        mb_link.m_jointName = l.parent_joint_->name_.c_str();
+
+        if ( mb_link.m_jointType == btMultibodyLink::eRevolute || mb_link.m_jointType == btMultibodyLink::ePrismatic)
+        {
+            Motor motor ;
+            motor.name_ = l.parent_joint_->name_ ;
+            motor.motor_ = new btMultiBodyJointMotor(body_.get(), mb_link_idx, 0, 0, 1.0);
+            constraints_.emplace_back(unique_ptr<btMultiBodyConstraint>(motor.motor_)) ;
+            motors_.emplace(motor.name_, std::move(motor)) ;
+        }
+    }
+
+    for( const auto &c: constraints_ ) {
+        c.get()->finalizeMultiDof();
+        w->addMultiBodyConstraint(c.get()) ;
+    }
+
+
 
     body_->finalizeMultiDof() ;
 }
@@ -227,15 +280,36 @@ void MultiBody::createFromURDF(PhysicsWorld &physics, urdf::Robot &rb) {
             auto &j = addJoint(name, RevoluteJoint, joint.parent_, joint.child_, joint.origin_) ;
             j.setAxis(joint.axis_) ;
             j.setLimits(joint.lower_, joint.upper_) ;
+            j.setDamping(joint.damping_) ;
+            j.setFriction(joint.friction_) ;
+            j.setMaxForce(joint.effort_) ;
+            j.setMaxVelocity(joint.velocity_) ;
         } else if ( joint.type_ == "continuous" ) {
             auto &j = addJoint(name, ContinuousJoint, joint.parent_, joint.child_, joint.origin_) ;
             j.setAxis(joint.axis_) ;
+            j.setDamping(joint.damping_) ;
+            j.setFriction(joint.friction_) ;
+            j.setMaxForce(joint.effort_) ;
+            j.setMaxVelocity(joint.velocity_) ;
         } else if ( joint.type_ == "fixed" ) {
             auto &j = addJoint(name, FixedJoint, joint.parent_, joint.child_, joint.origin_) ;
         } else if ( joint.type_ == "prismatic" ) {
             auto &j = addJoint(name, PrismaticJoint, joint.parent_, joint.child_, joint.origin_) ;
             j.setAxis(joint.axis_) ;
             j.setLimits(joint.lower_, joint.upper_) ;
+            j.setDamping(joint.damping_) ;
+            j.setFriction(joint.friction_) ;
+            j.setMaxForce(joint.effort_) ;
+            j.setMaxVelocity(joint.velocity_) ;
+        } else if ( joint.type_ == "planar" ) {
+            auto &j = addJoint(name, PlanarJoint, joint.parent_, joint.child_, joint.origin_) ;
+            j.setAxis(joint.axis_) ;
+            j.setDamping(joint.damping_) ;
+            j.setFriction(joint.friction_) ;
+            j.setMaxForce(joint.effort_) ;
+            j.setMaxVelocity(joint.velocity_) ;
+        } else if ( joint.type_ == "floating" ) {
+            assert("unsupported") ;
         }
     }
 
@@ -255,6 +329,7 @@ void MultiBody::getLinkTransforms(std::map<string, Isometry3f> &names) const
 MultiBody::Joint &MultiBody::addJoint(const std::string &name, MultiBody::JointType type, const string &parent,
                                       const string &child, const Isometry3f &j2p) {
     Joint j ;
+    j.name_ = name ;
     j.type_ = type ;
     j.parent_ = parent  ;
     j.child_ = child ;
@@ -262,4 +337,15 @@ MultiBody::Joint &MultiBody::addJoint(const std::string &name, MultiBody::JointT
 
     auto it = joints_.emplace(name, std::move(j)) ;
     return it.first->second ;
+}
+
+MultiBody::Motor *MultiBody::getMotor(const string &name)
+{
+    auto it = motors_.find(name) ;
+    if ( it == motors_.end() ) return nullptr ;
+    else return &(it->second) ;
+}
+
+void MultiBody::Motor::setTargetVelocity(float v) {
+    motor_->setVelocityTarget(v) ;
 }

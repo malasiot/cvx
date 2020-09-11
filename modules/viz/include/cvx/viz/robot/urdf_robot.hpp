@@ -15,6 +15,7 @@ struct Joint {
     Eigen::Vector3f axis_ ;
     Eigen::Isometry3f origin_ = Eigen::Isometry3f::Identity() ;
     float upper_, lower_, mimic_offset_, mimic_multiplier_, effort_, velocity_ ;
+    float damping_, friction_ ;
     float position_ = 0;
 
     Eigen::Isometry3f getMatrix() const ;
