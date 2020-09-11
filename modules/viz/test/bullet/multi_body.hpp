@@ -46,10 +46,16 @@ public:
     struct Joint {
         std::string name_ ;
         std:: string parent_, child_ ;
+        Link *parent_link_, *child_link_ ;
+
         JointType type_ ;
         btVector3 axis_ = {1, 0, 0};
         btTransform j2p_ ;
         float lower_, upper_, friction_, damping_, max_force_, max_velocity_ ;
+        btMultiBody *body_ = nullptr ;
+
+        Link *parentLink() const { return parent_link_ ; }
+        Link *childLink() const { return child_link_ ; }
 
         Joint& setAxis(const Eigen::Vector3f &axis) {
              axis_ = cvx::viz::toBulletVector(axis) ;
@@ -81,6 +87,14 @@ public:
             max_force_ = v ;
             return *this ;
         }
+
+        float getPosition() ;
+        float getVelocity() ;
+        float getTorque() ;
+
+        void setPosition(float v) ;
+        void setVelocity(float v) ;
+        void setTorque(float v) ;
     };
 
     struct Motor {
@@ -99,7 +113,17 @@ public:
 
     Motor *getMotor(const std::string &name) ;
 
+    float getJointPosition(const std::string &name) ;
+    float getJointVelocity(const std::string &name) ;
+    float getJointTorque(const std::string &name) ;
+
+    void setJointPosition(const std::string &name, float v) ;
+    void setJointVelocity(const std::string &name, float v) ;
+    void setJointTorque(const std::string &name, float v) ;
+
     int findLink(const std::string &name);
+
+    Joint *findJoint(const std::string &name) ;
 
     void buildTree();
 
@@ -121,4 +145,7 @@ public:
     std::vector<std::unique_ptr<btMultiBodyConstraint>> constraints_ ;
     std::map<std::string, Motor> motors_ ;
     Link *root_ ;
+private:
+
+    int getJointIndex(const std::string &name);
 };

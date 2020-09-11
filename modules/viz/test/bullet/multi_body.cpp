@@ -28,6 +28,12 @@ int MultiBody::findLink(const std::string &name) {
     else return it->second ;
 }
 
+MultiBody::Joint *MultiBody::findJoint(const string &name) {
+    auto it = joints_.find(name) ;
+    if ( it == joints_.end() ) return nullptr ;
+    else return &(it->second) ;
+}
+
 void MultiBody::buildTree() {
     map<string, string> parent_link_tree ;
 
@@ -43,6 +49,9 @@ void MultiBody::buildTree() {
 
         Link *child_link = &links_[child_link_idx] ;
         Link *parent_link = &links_[parent_link_idx] ;
+
+        j.parent_link_ = parent_link ;
+        j.child_link_ = child_link ;
 
         child_link->parent_link_ = parent_link ;
         child_link->parent_joint_ = &j ;
@@ -111,7 +120,7 @@ void MultiBody::buildJoints(int link_idx, const btTransform &parent_transform_in
     parent_local_inertial_frame.setIdentity() ;
     btTransform local_inertial_frame = link.local_inertial_frame_ ;
 
-    const Joint *parent_joint  = nullptr ;
+    Joint *parent_joint  = nullptr ;
 
     if ( parent_link ) {
         parent_joint  = link.parent_joint_ ;
@@ -122,13 +131,15 @@ void MultiBody::buildJoints(int link_idx, const btTransform &parent_transform_in
     linkTransform = parentTransform * parent2joint;
 
     if ( parent_joint ) {
+        parent_joint->body_ = body_.get() ;
 
-        body_->getLink(link.mb_index_).m_jointDamping = parent_joint->damping_;
-        body_->getLink(link.mb_index_).m_jointFriction = parent_joint->friction_;
-        body_->getLink(link.mb_index_).m_jointLowerLimit = parent_joint->lower_;
-        body_->getLink(link.mb_index_).m_jointUpperLimit = parent_joint->upper_;
-        body_->getLink(link.mb_index_).m_jointMaxForce = parent_joint->max_force_;
-        body_->getLink(link.mb_index_).m_jointMaxVelocity = parent_joint->max_velocity_;
+        btMultibodyLink &mb_link = body_->getLink(link.mb_index_) ;
+        mb_link.m_jointDamping = parent_joint->damping_;
+        mb_link.m_jointFriction = parent_joint->friction_;
+        mb_link.m_jointLowerLimit = parent_joint->lower_;
+        mb_link.m_jointUpperLimit = parent_joint->upper_;
+        mb_link.m_jointMaxForce = parent_joint->max_force_;
+        mb_link.m_jointMaxVelocity = parent_joint->max_velocity_;
 
         btTransform offsetInA = parent_local_inertial_frame.inverse() * parent2joint ;
         btTransform offsetInB = local_inertial_frame.inverse();
@@ -218,7 +229,9 @@ void MultiBody::create(PhysicsWorld &physics)  {
         {
             Motor motor ;
             motor.name_ = l.parent_joint_->name_ ;
-            motor.motor_ = new btMultiBodyJointMotor(body_.get(), mb_link_idx, 0, 0, 1.0);
+            motor.motor_ = new btMultiBodyJointMotor(body_.get(), mb_link_idx, 0, 0, 0.0);
+            motor.motor_->setVelocityTarget(0) ;
+
             constraints_.emplace_back(unique_ptr<btMultiBodyConstraint>(motor.motor_)) ;
             motors_.emplace(motor.name_, std::move(motor)) ;
         }
@@ -346,6 +359,68 @@ MultiBody::Motor *MultiBody::getMotor(const string &name)
     else return &(it->second) ;
 }
 
+int MultiBody::getJointIndex(const string &name) {
+    Joint *j = findJoint(name) ;
+    assert( j != nullptr ) ;
+    return j->childLink()->mb_index_ ;
+}
+
+float MultiBody::getJointPosition(const string &name)
+{
+    return static_cast<float>(body_->getJointPos(getJointIndex(name))) ;
+}
+
+float MultiBody::getJointVelocity(const string &name) {
+    return static_cast<float>(body_->getJointVel(getJointIndex(name))) ;
+}
+
+float MultiBody::getJointTorque(const string &name) {
+    return static_cast<float>(body_->getJointTorque(getJointIndex(name))) ;
+}
+
+void MultiBody::setJointPosition(const string &name, float v) {
+    body_->setJointPos(getJointIndex(name), static_cast<btScalar>(v)) ;
+}
+
+void MultiBody::setJointVelocity(const string &name, float v) {
+    body_->setJointVel(getJointIndex(name), static_cast<btScalar>(v)) ;
+}
+
+void MultiBody::setJointTorque(const string &name, float v) {
+    body_->addJointTorque(getJointIndex(name), static_cast<btScalar>(v)) ;
+}
+
+
 void MultiBody::Motor::setTargetVelocity(float v) {
     motor_->setVelocityTarget(v) ;
+}
+
+float MultiBody::Joint::getPosition() {
+    assert(body_) ;
+    return static_cast<float>(body_->getJointPos(child_link_->mb_index_)) ;
+}
+
+float MultiBody::Joint::getVelocity() {
+    assert(body_) ;
+    return static_cast<float>(body_->getJointVel(child_link_->mb_index_)) ;
+}
+
+float MultiBody::Joint::getTorque() {
+    assert(body_) ;
+    return static_cast<float>(body_->getJointTorque(child_link_->mb_index_)) ;
+}
+
+void MultiBody::Joint::setPosition(float v) {
+    assert(body_) ;
+    body_->setJointPos(child_link_->mb_index_, static_cast<btScalar>(v)) ;
+}
+
+void MultiBody::Joint::setVelocity(float v) {
+    assert(body_) ;
+    body_->setJointVel(child_link_->mb_index_, static_cast<btScalar>(v)) ;
+}
+
+void MultiBody::Joint::setTorque(float v) {
+    assert(body_) ;
+    body_->addJointTorque(child_link_->mb_index_, static_cast<btScalar>(v)) ;
 }

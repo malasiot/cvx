@@ -47,6 +47,7 @@ public:
 
     void onUpdate(float delta) override {
 
+        cout << body.getJointPosition(ctrl_joint_) << endl ;
         map<string, Isometry3f> transforms ;
         body.getLinkTransforms(transforms) ;
         scene->updateTransforms(transforms) ;
@@ -56,19 +57,28 @@ public:
     }
 
     void keyPressEvent(QKeyEvent *event) override {
+        joint_pos_ = body.getJointPosition(ctrl_joint_) ;
+        MultiBody::Motor *m = body.getMotor(ctrl_joint_) ;
+
         if ( event->key() == Qt::Key_Q ) {
             joint_pos_ -= 0.1 ;
-            joint_pos_ = robot_.setJointPosition(ctrl_joint_, joint_pos_) ;
-            map<string, Isometry3f> transforms ;
-            robot_.computeLinkTransforms(transforms) ;
-            scene->updateTransforms(transforms) ;
+           // body.setJointPosition(ctrl_joint_, joint_pos_) ;
+          //  m->setTargetVelocity(0.5) ;
+            body.setJointTorque(ctrl_joint_, 0.5);
+            //joint_pos_ = robot_.setJointPosition(ctrl_joint_, joint_pos_) ;
+            //map<string, Isometry3f> transforms ;
+           // robot_.computeLinkTransforms(transforms) ;
+           // scene->updateTransforms(transforms) ;
 
         } else if ( event->key() == Qt::Key_W ) {
             joint_pos_ += 0.1 ;
-            joint_pos_ = robot_.setJointPosition(ctrl_joint_, joint_pos_) ;
-            map<string, Isometry3f> transforms ;
-            robot_.computeLinkTransforms(transforms) ;
-            scene->updateTransforms(transforms) ;
+            //body.setJointPosition(ctrl_joint_, joint_pos_) ;
+            //m->setTargetVelocity(-0.5) ;
+            body.setJointTorque(ctrl_joint_, -0.5);
+            //joint_pos_ = robot_.setJointPosition(ctrl_joint_, joint_pos_) ;
+            //map<string, Isometry3f> transforms ;
+            //robot_.computeLinkTransforms(transforms) ;
+            //scene->updateTransforms(transforms) ;
 
         }
 
@@ -119,7 +129,8 @@ void createScene() {
 
     body.createFromURDF(physics, robot) ;
 
-    body.getMotor("slider_to_cart")->setTargetVelocity(0.5) ;
+    body.setJointPosition("slider_to_cart", -1) ;
+  //  body.getMotor("slider_to_cart")->setTargetVelocity(0.5) ;
 
 
 }
