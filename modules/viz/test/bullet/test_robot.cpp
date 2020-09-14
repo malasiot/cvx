@@ -37,17 +37,17 @@ ScenePtr scene(new Scene) ;
 MultiBody body ;
 
 
-class GUI: public TestSimulation {
+class GUI: public SimulationGui {
 public:
     GUI(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics):
-    TestSimulation(scene, physics) {
+    SimulationGui(scene, physics) {
     }
 
     void onUpdate(float delta) override {
          map<string, Isometry3f> transforms ;
         body.getLinkTransforms(transforms) ;
         scene->updateTransforms(transforms) ;
-    TestSimulation::onUpdate(delta) ;
+    SimulationGui::onUpdate(delta) ;
     }
 
 };
@@ -101,7 +101,7 @@ void createScene() {
     dl->diffuse_color_ = Vector3f(1, 1, 1) ;
     scene->addLight(LightPtr(dl)) ;
 
-    float link_size = 0.2 ;
+    float link_size = 0.4 ;
     Vector3f box_hs{0.05, link_size/2, 0.05} ;
     float box_mass = 0.1 ;
 
@@ -130,6 +130,13 @@ void createScene() {
     NodePtr link1_node = makeCube("link1", box_hs, {1, 1, 0, 1}, scene) ;
     NodePtr link2_node = makeCube("link2", box_hs, {1, 0, 1, 1}, scene) ;
     NodePtr link3_node = makeCube("link3", box_hs, {0, 0, 1, 1}, scene) ;
+
+    Vector3f col_hs{0.1f, 0.1f, 0.1f} ;
+    Isometry3f col_tr = Isometry3f::Identity();
+    col_tr.translate(Vector3f{0.0, -1.5+0.2, -0.25});
+    NodePtr cube = makeCube("cube", col_hs, {1, 0 , 0, 1}, scene) ;
+    cube->matrix() = col_tr ;
+    physics.addBody(RigidBody(0.15, new UpdateSceneMotionState(cube), CollisionShape::Ptr(new BoxCollisionShape(col_hs)))) ;
 }
 
 

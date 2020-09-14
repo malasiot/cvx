@@ -14,11 +14,11 @@
 #include <iostream>
 
 
-class TestSimulation : public cvx::viz::SimpleQtViewer
+class SimulationGui : public cvx::viz::SimpleQtViewer
 {
     Q_OBJECT
 public:
-    TestSimulation(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics) ;
+    SimulationGui(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics) ;
 
 protected:
 

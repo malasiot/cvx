@@ -97,7 +97,7 @@ int main(int argc, char **argv)
     cvx::viz::SimpleQtViewer::initDefaultGLContext() ;
 
     QMainWindow window ;
-    window.setCentralWidget(new TestSimulation(scene, physics)) ;
+    window.setCentralWidget(new SimulationGui(scene, physics)) ;
     window.resize(512, 512) ;
     window.show() ;
 

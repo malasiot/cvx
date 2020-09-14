@@ -35,13 +35,13 @@ RNG g_rng ;
 
 MultiBody body ;
 
-class GUI: public TestSimulation {
+class GUI: public SimulationGui {
 public:
     GUI(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics,
          urdf::Robot &rb, const string &ctrl_joint):
-    TestSimulation(scene, physics), robot_(rb), ctrl_joint_(ctrl_joint) {
-        auto c = scene->geomCenter() ;
-        initCamera(c, scene->geomRadius(c), SimpleQtViewer::ZAxis) ;
+    SimulationGui(scene, physics), robot_(rb), ctrl_joint_(ctrl_joint) {
+
+        initCamera({0, 0, 0}, 1.0, SimpleQtViewer::ZAxis) ;
         joint_pos_ = 0.0 ;
     }
 
@@ -51,7 +51,7 @@ public:
         map<string, Isometry3f> transforms ;
         body.getLinkTransforms(transforms) ;
         scene->updateTransforms(transforms) ;
-        TestSimulation::onUpdate(delta) ;
+        SimulationGui::onUpdate(delta) ;
 
 
     }
@@ -108,12 +108,6 @@ void createScene() {
 
     string package_path = "/home/malasiot/Downloads/robotiq_arg85/" ;
 
-    Affine3f rot ;
-    rot.setIdentity() ;
-
-    rot.translate(Vector3f(0, 1.0, 0)) ;
-    rot.rotate( AngleAxisf(0.5*M_PI,  Vector3f::UnitX())) ;
-
     string path = "/home/malasiot/local/bullet3/examples/pybullet/gym/pybullet_data/cartpole.urdf" ;
     //string path = "/home/malasiot/Downloads/robotiq_arg85/" ;
     robot = urdf::Robot::load(path /*+ "robots/robotiq_arg85_description.URDF"*/,
@@ -141,7 +135,7 @@ int main(int argc, char **argv)
 
     QApplication app(argc, argv);
 
-    cvx::viz::SimpleQtViewer::initDefaultGLContext() ;
+    SimpleQtViewer::initDefaultGLContext() ;
 
     QMainWindow window ;
     window.setCentralWidget(new GUI(scene, physics, robot, "slider_to_cart")) ;

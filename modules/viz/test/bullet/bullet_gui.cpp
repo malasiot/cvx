@@ -6,7 +6,7 @@
 
 using namespace cvx::viz ;
 
-TestSimulation::TestSimulation(ScenePtr scene, PhysicsWorld &physics): SimpleQtViewer(), physics_(physics), picker_(physics) {
+SimulationGui::SimulationGui(ScenePtr scene, PhysicsWorld &physics): SimpleQtViewer(), physics_(physics), picker_(physics) {
     setScene(scene) ;
 
     auto c = scene->geomCenter();
@@ -17,7 +17,7 @@ TestSimulation::TestSimulation(ScenePtr scene, PhysicsWorld &physics): SimpleQtV
     startAnimations() ;
 }
 
-void TestSimulation::mousePressEvent(QMouseEvent *event)
+void SimulationGui::mousePressEvent(QMouseEvent *event)
 {
     if ( event->modifiers() & Qt::ControlModifier ) {
         Ray ray = camera_->getRay(event->x(), event->y()) ;
@@ -33,7 +33,7 @@ void TestSimulation::mousePressEvent(QMouseEvent *event)
 
 }
 
-void TestSimulation::mouseReleaseEvent(QMouseEvent *event)
+void SimulationGui::mouseReleaseEvent(QMouseEvent *event)
 {
     if ( event->modifiers() & Qt::ControlModifier ) {
         picker_.removePickingConstraint();
@@ -44,7 +44,7 @@ void TestSimulation::mouseReleaseEvent(QMouseEvent *event)
 
 }
 
-void TestSimulation::mouseMoveEvent(QMouseEvent *event)
+void SimulationGui::mouseMoveEvent(QMouseEvent *event)
 {
     int x = event->x() ;
     int y = event->y() ;

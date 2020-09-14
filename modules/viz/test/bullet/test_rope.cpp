@@ -28,15 +28,15 @@ using namespace cvx::viz ;
 using namespace cvx::util ;
 
 
-class GUI: public TestSimulation {
+class GUI: public SimulationGui {
 public:
     GUI(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics, vector<RigidBody> &objects):
-    TestSimulation(scene, physics), objects_(std::move(objects)) {
+    SimulationGui(scene, physics), objects_(std::move(objects)) {
 
     }
 
     void onUpdate(float delta) override {
-        TestSimulation::onUpdate(delta) ;
+        SimulationGui::onUpdate(delta) ;
 
         vector<ContactResult> contacts ;
         if ( physics_.contactTest(objects_[0], contacts ) ) {
