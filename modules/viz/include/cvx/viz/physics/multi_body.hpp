@@ -89,6 +89,8 @@ public:
 
     Joint & setMotorMaxImpulse(float v) ;
 
+    void setMimicJointPosition() ;
+
     float getPosition() ;
     float getVelocity() ;
     float getTorque() ;
@@ -109,15 +111,17 @@ private:
 
     std::string name_ ;
     std:: string parent_, child_ ;
-    Link *parent_link_, *child_link_ ;
+    Link *parent_link_ = nullptr, *child_link_ = nullptr ;
 
     JointType type_ ;
     btVector3 axis_ = {1, 0, 0};
     btTransform j2p_ ;
-    float lower_, upper_, friction_, damping_, max_force_, max_velocity_ ;
+    float lower_ = 0.f, upper_ = 0.f, friction_ = 0.f, damping_ = 0.f, max_force_ = 0.f, max_velocity_ = 0.f ;
     btMultiBody *body_ = nullptr ;
     btMultiBodyJointMotor* motor_ = nullptr ;
     btScalar motor_max_force_ = btScalar(10.0) ;
+    std::vector<Joint *> mimic_joints_ ; // child joints to be mimicked
+    float mimic_multiplier_ = 1.f, mimic_offset_ = 0.f ;
 };
 
 class MultiBody {
@@ -160,13 +164,17 @@ private:
 
     int getJointIndex(const std::string &name);
 
+    void setMimic(const urdf::Joint &joint, Joint &j);
+
 private:
     std::vector<Link> links_ ;
     std::map<std::string, int> link_map_ ;
     std::map<std::string, Joint> joints_ ;
     std::unique_ptr<btMultiBody> body_ ;
     std::vector<std::unique_ptr<btMultiBodyConstraint>> constraints_ ;
+
     Link *root_ ;
+
 
 };
 

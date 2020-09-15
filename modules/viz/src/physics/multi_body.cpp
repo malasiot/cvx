@@ -242,6 +242,17 @@ void MultiBody::create(PhysicsWorld &physics)  {
     body_->finalizeMultiDof() ;
 }
 
+void MultiBody::setMimic(const urdf::Joint &joint, Joint &j) {
+    if ( !joint.mimic_joint_.empty() ) {
+        Joint *mj = findJoint(joint.mimic_joint_) ;
+        if ( mj ) {
+            mj->mimic_joints_.push_back(&j) ;
+            j.mimic_multiplier_ = joint.mimic_multiplier_ ;
+            j.mimic_offset_ = joint.mimic_offset_ ;
+        }
+    }
+}
+
 void MultiBody::createFromURDF(PhysicsWorld &physics, urdf::Robot &rb) {
     for( const auto &lp: rb.links_ ) {
         const string &name  = lp.first ;
@@ -292,6 +303,7 @@ void MultiBody::createFromURDF(PhysicsWorld &physics, urdf::Robot &rb) {
             j.setFriction(joint.friction_) ;
             j.setMaxForce(joint.effort_) ;
             j.setMaxVelocity(joint.velocity_) ;
+            setMimic(joint, j) ;
         } else if ( joint.type_ == "continuous" ) {
             auto &j = addJoint(name, ContinuousJoint, joint.parent_, joint.child_, joint.origin_) ;
             j.setAxis(joint.axis_) ;
@@ -299,6 +311,7 @@ void MultiBody::createFromURDF(PhysicsWorld &physics, urdf::Robot &rb) {
             j.setFriction(joint.friction_) ;
             j.setMaxForce(joint.effort_) ;
             j.setMaxVelocity(joint.velocity_) ;
+            setMimic(joint, j) ;
         } else if ( joint.type_ == "fixed" ) {
             auto &j = addJoint(name, FixedJoint, joint.parent_, joint.child_, joint.origin_) ;
         } else if ( joint.type_ == "prismatic" ) {
@@ -309,6 +322,7 @@ void MultiBody::createFromURDF(PhysicsWorld &physics, urdf::Robot &rb) {
             j.setFriction(joint.friction_) ;
             j.setMaxForce(joint.effort_) ;
             j.setMaxVelocity(joint.velocity_) ;
+            setMimic(joint, j) ;
         } else if ( joint.type_ == "planar" ) {
             auto &j = addJoint(name, PlanarJoint, joint.parent_, joint.child_, joint.origin_) ;
             j.setAxis(joint.axis_) ;
@@ -390,6 +404,15 @@ void Joint::setTargetPosition(float v) {
 Joint & Joint::setMotorMaxImpulse(float v) {
     motor_max_force_ = v ;
     return *this ;
+}
+
+void Joint::setMimicJointPosition()
+{
+    float pos = getPosition() ;
+    for( Joint *j: mimic_joints_ ) {
+        float mpos = pos * j->mimic_multiplier_ + j->mimic_offset_;
+        j->setPosition(mpos) ;
+    }
 }
 
 float Joint::getPosition() {
