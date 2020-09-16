@@ -121,7 +121,6 @@ RobotScenePtr RobotScene::parseRobotURDF(const urdf::Robot &rb)
 
         if ( link.visual_geom_ ) {
 
-
             urdf::Geometry *geom = link.visual_geom_.get() ;
 
             const std::string &matref = geom->material_ref_ ;
@@ -134,9 +133,18 @@ RobotScenePtr RobotScene::parseRobotURDF(const urdf::Robot &rb)
             Vector3f scale{1, 1, 1} ;
             NodePtr geom_node = createLinkGeometry(geom, mat, scale) ;
 
-            geom_node->setName(link.name_) ;
+            Isometry3f local_inertial_frame = Isometry3f::Identity() ;
+            if ( link.inertial_ )
+                local_inertial_frame = link.inertial_->origin_ ;
 
-            scene->addChild(geom_node) ;
+            geom_node->matrix() = local_inertial_frame.inverse() * geom->origin_ ;
+
+            NodePtr link_node(new Node) ;
+            link_node->addChild(geom_node) ;
+
+            link_node->setName(link.name_) ;
+
+            scene->addChild(link_node) ;
 
 
             link_nodes.emplace(link.name_, geom_node) ;

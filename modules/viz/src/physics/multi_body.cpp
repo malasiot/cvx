@@ -130,7 +130,7 @@ void MultiBody::buildJoints(int link_idx, const btTransform &parent_transform_in
         parent_local_inertial_frame = parent_link->local_inertial_frame_ ;
     }
 
-    linkTransform = parentTransform * parent2joint;
+    linkTransform = parentTransform * parent2joint  ;
 
     if ( parent_joint ) {
         parent_joint->body_ = body_.get() ;
@@ -342,7 +342,7 @@ void MultiBody::getLinkTransforms(std::map<string, Isometry3f> &names) const
 {
     for( const Link &l: links_ ) {
         if ( l.collider_ ) {
-            btTransform tr = l.collider_->getWorldTransform() ;
+            btTransform tr = l.collider_->getWorldTransform();
             names.emplace(l.name_, Isometry3f(toEigenTransform(tr))) ;
         }
     }
@@ -362,6 +362,7 @@ Joint &MultiBody::addJoint(const std::string &name, JointType type, const string
 }
 
 int MultiBody::getJointIndex(const string &name) {
+    cout << name << endl ;
     Joint *j = findJoint(name) ;
     assert( j != nullptr ) ;
     return j->childLink()->mb_index_ ;

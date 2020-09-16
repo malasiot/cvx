@@ -63,9 +63,9 @@ void Robot::computeLinkTransformRecursive(std::map<std::string, Isometry3f> &tra
 
     Isometry3f tr = parent * p2j ;
 
-    if ( link->visual_geom_ )
-        transforms.emplace(link->name_, tr * link->visual_geom_->origin_) ;
-    else
+  //  if ( link->visual_geom_ )
+ //       transforms.emplace(link->name_, tr.matrix() * link->visual_geom_->origin_.matrix()) ;
+  //  else
         transforms.emplace(link->name_, tr) ;
 
     for( const Link *l: link->child_links_ ) {

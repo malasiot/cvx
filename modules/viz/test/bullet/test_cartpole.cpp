@@ -51,7 +51,7 @@ public:
         map<string, Isometry3f> transforms ;
         body.getLinkTransforms(transforms) ;
         scene->updateTransforms(transforms) ;
-        SimulationGui::onUpdate(delta) ;
+        SimulationGui::onUpdate(10) ;
 
 
     }
@@ -105,13 +105,9 @@ void createScene() {
     scene->addBox(ground_hs, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
     physics.addBody(RigidBody(CollisionShape::Ptr(new BoxCollisionShape(ground_hs)), tr)) ;
 
-
-    string package_path = "/home/malasiot/Downloads/robotiq_arg85/" ;
-
     string path = "/home/malasiot/local/bullet3/examples/pybullet/gym/pybullet_data/cartpole.urdf" ;
-    //string path = "/home/malasiot/Downloads/robotiq_arg85/" ;
-    robot = urdf::Robot::load(path /*+ "robots/robotiq_arg85_description.URDF"*/,
-    { { "robotiq_arg85_description", package_path } }, true) ;
+
+    robot = urdf::Robot::load(path, {}, true) ;
 
     RobotScenePtr rs = RobotScene::fromURDF(robot) ;
 

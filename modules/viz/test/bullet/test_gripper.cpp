@@ -47,12 +47,14 @@ public:
 
     void onUpdate(float delta) override {
         Joint *j= body.findJoint(ctrl_joint_) ;
-        j->setMimicJointPosition();
+
+ //       j->setMimicJointPosition();
  //       cout << body.getJointPosition(ctrl_joint_) << endl ;
-        map<string, Isometry3f> transforms ;
+   /*     map<string, Isometry3f> transforms ;
         body.getLinkTransforms(transforms) ;
         scene->updateTransforms(transforms) ;
-        SimulationGui::onUpdate(1) ;
+        SimulationGui::onUpdate(delta) ;
+*/
     }
 
     void keyPressEvent(QKeyEvent *event) override {
@@ -105,12 +107,8 @@ void createScene() {
     physics.addBody(RigidBody(CollisionShape::Ptr(new BoxCollisionShape(ground_hs)), tr)) ;
 
 
-    string package_path = "/home/malasiot/Downloads/robotiq_arg85/" ;
-
-
-    string path = "/home/malasiot/Downloads/robotiq_arg85/" ;
-    robot = urdf::Robot::load(path + "robots/robotiq_arg85_description.URDF",
-    { { "robotiq_arg85_description", path } }, true) ;
+    string path = "/home/malasiot/local/bullet3/examples/pybullet/gym/pybullet_data/pr2_gripper.urdf" ;
+    robot = urdf::Robot::load(path, { }, true) ;
 
     RobotScenePtr rs = RobotScene::fromURDF(robot) ;
 
@@ -122,7 +120,8 @@ void createScene() {
 
     body.createFromURDF(physics, robot) ;
 
-    //body.setJointPosition("slider_to_cart", -1) ;
+    body.setJointPosition("left_gripper_joint", 0.5) ;
+    body.setJointPosition("right_gripper_joint", 0.5) ;
   //  body.getMotor("slider_to_cart")->setTargetVelocity(0.5) ;
 
 
@@ -137,7 +136,7 @@ int main(int argc, char **argv)
     SimpleQtViewer::initDefaultGLContext() ;
 
     QMainWindow window ;
-    window.setCentralWidget(new GUI(scene, physics, robot, "finger_joint")) ;
+    window.setCentralWidget(new GUI(scene, physics, robot, "left_gripper_joint")) ;
     window.resize(512, 512) ;
     window.show() ;
 
