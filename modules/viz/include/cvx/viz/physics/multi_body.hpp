@@ -119,7 +119,7 @@ private:
     float lower_ = 0.f, upper_ = 0.f, friction_ = 0.f, damping_ = 0.f, max_force_ = 0.f, max_velocity_ = 0.f ;
     btMultiBody *body_ = nullptr ;
     btMultiBodyJointMotor* motor_ = nullptr ;
-    btScalar motor_max_force_ = btScalar(10.0) ;
+    btScalar motor_max_force_ = btScalar(1000.0) ;
     std::vector<Joint *> mimic_joints_ ; // child joints to be mimicked
     float mimic_multiplier_ = 1.f, mimic_offset_ = 0.f ;
 };
@@ -141,14 +141,14 @@ public:
     void setTargetVelocity(const std::string &name, float v) ;
     void setTargetPosition(const std::string &name, float v) ;
 
+    void setName(const std::string &name) ;
+    std::string name() const ;
 
     Joint *findJoint(const std::string &name) ;
 
+    void create(cvx::viz::PhysicsWorld &physics, const Eigen::Isometry3f &root_tr = Eigen::Isometry3f::Identity());
 
-    void create(cvx::viz::PhysicsWorld &physics);
-
-    void createFromURDF(cvx::viz::PhysicsWorld &physics, cvx::viz::urdf::Robot &rb);
-
+    void loadURDF(cvx::viz::urdf::Robot &rb);
 
     void getLinkTransforms(std::map<std::string, Eigen::Isometry3f> &names) const ;
 
@@ -172,6 +172,7 @@ private:
     std::map<std::string, Joint> joints_ ;
     std::unique_ptr<btMultiBody> body_ ;
     std::vector<std::unique_ptr<btMultiBodyConstraint>> constraints_ ;
+    std::string name_ ;
 
     Link *root_ ;
 

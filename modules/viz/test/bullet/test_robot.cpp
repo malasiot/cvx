@@ -111,7 +111,7 @@ void createScene() {
     offset.setIdentity() ;
     offset.translate(Vector3f{0, -link_size/2, 0}) ;
 
-    body.addLink("base", box_mass, box_shape, offset).setLocalInertialFrame(offset) ;
+    body.addLink("base", 0.0, box_shape, offset).setLocalInertialFrame(offset) ;
     body.addLink("link1", box_mass, box_shape, offset).setLocalInertialFrame(offset) ;
     body.addLink("link2", box_mass, box_shape, offset).setLocalInertialFrame(offset) ;
     body.addLink("link3", box_mass, box_shape, offset).setLocalInertialFrame(offset) ;

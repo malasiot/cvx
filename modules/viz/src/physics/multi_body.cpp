@@ -185,15 +185,15 @@ void MultiBody::buildJoints(int link_idx, const btTransform &parent_transform_in
 
 }
 
-void MultiBody::create(PhysicsWorld &physics)  {
+void MultiBody::create(PhysicsWorld &physics, const Isometry3f &tr)  {
     buildTree() ;
 
-    body_.reset(new btMultiBody(links_.size()-1, root_->mass_, root_->inertia_, true, false)) ;
+    bool fixed_base = false ;
+    if ( root_->mass_ == 0 || root_->name_ == "world" ) fixed_base = true ;
 
-    btTransform tr ;
-    tr.setIdentity() ;
+    body_.reset(new btMultiBody(links_.size() - 1, root_->mass_, root_->inertia_, fixed_base, false)) ;
 
-    buildJoints(findLink(root_->name_), tr) ;
+    buildJoints(findLink(root_->name_), toBulletTransform(tr)) ;
 
     btMultiBodyDynamicsWorld *w = static_cast<btMultiBodyDynamicsWorld *>(physics.getDynamicsWorld()) ;
 
@@ -211,9 +211,13 @@ void MultiBody::create(PhysicsWorld &physics)  {
         body_->getLink(l.mb_index_).m_collider = l.collider_.get();
     }
 
+    body_->setBaseCollider(root_->collider_.get()) ;
+
+    body_->setBaseWorldTransform(toBulletTransform(tr)) ;
+
     // create motors
 
-    // mb->setBaseName(name->c_str());
+
     //create motors for each btMultiBody joint
 
     for( const Link &l: links_ ) {
@@ -253,7 +257,7 @@ void MultiBody::setMimic(const urdf::Joint &joint, Joint &j) {
     }
 }
 
-void MultiBody::createFromURDF(PhysicsWorld &physics, urdf::Robot &rb) {
+void MultiBody::loadURDF(urdf::Robot &rb) {
     for( const auto &lp: rb.links_ ) {
         const string &name  = lp.first ;
         const urdf::Link &link = lp.second ;
@@ -290,6 +294,8 @@ void MultiBody::createFromURDF(PhysicsWorld &physics, urdf::Robot &rb) {
          auto &l = addLink(name, mass, shape, col_origin) ;
          l.setLocalInertialFrame(inertial_frame) ;
     }
+
+
 
     for( const auto &jp: rb.joints_ ) {
         const string &name  = jp.first ;
@@ -334,8 +340,6 @@ void MultiBody::createFromURDF(PhysicsWorld &physics, urdf::Robot &rb) {
             assert("unsupported") ;
         }
     }
-
-    create(physics) ;
 }
 
 void MultiBody::getLinkTransforms(std::map<string, Isometry3f> &names) const
@@ -362,37 +366,49 @@ Joint &MultiBody::addJoint(const std::string &name, JointType type, const string
 }
 
 int MultiBody::getJointIndex(const string &name) {
-    cout << name << endl ;
+
     Joint *j = findJoint(name) ;
     assert( j != nullptr ) ;
     return j->childLink()->mb_index_ ;
 }
 
-float MultiBody::getJointPosition(const string &name)
-{
+float MultiBody::getJointPosition(const string &name) {
+    assert(body_) ;
     return static_cast<float>(body_->getJointPos(getJointIndex(name))) ;
 }
 
 float MultiBody::getJointVelocity(const string &name) {
+    assert(body_) ;
     return static_cast<float>(body_->getJointVel(getJointIndex(name))) ;
 }
 
 float MultiBody::getJointTorque(const string &name) {
+    assert(body_) ;
     return static_cast<float>(body_->getJointTorque(getJointIndex(name))) ;
 }
 
 void MultiBody::setJointPosition(const string &name, float v) {
+    assert(body_) ;
     body_->setJointPos(getJointIndex(name), static_cast<btScalar>(v)) ;
 }
 
 void MultiBody::setJointVelocity(const string &name, float v) {
+    assert(body_) ;
     body_->setJointVel(getJointIndex(name), static_cast<btScalar>(v)) ;
 }
 
 void MultiBody::setJointTorque(const string &name, float v) {
+    assert(body_) ;
     body_->addJointTorque(getJointIndex(name), static_cast<btScalar>(v)) ;
 }
 
+void MultiBody::setName(const string &name) {
+    name_ = name ;
+}
+
+string MultiBody::name() const {
+    return name_ ;
+}
 
 void Joint::setTargetVelocity(float v) {
     motor_->setVelocityTarget(static_cast<btScalar>(v)) ;

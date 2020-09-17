@@ -117,7 +117,8 @@ void createScene() {
 
     scene->addChild(rs) ;
 
-    body.createFromURDF(physics, robot) ;
+    body.loadURDF(robot) ;
+    body.create(physics) ;
 
     body.setJointPosition("slider_to_cart", -1) ;
   //  body.getMotor("slider_to_cart")->setTargetVelocity(0.5) ;
