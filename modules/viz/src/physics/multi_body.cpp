@@ -419,7 +419,7 @@ void Joint::setTargetPosition(float v) {
 }
 
 Joint & Joint::setMotorMaxImpulse(float v) {
-    motor_max_force_ = v ;
+    motor_->setMaxAppliedImpulse(static_cast<btScalar>(v)) ;
     return *this ;
 }
 

@@ -51,7 +51,7 @@ public:
         map<string, Isometry3f> transforms ;
         body.getLinkTransforms(transforms) ;
         scene->updateTransforms(transforms) ;
-        SimulationGui::onUpdate(10) ;
+        SimulationGui::onUpdate(delta) ;
 
 
     }
@@ -61,27 +61,10 @@ public:
         Joint *j= body.findJoint(ctrl_joint_) ;
 
         if ( event->key() == Qt::Key_Q ) {
-            joint_pos_ -= 0.1 ;
-           // body.setJointPosition(ctrl_joint_, joint_pos_) ;
-          j->setTargetVelocity(0.5) ;
-           // body.setJointTorque(ctrl_joint_, 0.5);
-            //joint_pos_ = robot_.setJointPosition(ctrl_joint_, joint_pos_) ;
-            //map<string, Isometry3f> transforms ;
-           // robot_.computeLinkTransforms(transforms) ;
-           // scene->updateTransforms(transforms) ;
-
+          j->setTorque(10) ;
         } else if ( event->key() == Qt::Key_W ) {
-            joint_pos_ += 0.1 ;
-            //body.setJointPosition(ctrl_joint_, joint_pos_) ;
-            j->setTargetVelocity(-0.5) ;
-           // body.setJointTorque(ctrl_joint_, -0.5);
-            //joint_pos_ = robot_.setJointPosition(ctrl_joint_, joint_pos_) ;
-            //map<string, Isometry3f> transforms ;
-            //robot_.computeLinkTransforms(transforms) ;
-            //scene->updateTransforms(transforms) ;
-
+           j->setTorque(-10);
         }
-
         update() ;
 
     }
@@ -99,12 +82,6 @@ void createScene() {
     physics.createMultiBodyDynamicsWorld();
     physics.setGravity({0, 0, -10});
 
-    Affine3f tr(Translation3f{0, -1.5, 0}) ;
-
-    Vector3f ground_hs{1.5f, 0.05f, 1.5f} ;
-    scene->addBox(ground_hs, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
-    physics.addBody(RigidBody(CollisionShape::Ptr(new BoxCollisionShape(ground_hs)), tr)) ;
-
     string path = "/home/malasiot/local/bullet3/examples/pybullet/gym/pybullet_data/cartpole.urdf" ;
 
     robot = urdf::Robot::load(path, {}, true) ;
@@ -120,7 +97,11 @@ void createScene() {
     body.loadURDF(robot) ;
     body.create(physics) ;
 
-    body.setJointPosition("slider_to_cart", -1) ;
+    Joint *jcp = body.findJoint("cart_to_pole") ;
+    Joint *jsc = body.findJoint("slider_to_cart") ;
+    jcp->setMotorMaxImpulse(0.0) ;
+    jsc->setMotorMaxImpulse(0.0) ;
+
   //  body.getMotor("slider_to_cart")->setTargetVelocity(0.5) ;
 
 
