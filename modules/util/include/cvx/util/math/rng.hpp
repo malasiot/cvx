@@ -11,19 +11,41 @@ public:
     RNG() ;
     RNG(uint64_t seed) ;
 
+
     template <class T>
-    T uniform(T min_v, T max_v) {
-        assert(std::is_integral<T>()) ;
+    typename std::enable_if<std::is_integral<T>::value, T>::type
+    uniform(T min_v, T max_v) {
         std::uniform_int_distribution<> dis(min_v, max_v);
         return dis(generator_) ;
     }
 
-    // uniform random number in [0, 1)
-
-    double uniform() {
-        std::uniform_real_distribution<> dis(0, 1);
+    template <class T>
+    typename std::enable_if<std::is_floating_point<T>::value, T>::type
+    uniform(T min_v, T max_v) {
+        std::uniform_real_distribution<> dis(min_v, max_v);
         return dis(generator_) ;
     }
+
+
+    // uniform random number in [0, 1)
+
+    template <class T>
+    T uniform() {
+        return uniform(static_cast<T>(0), static_cast<T>(1)) ;
+    }
+
+    template <class T>
+    void uniform(std::vector<typename std::enable_if<std::is_integral<T>::value, T>::type> &vec, T min_v, T max_v) {
+        std::uniform_int_distribution<> dis(min_v, max_v);
+        std::generate(vec.begin(), vec.end(), [&] { return dis(generator_);}) ;
+    }
+
+    template <class T>
+    void uniform(std::vector<typename std::enable_if<std::is_floating_point<T>::value, T>::type> &vec, T min_v, T max_v) {
+        std::uniform_real_distribution<> dis(min_v, max_v);
+        std::generate(vec.begin(), vec.end(), [&] { return dis(generator_);}) ;
+    }
+
 
     double gaussian(double mean, double sigma) {
         std::normal_distribution<double> dis(mean, sigma);
@@ -73,18 +95,6 @@ public:
             subset.push_back(vidx[max_idx]);
             max_idx -- ;
         }
-    }
-
-
-    float uniform(float x, float y) {
-         std::uniform_real_distribution<> dis(x, y);
-         return dis(generator_) ;
-    }
-
-
-    double uniform(double x, double y) {
-        std::uniform_real_distribution<> dis(x, y);
-        return dis(generator_) ;
     }
 
     typedef std::mt19937_64 rng_t ;

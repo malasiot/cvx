@@ -65,13 +65,14 @@ void PhysicsWorld::createMultiBodyDynamicsWorld()
 PhysicsWorld::~PhysicsWorld()
 {
     //remove the rigidbodies from the dynamics world and delete them
-
+/*
     if ( dynamics_world_ ) {
         int i;
         for (i = dynamics_world_->getNumConstraints() - 1; i >= 0; i--) {
             dynamics_world_->removeConstraint(dynamics_world_->getConstraint(i));
         }
     }
+    */
 }
 
 btDynamicsWorld *PhysicsWorld::getDynamicsWorld() {
