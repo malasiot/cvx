@@ -13,7 +13,7 @@ public:
 
     ~Surface() ;
 
-    void flush() ;
+    virtual void flush() ;
     void clip(const Surface &other) ;
 
     double width() const { return width_ ; }
