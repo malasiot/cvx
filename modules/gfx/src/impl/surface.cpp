@@ -6,8 +6,9 @@ using namespace std ;
 
 namespace cvx { namespace gfx {
 
-Surface::~Surface()
-{
+Surface::~Surface(){
+    flush() ;
+
     if ( surf_ != nullptr )
         cairo_surface_destroy(surf_) ;
 }

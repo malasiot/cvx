@@ -4,6 +4,12 @@ FIND_PACKAGE(Freetype REQUIRED)
 FIND_PACKAGE(HarfBuzz REQUIRED)
 FIND_PACKAGE(ICU REQUIRED COMPONENTS uc i18n)
 
+option(BUILD_GFX_QT_SURFACE "Build QtPainter graphics surface" OFF)
+
+IF( BUILD_GFX_QT_SURFACE )
+find_package(Qt5Widgets 5.5 CONFIG REQUIRED)
+ENDIF (BUILD_GFX_QT_SURFACE )
+
 set ( LIBRARY_FOLDER "gfx")
 get_filename_component(LIBRARY_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../include/cvx/${LIBRARY_FOLDER}/" ABSOLUTE)
 
@@ -68,6 +74,10 @@ set(LIB_SOURCES
 
 )
 
+IF ( BUILD_GFX_QT_SURFACE )
+LIST(APPEND LIB_SOURCES qt_surface.cpp)
+ENDIF()
+
 add_library(cvx_gfx ${LIBRARY_TYPE} ${LIB_SOURCES} )
 
 target_link_libraries(cvx_gfx cvx_util
@@ -75,7 +85,9 @@ target_link_libraries(cvx_gfx cvx_util
     ${HARFBUZZ_LIBRARIES}
     ${FONTCONFIG_LIBRARIES}
     ${FREETYPE_LIBRARIES}
-    ${ICU_LIBRARIES})
+    ${ICU_LIBRARIES}
+    Qt5::Widgets
+    )
 
 # Install library
 install(TARGETS cvx_gfx

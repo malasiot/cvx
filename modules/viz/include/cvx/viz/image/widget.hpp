@@ -192,5 +192,6 @@ protected:
 } // namespace viz
 } // namespace cvx
 
+Q_DECLARE_METATYPE(cv::Mat)
 
 #endif

@@ -24,7 +24,10 @@
 #include <QMainWindow>
 
 #include <cvx/viz/image/widget.hpp>
+<<<<<<< HEAD
 #include <chrono>
+=======
+>>>>>>> 1a3db9f57c6eed71d9c9d4dcbf009213dc589d94
 
 using namespace cvx::viz ;
 using namespace cvx::util ;
@@ -131,13 +134,15 @@ struct Environment {
 
     cv::Mat render() {
 
+        updateScene() ;
+
         renderer_->init(cam_) ;
         renderer_->render(scene_) ;
 
         // obtain the color buffer
         cv::Mat clr = renderer_->getColor(true) ;
 
-        cv::imwrite("/tmp/oo.png", clr) ;
+        //cv::imwrite("/tmp/oo.png", clr) ;
 
         return clr ;
 
@@ -253,12 +258,12 @@ struct Agent {
                     setQValue(q_state, action, new_value) ;
                 }
 
+                if ( ep % callback_freq_ == 0 ) {
+                    callback_() ;
+                }
+
                 avg_reward += reward ;
 
-                if ( step == 0 ) {
-                    env_.updateScene() ;
-                    env_.render() ;
-                }
             }
 
         //    if ( ep <= end_epsilon_decay)
@@ -267,6 +272,11 @@ struct Agent {
             cout << ep << ' ' << step << endl ;
 
         }
+    }
+
+    void setCallback(uint freq, std::function<void()> callback) {
+        callback_ = callback ;
+        callback_freq_ = freq ;
     }
 
     int chooseAction(uint32_t state, float epsilon) {
@@ -306,13 +316,36 @@ struct Agent {
     float alpha_, gamma_ ;
     uint32_t prev_q_state_ ;
     int prev_action_ ;
+    std::function<void()> callback_ ;
+    uint callback_freq_ = 10 ;
     Environment &env_ ;
 };
 
 
 int main(int argc, char **argv)
 {
-    Environment env ;
-    Agent agent(env) ;
-    agent.train(10000, 0.9, 0.1, 0.9);
+
+    QApplication app(argc, argv) ;
+    QMainWindow win ;
+
+    QImageWidget *iw = new QImageWidget(&win) ;
+    win.setCentralWidget(iw) ;
+    win.resize(800, 600) ;
+    win.show() ;
+
+    thread t( [&]{
+        Environment env ;
+        Agent agent(env) ;
+
+        agent.setCallback(500, [&] {
+            auto im = env.render() ;
+            QMetaObject::invokeMethod(iw, "setImage", Qt::QueuedConnection, Q_ARG(cv::Mat, im) );
+        });
+
+        agent.train(10000, 0.9, 0.1, 0.9);
+    }) ;
+
+
+    app.exec() ;
+
 }
