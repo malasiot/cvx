@@ -46,6 +46,12 @@ public:
         std::generate(vec.begin(), vec.end(), [&] { return dis(generator_);}) ;
     }
 
+    template <class T>
+    T choice(const std::vector<T> &v) {
+        assert(!v.empty()) ;
+        std::uniform_int_distribution<> dis(0, v.size()-1);
+        return v[dis(generator_)] ;
+    }
 
     double gaussian(double mean, double sigma) {
         std::normal_distribution<double> dis(mean, sigma);

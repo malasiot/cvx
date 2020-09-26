@@ -23,6 +23,9 @@
 #include <QApplication>
 #include <QMainWindow>
 
+#include <cvx/viz/image/widget.hpp>
+#include <chrono>
+
 using namespace cvx::viz ;
 using namespace cvx::util ;
 
@@ -228,9 +231,10 @@ struct Agent {
 
                 uint32_t q_state = env_.quantizeState(state) ;
 
-                int action = chooseAction(q_state, epsilon) ;
+                          int action = chooseAction(q_state, epsilon) ;
 
                 env_.step(action, state, reward, done) ;
+
 
                 auto it = Q_.find(q_state) ;
                 if ( it == Q_.end() ) {
@@ -308,7 +312,6 @@ struct Agent {
 
 int main(int argc, char **argv)
 {
-
     Environment env ;
     Agent agent(env) ;
     agent.train(10000, 0.9, 0.1, 0.9);
