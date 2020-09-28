@@ -135,11 +135,11 @@ class CollisionObject {
 public:
     virtual std::string getName() const = 0 ;
     virtual ~CollisionObject() {}
+    virtual Eigen::Isometry3f getWorldTransform() const = 0 ;
 };
 
 
 struct ContactResult {
-
     const CollisionObject *a_, *b_ ;
     Eigen::Vector3f pa_, pb_, normal_ ;
 } ;

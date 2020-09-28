@@ -469,4 +469,9 @@ void Joint::setTorque(float v) {
     body_->addJointTorque(child_link_->mb_index_, static_cast<btScalar>(v)) ;
 }
 
+Isometry3f Link::getWorldTransform() const {
+    btTransform tr = collider_->getWorldTransform();
+    return toEigenTransform(tr) ;
+}
+
 }}

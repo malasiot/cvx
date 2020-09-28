@@ -1,0 +1,40 @@
+#include <cvx/viz/physics/sensor.hpp>
+#include <cvx/viz/physics/collision.hpp>
+
+namespace cvx { namespace viz {
+
+bool Sensor::needsUpdate(float ts) {
+    if ( ts <= last_update_ ) return false ;
+    return ( ts - last_update_ >= update_interval_ );
+}
+
+Eigen::Isometry3f Sensor::getWorldTransform() const {
+    if ( parent_ == nullptr ) return pose_ ;
+    else return parent_->getWorldTransform() * pose_ ;
+}
+
+void Sensor::update(float ts)
+{
+    if ( is_active_ && needsUpdate(ts) ) {
+        doUpdate() ;
+        last_update_ = ts ;
+    }
+}
+
+CameraSensor::CameraSensor(CameraPtr camera, NodePtr scene): camera_(camera), scene_(scene) {
+    const Viewport &vp = camera_->getViewport() ;
+    renderer_.reset(new OffscreenRenderer(vp.width_, vp.height_)) ;
+}
+
+cv::Mat CameraSensor::getImage() {
+    return image_ ;
+}
+
+void CameraSensor::doUpdate() {
+    camera_->setViewTransform(getWorldTransform().matrix());
+    renderer_->init(camera_) ;
+    image_ = renderer_->getColor() ;
+}
+
+
+}}

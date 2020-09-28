@@ -124,6 +124,7 @@ LIST(APPEND LIB_SOURCES
     physics/constraints.cpp
     physics/collision.cpp
     physics/multi_body.cpp
+    physics/sensor.cpp
 
     ${LIBRARY_INCLUDE_DIR}/physics/world.hpp
     ${LIBRARY_INCLUDE_DIR}/physics/rigid_body.hpp
@@ -131,6 +132,7 @@ LIST(APPEND LIB_SOURCES
     ${LIBRARY_INCLUDE_DIR}/physics/convert.hpp
     ${LIBRARY_INCLUDE_DIR}/physics/constraints.hpp
     ${LIBRARY_INCLUDE_DIR}/physics/multi_body.hpp
+    ${LIBRARY_INCLUDE_DIR}/physics/sensor.hpp
 )
 ENDIF( BULLET_FOUND )
 

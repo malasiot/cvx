@@ -54,6 +54,17 @@ btRigidBody *RigidBody::handle() const { return handle_.get() ; }
 
 void RigidBody::setName(const std::string &name) { name_ = name ; }
 
+Eigen::Isometry3f RigidBody::getWorldTransform() const {
+    if ( motion_state_) {
+        btTransform world ;
+        motion_state_->getWorldTransform(world) ;
+        return toEigenTransform(world) ;
+    } else {
+        return toEigenTransform(handle_->getWorldTransform()) ;
+    }
+
+}
+
 
 } // namespace viz
 } // namespace cvx

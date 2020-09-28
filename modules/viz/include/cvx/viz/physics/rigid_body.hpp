@@ -33,6 +33,7 @@ public :
         return name_ ;
     }
 
+    Eigen::Isometry3f getWorldTransform() const override ;
 private:
 
     friend class PhysicsWorld ;
