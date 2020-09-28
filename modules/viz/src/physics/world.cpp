@@ -18,33 +18,41 @@ namespace cvx { namespace viz {
 
 PhysicsWorld::PhysicsWorld() {}
 
+void PhysicsWorld::tickCallback(btDynamicsWorld *world, btScalar step) {
+    PhysicsWorld *w = static_cast<PhysicsWorld *>(world->getWorldUserInfo()) ;
+    w->queryCollisions() ;
+}
+
 void PhysicsWorld::createDefaultDynamicsWorld() {
     collision_config_.reset( new btDefaultCollisionConfiguration() ) ;
 
     ///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
     dispatcher_.reset( new btCollisionDispatcher(collision_config_.get()) ) ;
 
-  //  broadphase_.reset(new btDbvtBroadphase() ) ;
+    //  broadphase_.reset(new btDbvtBroadphase() ) ;
 
     btVector3 worldAabbMin(-10000, -10000, -10000);
-        btVector3 worldAabbMax(10000, 10000, 10000);
-         broadphase_.reset(new btAxisSweep3(worldAabbMin, worldAabbMax));
+    btVector3 worldAabbMax(10000, 10000, 10000);
+    broadphase_.reset(new btAxisSweep3(worldAabbMin, worldAabbMax));
 
 
-   // solver_.reset(new btNNCGConstraintSolver());
-        //solver_.reset(new btMLCPSolver(new btSolveProjectedGaussSeidel()));
-        solver_.reset(new btMLCPSolver(new btDantzigSolver()));
-        //m_solver = new btMLCPSolver(new btLemkeSolver());
+    // solver_.reset(new btNNCGConstraintSolver());
+    //solver_.reset(new btMLCPSolver(new btSolveProjectedGaussSeidel()));
+    solver_.reset(new btMLCPSolver(new btDantzigSolver()));
+    //m_solver = new btMLCPSolver(new btLemkeSolver());
 
-   solver_.reset( new btSequentialImpulseConstraintSolver() ) ;
+    solver_.reset( new btSequentialImpulseConstraintSolver() ) ;
 
     dynamics_world_.reset( new btDiscreteDynamicsWorld(dispatcher_.get(), broadphase_.get(), solver_.get(), collision_config_.get()));
     dynamics_world_->getDispatchInfo().m_useContinuous = true;
 
     dynamics_world_->setGravity(btVector3(0, -10, 0));
 
+    dynamics_world_->setInternalTickCallback(tickCallback, static_cast<void *>(this)) ;
 
 }
+
+
 
 void PhysicsWorld::createMultiBodyDynamicsWorld()
 {
@@ -61,12 +69,14 @@ void PhysicsWorld::createMultiBodyDynamicsWorld()
     dynamics_world_->getDispatchInfo().m_useContinuous = true;
 
     dynamics_world_->setGravity(btVector3(0, -10, 0));
+
+    dynamics_world_->setInternalTickCallback(tickCallback, static_cast<void *>(this)) ;
 }
 
 PhysicsWorld::~PhysicsWorld()
 {
     //remove the rigidbodies from the dynamics world and delete them
-/*
+    /*
     if ( dynamics_world_ ) {
         int i;
         for (i = dynamics_world_->getNumConstraints() - 1; i >= 0; i--) {
@@ -164,15 +174,15 @@ void PhysicsWorld::addCollisionShape(const btCollisionShape *shape) {
 }
 
 uint PhysicsWorld::addBody(const RigidBodyPtr &body) {
-     dynamics_world_->addRigidBody(body->handle());
-     uint idx = bodies_.size() ;
-     bodies_.emplace_back(body) ;
-     body->handle()->setUserIndex(idx) ;
-     body->handle()->setUserPointer(reinterpret_cast<void *>(body.get())) ;
-     string bname = body->getName() ;
-     if ( !bname.empty() )
-         body_map_.emplace(bname, idx) ;
-     return idx ;
+    dynamics_world_->addRigidBody(body->handle());
+    uint idx = bodies_.size() ;
+    bodies_.emplace_back(body) ;
+    body->handle()->setUserIndex(idx) ;
+    body->handle()->setUserPointer(reinterpret_cast<void *>(body.get())) ;
+    string bname = body->getName() ;
+    if ( !bname.empty() )
+        body_map_.emplace(bname, idx) ;
+    return idx ;
 }
 
 uint PhysicsWorld::addMultiBody(const MultiBodyPtr &body) {
@@ -215,6 +225,90 @@ MultiBodyPtr PhysicsWorld::findMultiBody(const string &name) {
         return getMultiBody(it->second) ;
     else
         return nullptr ;
+}
+
+struct btCollisionFilter : public btOverlapFilterCallback
+{
+    CollisionFilter *filter_ = nullptr ;
+
+    btCollisionFilter(CollisionFilter *f): filter_(f) {}
+
+    // return true when pairs need collision
+    virtual bool needBroadphaseCollision(btBroadphaseProxy *proxy0,  btBroadphaseProxy *proxy1) const  {
+        assert(proxy0 != NULL && proxy1 != NULL) ;
+
+        bool collide = (proxy0->m_collisionFilterGroup
+                        & proxy1->m_collisionFilterMask) != 0;
+        collide = collide && ( proxy1->m_collisionFilterGroup
+                               & proxy0->m_collisionFilterMask);
+
+        btCollisionObject *ob0 = static_cast<btCollisionObject *>(proxy0->m_clientObject);
+        if ( !ob0 ) return collide ;
+
+        btCollisionObject *ob1 = static_cast<btCollisionObject *>(proxy1->m_clientObject);
+        if ( !ob1 ) return collide ;
+
+        CollisionObject *co0 = static_cast<CollisionObject *>(ob0->getUserPointer());
+        assert(co0 != nullptr) ;
+
+        CollisionObject *co1 = static_cast<CollisionObject *>(ob1->getUserPointer());
+        assert(co1 != nullptr) ;
+
+        return filter_->collide(co0, co1) ;
+    }
+};
+
+void PhysicsWorld::setCollisionFilter(CollisionFilter *f) {
+
+    if ( f ) filter_callback_.reset(new btCollisionFilter(f));
+    else filter_callback_.reset() ;
+
+    btOverlappingPairCache* pair_cache = dynamics_world_->getPairCache();
+
+    assert(pair_cache != nullptr ) ;
+
+    pair_cache->setOverlapFilterCallback(filter_callback_.get());
+}
+
+void PhysicsWorld::setCollisionFeedback(CollisionFeedback *feedback) {
+    collision_feedback_ = feedback ;
+}
+
+void PhysicsWorld::queryCollisions() {
+    if  ( !collision_feedback_ ) return ;
+
+    int numManifolds = dynamics_world_->getDispatcher()->getNumManifolds();
+    for ( int i = 0; i < numManifolds; ++i ) {
+        btPersistentManifold *contactManifold =
+            dynamics_world_->getDispatcher()->getManifoldByIndexInternal(i);
+        const btCollisionObject *obA = static_cast<const btCollisionObject *>(contactManifold->getBody0());
+        const btCollisionObject *obB = static_cast<const btCollisionObject *>(contactManifold->getBody1());
+
+        const CollisionObject *coA = static_cast<const CollisionObject *>(obA->getUserPointer());
+        assert(coA != nullptr) ;
+
+        const CollisionObject *coB = static_cast<const CollisionObject *>(obB->getUserPointer());
+        assert(coB != nullptr) ;
+
+        int numContacts = contactManifold->getNumContacts();
+
+        for (int j = 0; j < numContacts; ++j) {
+            btManifoldPoint &pt = contactManifold->getContactPoint(j);
+            if (pt.getDistance() < 0.f)  {
+                ContactResult result ;
+                result.a_ = coA ;
+                result.b_ = coB ;
+
+                result.pa_ =  toEigenVector(pt.getPositionWorldOnA()) ;
+                result.pb_ = toEigenVector(pt.getPositionWorldOnB()) ;
+                result.normal_ = toEigenVector(pt.m_normalWorldOnB);
+
+                collision_feedback_->processContact(result) ;
+            }
+        }
+      }
+
+
 }
 
 
@@ -360,11 +454,11 @@ void RayPicker::removePickingConstraint()
     }
 
     if ( mb_picked_constraint_ ) {
-       mb_picked_constraint_->getMultiBodyA()->setCanSleep(prev_can_sleep_);
-       btMultiBodyDynamicsWorld* world = (btMultiBodyDynamicsWorld*)world_;
-       world->removeMultiBodyConstraint(mb_picked_constraint_);
-       delete mb_picked_constraint_ ;
-       mb_picked_constraint_ = nullptr ;
+        mb_picked_constraint_->getMultiBodyA()->setCanSleep(prev_can_sleep_);
+        btMultiBodyDynamicsWorld* world = (btMultiBodyDynamicsWorld*)world_;
+        world->removeMultiBodyConstraint(mb_picked_constraint_);
+        delete mb_picked_constraint_ ;
+        mb_picked_constraint_ = nullptr ;
     }
 
 }

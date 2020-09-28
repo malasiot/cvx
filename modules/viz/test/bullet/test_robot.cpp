@@ -38,28 +38,28 @@ MultiBodyPtr body(new MultiBody) ;
 
 
 
-class GUI: public SimulationGui {
+class GUI: public SimulationGui, CollisionFeedback {
 public:
     GUI(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics):
     SimulationGui(scene, physics) {
+        physics_.setCollisionFeedback(this) ;
     }
 
     void onUpdate(float delta) override {
-         map<string, Isometry3f> transforms ;
+        map<string, Isometry3f> transforms ;
         body->getLinkTransforms(transforms) ;
         scene->updateTransforms(transforms) ;
-    SimulationGui::onUpdate(delta) ;
+        SimulationGui::onUpdate(delta) ;
 
-    RigidBodyPtr b = physics_.getRigidBody(1) ;
 
-    vector<ContactResult> contacts ;
-    if ( physics_.contactTest(b, contacts ) ) {
-        for( ContactResult &c: contacts ) {
-
-                cout << c.a_->getName() << ' ' << c.b_->getName() << endl ;
-        }
     }
+
+    void processContact(ContactResult &r) override {
+        if ( r.a_->getName() == "ground" || r.b_->getName() == "ground" ) return  ;
+        cout << r.a_->getName() << ' ' << r.b_->getName() << endl ;
     }
+
+
 
 };
 

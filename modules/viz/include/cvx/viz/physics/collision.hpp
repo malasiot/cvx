@@ -137,6 +137,25 @@ public:
     virtual ~CollisionObject() {}
 };
 
+
+struct ContactResult {
+
+    const CollisionObject *a_, *b_ ;
+    Eigen::Vector3f pa_, pb_, normal_ ;
+} ;
+
+class CollisionFeedback {
+public:
+     virtual void processContact(ContactResult &r) = 0 ;
+};
+
+class CollisionFilter {
+    public:
+    // override to filter out objects that should not be included in collision results
+    virtual bool collide(CollisionObject *obj1, CollisionObject *obj2) = 0 ;
+};
+
+
 } // namespace viz
 } // namespace cvx
 

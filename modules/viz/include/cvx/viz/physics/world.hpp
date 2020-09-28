@@ -21,11 +21,6 @@
 
 namespace cvx { namespace viz {
 
-struct ContactResult {
-
-    CollisionObject *a_, *b_ ;
-    Eigen::Vector3f pa_, pb_, normal_ ;
-} ;
 
 struct RayHitResult {
     CollisionObject *o_ ; // hit object
@@ -61,9 +56,18 @@ public:
 
     RigidBodyPtr findRigidBody(const std::string &name) ;
     MultiBodyPtr findMultiBody(const std::string &name) ;
+
+    // Call this to receive reports on collisions after each step
+    void setCollisionFeedback(CollisionFeedback *feedback) ;
+
+    // call this to disable collision among pairs of objects
+    void setCollisionFilter(CollisionFilter *f) ;
+
 private:
 
     void addCollisionShape(const btCollisionShape *shape);
+    void queryCollisions();
+    static void tickCallback(btDynamicsWorld *world, btScalar step);
 
     btAlignedObjectArray<const btCollisionShape *> collision_shapes_ ;
     std::unique_ptr<btBroadphaseInterface> broadphase_ ;
@@ -77,6 +81,11 @@ private:
     std::vector<MultiBodyPtr> multi_bodies_ ;
     std::map<std::string, uint> multi_body_map_ ;
     std::vector<Constraint> constraints_ ;
+    std::unique_ptr<btOverlapFilterCallback> filter_callback_ ;
+    std::unique_ptr<btInternalTickCallback> tick_callback_ ;
+    CollisionFeedback *collision_feedback_ = nullptr ;
+
+
 };
 
 // MotionState for dynamic objects that updates the transform of the associated node in the scene
