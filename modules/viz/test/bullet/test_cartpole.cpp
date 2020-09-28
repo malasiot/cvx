@@ -24,10 +24,8 @@
 #include <QMainWindow>
 
 #include <cvx/viz/image/widget.hpp>
-<<<<<<< HEAD
+
 #include <chrono>
-=======
->>>>>>> 1a3db9f57c6eed71d9c9d4dcbf009213dc589d94
 
 using namespace cvx::viz ;
 using namespace cvx::util ;
@@ -92,12 +90,14 @@ struct Environment {
 
         scene_->addChild(rs) ;
 
-        body_.reset(new MultiBody) ;
-        body_->loadURDF(robot) ;
-        body_->create(*physics_) ;
+        MultiBodyPtr body(new MultiBody) ;
+        body->loadURDF(robot) ;
 
-        jcp_ = body_->findJoint("cart_to_pole") ;
-        jsc_ = body_->findJoint("slider_to_cart") ;
+        body_idx_ = physics_->addMultiBody(body);
+
+
+        jcp_ = body->findJoint("cart_to_pole") ;
+        jsc_ = body->findJoint("slider_to_cart") ;
         jcp_->setMotorMaxImpulse(0.0) ;
         jsc_->setMotorMaxImpulse(0.0) ;
         jcp_->setDamping(0.0) ;
@@ -128,7 +128,8 @@ struct Environment {
 
     void updateScene() {
         map<string, Isometry3f> transforms ;
-        body_->getLinkTransforms(transforms) ;
+        MultiBodyPtr b = physics_->getMultiBody(body_idx_) ;
+        b->getLinkTransforms(transforms) ;
         scene_->updateTransforms(transforms) ;
     }
 
@@ -193,7 +194,7 @@ struct Environment {
 
     std::unique_ptr<PhysicsWorld> physics_ ;
     ScenePtr scene_{new Scene()} ;
-    std::unique_ptr<MultiBody> body_ ;
+    uint body_idx_ ;
     Joint *jcp_, *jsc_ ;
 };
 

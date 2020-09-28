@@ -33,7 +33,7 @@ PhysicsWorld physics ;
 ScenePtr scene(new Scene) ;
 RNG g_rng ;
 
-MultiBody body ;
+MultiBodyPtr body(new MultiBody) ;
 
 class GUI: public SimulationGui {
 public:
@@ -46,14 +46,14 @@ public:
     }
 
     void onUpdate(float delta) override {
-        Joint *j= body.findJoint(ctrl_joint_) ;
+        Joint *j= body->findJoint(ctrl_joint_) ;
 
         //       j->setMimicJointPosition();
-        //       cout << body.getJointPosition(ctrl_joint_) << endl ;
+        //       cout << body->getJointPosition(ctrl_joint_) << endl ;
 
 
         map<string, Isometry3f> transforms ;
-        body.getLinkTransforms(transforms) ;
+        body->getLinkTransforms(transforms) ;
         scene->updateTransforms(transforms) ;
         SimulationGui::onUpdate(delta) ;
 
@@ -63,18 +63,18 @@ public:
 
         if ( event->key() == Qt::Key_Q ) {
             vert_pos_ -= 0.05 ;
-            body.setJointPosition("world_to_base", vert_pos_) ;
+            body->setJointPosition("world_to_base", vert_pos_) ;
         } else if ( event->key() == Qt::Key_W ) {
             vert_pos_ += 0.05 ;
-            body.setJointPosition("world_to_base", vert_pos_) ;
+            body->setJointPosition("world_to_base", vert_pos_) ;
         } else if ( event->key() == Qt::Key_A ) {
             gripper_pos_ -= 0.03 ;
-            body.setJointPosition("left_gripper_joint", gripper_pos_) ;
-            body.setJointPosition("right_gripper_joint", gripper_pos_) ;
+            body->setJointPosition("left_gripper_joint", gripper_pos_) ;
+            body->setJointPosition("right_gripper_joint", gripper_pos_) ;
         }  else if ( event->key() == Qt::Key_S ) {
             gripper_pos_ += 0.03 ;
-            body.setJointPosition("left_gripper_joint", gripper_pos_) ;
-            body.setJointPosition("right_gripper_joint", gripper_pos_) ;
+            body->setJointPosition("left_gripper_joint", gripper_pos_) ;
+            body->setJointPosition("right_gripper_joint", gripper_pos_) ;
         }
 
         update() ;
@@ -98,12 +98,12 @@ void createScene() {
 
     Vector3f ground_hs{1.5f, 0.05f, 1.5f} ;
     scene->addBox(ground_hs, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
-    physics.addBody(RigidBody(CollisionShape::Ptr(new BoxCollisionShape(ground_hs)), tr)) ;
+    physics.addBody(make_shared<RigidBody>(CollisionShape::Ptr(new BoxCollisionShape(ground_hs)), tr)) ;
 
     Affine3f box_tr(Translation3f{0, -1.2, 0}) ;
     Vector3f box_hs{0.03, 0.03f, 0.03f} ;
     auto box = scene->addBox(box_hs, box_tr.matrix(), Vector4f{0.5, 1.5, 0, 1}) ;
-    physics.addBody(RigidBody(2.0, new UpdateSceneMotionState(box), CollisionShape::Ptr(new BoxCollisionShape(box_hs)))) ;
+    physics.addBody(make_shared<RigidBody>(2.0, new UpdateSceneMotionState(box), CollisionShape::Ptr(new BoxCollisionShape(box_hs)))) ;
 
 
     string path = "/home/malasiot/local/bullet3/examples/pybullet/gym/pybullet_data/pr2_gripper.urdf" ;
@@ -120,11 +120,12 @@ void createScene() {
     Isometry3f global = Isometry3f::Identity() ;
     global.rotate(AngleAxisf(-M_PI/2, Vector3f::UnitZ())) ;
 
-    body.loadURDF(robot) ;
+    body->loadURDF(robot) ;
 
-    body.addLink("world", 0.0, nullptr) ;
-    body.addJoint("world_to_base", PrismaticJoint, "world", "gripper_pole", global).setAxis(Vector3f::UnitX()) ;
-    body.create(physics) ;
+    body->addLink("world", 0.0, nullptr) ;
+    body->addJoint("world_to_base", PrismaticJoint, "world", "gripper_pole", global).setAxis(Vector3f::UnitX()) ;
+
+    physics.addMultiBody(body) ;
 
 
 

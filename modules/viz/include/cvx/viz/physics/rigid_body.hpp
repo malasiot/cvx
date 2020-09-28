@@ -12,7 +12,9 @@
 
 namespace cvx { namespace viz {
 
-class RigidBody {
+struct RigidBodyData ;
+
+class RigidBody: public CollisionObject {
 public :
     // dynamic body with given inertia
     RigidBody(btScalar mass, btMotionState *ms, const CollisionShape::Ptr &shape, const Eigen::Vector3f &localInertia) ;
@@ -23,25 +25,25 @@ public :
     // static body
     RigidBody(const CollisionShape::Ptr &shape, const Eigen::Affine3f &tr) ;
 
-    btRigidBody *handle() const { return data_->handle_.get() ; }
+    btRigidBody *handle() const;
 
-    void setName(const std::string &name) { data_->name_ = name ; }
+    void setName(const std::string &name);
 
-    const std::string &name() const { return data_->name_ ; }
+    std::string getName() const override {
+        return name_ ;
+    }
 
 private:
 
     friend class PhysicsWorld ;
 
-    struct Data {
-        std::string name_ ;
-        std::unique_ptr<btRigidBody> handle_ ;
-        CollisionShape::Ptr collision_shape_ ;
-        std::unique_ptr<btMotionState> motion_state_ ;
-    } ;
-
-    std::shared_ptr<Data> data_ ;
+    std::string name_ ;
+    std::unique_ptr<btRigidBody> handle_ ;
+    CollisionShape::Ptr collision_shape_ ;
+    std::unique_ptr<btMotionState> motion_state_ ;
 };
+
+using RigidBodyPtr = std::shared_ptr<RigidBody> ;
 
 } // namespace viz
 } // namespace cvx

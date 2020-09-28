@@ -1,4 +1,5 @@
 #include <cvx/viz/physics/world.hpp>
+#include <cvx/viz/physics/multi_body.hpp>
 #include <cvx/viz/physics/convert.hpp>
 #include <bullet/BulletCollision/CollisionDispatch/btCollisionWorld.h>
 #include <bullet/BulletCollision/Gimpact/btGImpactCollisionAlgorithm.h>
@@ -10,7 +11,7 @@
 #include <bullet/BulletDynamics/Featherstone/btMultiBodyConstraintSolver.h>
 #include <bullet/BulletDynamics/Featherstone/btMultiBodyDynamicsWorld.h>
 
-
+using namespace std ;
 using namespace Eigen ;
 
 namespace cvx { namespace viz {
@@ -97,18 +98,22 @@ public:
     btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0, const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) override {
         const btRigidBody *obA =  btRigidBody::upcast(colObj0Wrap->getCollisionObject()) ;
         const btRigidBody *obB =  btRigidBody::upcast(colObj1Wrap->getCollisionObject()) ;
+        const btMultiBodyLinkCollider *colA = dynamic_cast<const btMultiBodyLinkCollider *>(colObj0Wrap->getCollisionObject());
+        const btMultiBodyLinkCollider *colB = dynamic_cast<const btMultiBodyLinkCollider *>(colObj1Wrap->getCollisionObject());
 
-        int idA = obA->getUserIndex() ;
-        int idB = obB->getUserIndex() ;
+        CollisionObject *pA = reinterpret_cast<CollisionObject *>(colObj0Wrap->getCollisionObject()->getUserPointer()) ;
+        CollisionObject *pB = reinterpret_cast<CollisionObject *>(colObj1Wrap->getCollisionObject()->getUserPointer()) ;
 
         ContactResult result ;
-        result.a_ = world_.findObjectById(idA) ;
-        result.b_ = world_.findObjectById(idB) ;
+        result.a_ = pA ;
+        result.b_ = pB ;
+
         result.pa_ =  toEigenVector(cp.getPositionWorldOnA()) ;
         result.pb_ = toEigenVector(cp.getPositionWorldOnB()) ;
         result.normal_ = toEigenVector(cp.m_normalWorldOnB);
 
         results_.emplace_back(std::move(result)) ;
+
 
         return 0 ;
     }
@@ -119,14 +124,38 @@ public:
 
 };
 
-bool PhysicsWorld::contactTest(const RigidBody &b1, std::vector<ContactResult> &results) {
+bool PhysicsWorld::contactTest(const RigidBodyPtr &b1, std::vector<ContactResult> &results) {
     ContactResultCallback cb(*this, results) ;
-    dynamics_world_->contactTest(b1.handle(), cb) ;
+    dynamics_world_->contactTest(b1->handle(), cb) ;
 
-    for( ContactResult &c: results ) {
-        c.a_ = &b1 ;
-    }
     return results.size() ;
+}
+
+bool PhysicsWorld::rayPick(const Vector3f &origin, const Vector3f &dir, RayHitResult &res)
+{
+    btVector3 rayFromWorld = eigenVectorToBullet(origin) ;
+    btVector3 rayToWorld = eigenVectorToBullet(dir*10000) ;
+
+    btCollisionWorld::ClosestRayResultCallback rayCallback(rayFromWorld, rayToWorld);
+
+    rayCallback.m_flags |= btTriangleRaycastCallback::kF_UseGjkConvexCastRaytest;
+    dynamics_world_->rayTest(rayFromWorld, rayToWorld, rayCallback);
+
+    if (rayCallback.hasHit()) {
+        Vector3f pickPos = toEigenVector(rayCallback.m_hitPointWorld);
+        Vector3f pickNorm = toEigenVector(rayCallback.m_hitNormalWorld) ;
+        const btCollisionObject* body = rayCallback.m_collisionObject;
+
+        res.p_ = pickPos ;
+        res.n_ = pickNorm ;
+        res.o_ = reinterpret_cast<CollisionObject *>(body->getUserPointer()) ;
+
+        return true ;
+    }
+
+    return false ;
+
+
 }
 
 
@@ -134,11 +163,28 @@ void PhysicsWorld::addCollisionShape(const btCollisionShape *shape) {
     collision_shapes_.push_back(shape) ;
 }
 
-uint PhysicsWorld::addBody(const RigidBody &body) {
-     dynamics_world_->addRigidBody(body.handle());
-     bodies_.emplace(body_count_, body) ;
-     body.handle()->setUserIndex(body_count_) ;
-     return body_count_++ ;
+uint PhysicsWorld::addBody(const RigidBodyPtr &body) {
+     dynamics_world_->addRigidBody(body->handle());
+     uint idx = bodies_.size() ;
+     bodies_.emplace_back(body) ;
+     body->handle()->setUserIndex(idx) ;
+     body->handle()->setUserPointer(reinterpret_cast<void *>(body.get())) ;
+     string bname = body->getName() ;
+     if ( !bname.empty() )
+         body_map_.emplace(bname, idx) ;
+     return idx ;
+}
+
+uint PhysicsWorld::addMultiBody(const MultiBodyPtr &body) {
+    body->create(*this) ;
+    uint idx = multi_bodies_.size() ;
+    multi_bodies_.emplace_back(body) ;
+    body->handle()->setUserIndex(idx) ;
+    body->handle()->setUserPointer(body.get());
+    string bname = body->name() ;
+    if ( !bname.empty() )
+        multi_body_map_.emplace(bname, idx) ;
+    return idx ;
 }
 
 void PhysicsWorld::addConstraint(const Constraint &c) {
@@ -146,10 +192,29 @@ void PhysicsWorld::addConstraint(const Constraint &c) {
     constraints_.emplace_back(std::move(c)) ;
 }
 
-RigidBody *PhysicsWorld::findObjectById(int id)  {
-    auto it = bodies_.find(id) ;
-    if ( it == bodies_.end() ) return nullptr ;
-    else return &(it->second) ;
+RigidBodyPtr PhysicsWorld::getRigidBody(uint idx) const {
+    return bodies_[idx];
+}
+
+
+MultiBodyPtr PhysicsWorld::getMultiBody(uint idx) const {
+    return multi_bodies_[idx];
+}
+
+RigidBodyPtr PhysicsWorld::findRigidBody(const string &name) {
+    auto it = body_map_.find(name) ;
+    if ( it != body_map_.end() )
+        return getRigidBody(it->second) ;
+    else
+        return nullptr ;
+}
+
+MultiBodyPtr PhysicsWorld::findMultiBody(const string &name) {
+    auto it = multi_body_map_.find(name) ;
+    if ( it != multi_body_map_.end() )
+        return getMultiBody(it->second) ;
+    else
+        return nullptr ;
 }
 
 

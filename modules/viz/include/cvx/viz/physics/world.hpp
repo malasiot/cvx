@@ -15,15 +15,22 @@
 
 #include <cvx/viz/physics/collision.hpp>
 #include <cvx/viz/physics/rigid_body.hpp>
+#include <cvx/viz/physics/multi_body.hpp>
 #include <cvx/viz/physics/constraints.hpp>
 #include <cvx/viz/scene/camera.hpp>
 
 namespace cvx { namespace viz {
 
 struct ContactResult {
-    const RigidBody *a_, *b_ ;
+
+    CollisionObject *a_, *b_ ;
     Eigen::Vector3f pa_, pb_, normal_ ;
 } ;
+
+struct RayHitResult {
+    CollisionObject *o_ ; // hit object
+    Eigen::Vector3f p_, n_ ; // position and normal of hit in world coordinates
+};
 
 class PhysicsWorld {
 public:
@@ -39,13 +46,21 @@ public:
 
     void stepSimulation(float deltaTime);
 
-    bool contactTest(const RigidBody &b1, std::vector<ContactResult> &results) ;
+    bool contactTest(const RigidBodyPtr &b1, std::vector<ContactResult> &results) ;
 
-    uint addBody(const RigidBody &body);
+    bool rayPick(const Eigen::Vector3f &origin, const Eigen::Vector3f &dir, RayHitResult &res);
+
+    // return the index of the object in the internal list
+    uint addBody(const RigidBodyPtr &body);
+    uint addMultiBody(const MultiBodyPtr &body) ;
+
     void addConstraint(const Constraint &c);
 
-    RigidBody *findObjectById(int id) ;
+    RigidBodyPtr getRigidBody(uint idx) const ;
+    MultiBodyPtr getMultiBody(uint idx) const ;
 
+    RigidBodyPtr findRigidBody(const std::string &name) ;
+    MultiBodyPtr findMultiBody(const std::string &name) ;
 private:
 
     void addCollisionShape(const btCollisionShape *shape);
@@ -57,8 +72,10 @@ private:
     std::unique_ptr<btDefaultCollisionConfiguration> collision_config_ ;
     std::unique_ptr<btDynamicsWorld> dynamics_world_;
 
-    uint body_count_ = 0 ;
-    std::map<uint, RigidBody> bodies_ ;
+    std::vector<RigidBodyPtr> bodies_ ;
+    std::map<std::string, uint> body_map_ ;
+    std::vector<MultiBodyPtr> multi_bodies_ ;
+    std::map<std::string, uint> multi_body_map_ ;
     std::vector<Constraint> constraints_ ;
 };
 

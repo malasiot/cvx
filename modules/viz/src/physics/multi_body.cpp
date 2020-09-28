@@ -1,5 +1,5 @@
 #include <cvx/viz/physics/multi_body.hpp>
-
+#include <cvx/viz/physics/world.hpp>
 #include <bullet/BulletDynamics/Featherstone/btMultiBodyDynamicsWorld.h>
 #include <bullet/BulletDynamics/Featherstone/btMultiBodyJointLimitConstraint.h>
 
@@ -16,6 +16,8 @@ Link &MultiBody::addLink(const string &name, float mass, CollisionShape::Ptr csh
     l.mass_ = mass ;
     l.origin_ = origin ;
     l.shape_ = cshape ;
+    l.parent_ = this ;
+
     if ( cshape ) {
         l.shape_->handle()->calculateLocalInertia(l.mass_, l.inertia_) ;
     }
@@ -93,6 +95,8 @@ void MultiBody::buildCollisionObject(int link_idx, const btTransform &link_trans
 
     if ( link.shape_ ) {
         btMultiBodyLinkCollider* col = new btMultiBodyLinkCollider(body_.get(), link.mb_index_);
+
+        col->setUserPointer(&link) ;
 
         btCompoundShape *proxy = new btCompoundShape() ;
         proxy->addChildShape(link.local_inertial_frame_.inverse() * toBulletTransform(link.origin_), link.shape_->handle()) ;
@@ -342,6 +346,7 @@ void MultiBody::loadURDF(urdf::Robot &rb) {
     }
 }
 
+
 void MultiBody::getLinkTransforms(std::map<string, Isometry3f> &names) const
 {
     for( const Link &l: links_ ) {
@@ -411,16 +416,18 @@ string MultiBody::name() const {
 }
 
 void Joint::setTargetVelocity(float v) {
+    assert( motor_) ;
     motor_->setVelocityTarget(static_cast<btScalar>(v)) ;
 }
 
 void Joint::setTargetPosition(float v) {
+    assert( motor_) ;
     motor_->setPositionTarget(static_cast<btScalar>(v));
 }
 
-Joint & Joint::setMotorMaxImpulse(float v) {
+void Joint::setMotorMaxImpulse(float v) {
+    assert( motor_) ;
     motor_->setMaxAppliedImpulse(static_cast<btScalar>(v)) ;
-    return *this ;
 }
 
 void Joint::setMimicJointPosition()

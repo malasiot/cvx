@@ -34,7 +34,8 @@ ScenePtr scene(new Scene) ;
 
 
 
-MultiBody body ;
+MultiBodyPtr body(new MultiBody) ;
+
 
 
 class GUI: public SimulationGui {
@@ -45,9 +46,19 @@ public:
 
     void onUpdate(float delta) override {
          map<string, Isometry3f> transforms ;
-        body.getLinkTransforms(transforms) ;
+        body->getLinkTransforms(transforms) ;
         scene->updateTransforms(transforms) ;
     SimulationGui::onUpdate(delta) ;
+
+    RigidBodyPtr b = physics_.getRigidBody(1) ;
+
+    vector<ContactResult> contacts ;
+    if ( physics_.contactTest(b, contacts ) ) {
+        for( ContactResult &c: contacts ) {
+
+                cout << c.a_->getName() << ' ' << c.b_->getName() << endl ;
+        }
+    }
     }
 
 };
@@ -95,7 +106,9 @@ void createScene() {
 
     Vector3f ground_hs{3.5f, 0.05f, 3.5f} ;
     scene->addBox(ground_hs, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
-    physics.addBody(RigidBody(CollisionShape::Ptr(new BoxCollisionShape(ground_hs)), tr)) ;
+    RigidBodyPtr ground_rb(new RigidBody(CollisionShape::Ptr(new BoxCollisionShape(ground_hs)), tr));
+    ground_rb->setName("ground");
+    physics.addBody(ground_rb) ;
 
     DirectionalLight *dl = new DirectionalLight(Vector3f(0.5, 0.5, 1)) ;
     dl->diffuse_color_ = Vector3f(1, 1, 1) ;
@@ -111,20 +124,24 @@ void createScene() {
     offset.setIdentity() ;
     offset.translate(Vector3f{0, -link_size/2, 0}) ;
 
-    body.addLink("base", 0.0, box_shape, offset).setLocalInertialFrame(offset) ;
-    body.addLink("link1", box_mass, box_shape, offset).setLocalInertialFrame(offset) ;
-    body.addLink("link2", box_mass, box_shape, offset).setLocalInertialFrame(offset) ;
-    body.addLink("link3", box_mass, box_shape, offset).setLocalInertialFrame(offset) ;
+    body->addLink("base", 0.0, box_shape, offset).setLocalInertialFrame(offset) ;
+    body->addLink("link1", box_mass, box_shape, offset).setLocalInertialFrame(offset) ;
+    body->addLink("link2", box_mass, box_shape, offset).setLocalInertialFrame(offset) ;
+    body->addLink("link3", box_mass, box_shape, offset).setLocalInertialFrame(offset) ;
 
     Vector3f axis = {1, 0, 0} ;
     Isometry3f j2p ;
     j2p.setIdentity() ;
     j2p.translate(Vector3f{0, -link_size, 0}) ;
-    body.addJoint("j1", RevoluteJoint, "base", "link1", j2p).setAxis(axis).setMotorMaxImpulse(0) ;
-    body.addJoint("j2", RevoluteJoint, "link1", "link2", j2p).setAxis(axis).setMotorMaxImpulse(0) ;
-    body.addJoint("j3", RevoluteJoint, "link2", "link3", j2p).setAxis(axis).setMotorMaxImpulse(0) ;
+    auto &j1 = body->addJoint("j1", RevoluteJoint, "base", "link1", j2p).setAxis(axis) ;
+    auto &j2 = body->addJoint("j2", RevoluteJoint, "link1", "link2", j2p).setAxis(axis) ;
+    auto &j3 = body->addJoint("j3", RevoluteJoint, "link2", "link3", j2p).setAxis(axis) ;
 
-    body.create(physics) ;
+    physics.addMultiBody(body) ;
+
+    j1.setMotorMaxImpulse(0) ;
+    j2.setMotorMaxImpulse(0) ;
+    j3.setMotorMaxImpulse(0) ;
 
     NodePtr base_node = makeCube("base", box_hs, {1, 0, 0, 1}, scene);
     NodePtr link1_node = makeCube("link1", box_hs, {1, 1, 0, 1}, scene) ;
@@ -136,7 +153,9 @@ void createScene() {
     col_tr.translate(Vector3f{0.0, -1.5+0.2, -0.25});
     NodePtr cube = makeCube("cube", col_hs, {1, 0 , 0, 1}, scene) ;
     cube->matrix() = col_tr ;
-    physics.addBody(RigidBody(0.15, new UpdateSceneMotionState(cube), CollisionShape::Ptr(new BoxCollisionShape(col_hs)))) ;
+    RigidBodyPtr cube_rb(new RigidBody(0.15, new UpdateSceneMotionState(cube), CollisionShape::Ptr(new BoxCollisionShape(col_hs)))) ;
+    cube_rb->setName("cube") ;
+    physics.addBody(cube_rb) ;
 }
 
 

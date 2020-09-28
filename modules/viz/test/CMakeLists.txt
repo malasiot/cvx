@@ -30,7 +30,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 
 # Find the QtWidgets library
-find_package(Qt5Widgets 5.5 CONFIG REQUIRED)
+find_package(Qt5Widgets 5.5 CONFIG REQUIRED Widgets)
 
 add_executable(test_qt test_qt.cpp qt_glwidget.cpp qt_glwidget.hpp)
 # Use the Widgets module from Qt 5

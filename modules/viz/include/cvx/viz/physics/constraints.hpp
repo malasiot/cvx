@@ -18,7 +18,7 @@ protected:
 class Point2PointConstraint: public Constraint {
 
 public:
-    Point2PointConstraint(const RigidBody &b1, const RigidBody &b2, const Eigen::Vector3f &pivot1, const Eigen::Vector3f &pivot2) ;
+    Point2PointConstraint(const RigidBodyPtr &b1, const RigidBodyPtr &b2, const Eigen::Vector3f &pivot1, const Eigen::Vector3f &pivot2) ;
 };
 
 } // namespace viz

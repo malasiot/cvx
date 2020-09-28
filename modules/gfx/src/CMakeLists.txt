@@ -8,6 +8,7 @@ option(BUILD_GFX_QT_SURFACE "Build QtPainter graphics surface" OFF)
 
 IF( BUILD_GFX_QT_SURFACE )
 find_package(Qt5Widgets 5.5 CONFIG REQUIRED)
+SET(QT_LIBRARIES Qt5::Widgets)
 ENDIF (BUILD_GFX_QT_SURFACE )
 
 set ( LIBRARY_FOLDER "gfx")
@@ -86,7 +87,7 @@ target_link_libraries(cvx_gfx cvx_util
     ${FONTCONFIG_LIBRARIES}
     ${FREETYPE_LIBRARIES}
     ${ICU_LIBRARIES}
-    Qt5::Widgets
+    ${QT_LIBRARIES}
     )
 
 # Install library

@@ -16,7 +16,9 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt5Widgets 5.5 CONFIG REQUIRED)
+find_package(Qt5Widgets 5.5 CONFIG REQUIRED Core Widgets)
+find_package(Qt5Widgets REQUIRED)
+
 
 set ( LIBRARY_FOLDER "viz")
 get_filename_component(LIBRARY_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../include/cvx/${LIBRARY_FOLDER}/" ABSOLUTE)

@@ -30,7 +30,7 @@ using namespace cvx::util ;
 
 class GUI: public SimulationGui {
 public:
-    GUI(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics, vector<RigidBody> &objects):
+    GUI(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics, vector<RigidBodyPtr> &objects):
     SimulationGui(scene, physics), objects_(std::move(objects)) {
 
     }
@@ -41,14 +41,15 @@ public:
         vector<ContactResult> contacts ;
         if ( physics_.contactTest(objects_[0], contacts ) ) {
             for( ContactResult &c: contacts ) {
-                cout << c.a_->name() << ' ' << c.b_->name() << endl ;
+
+                    cout << c.a_->getName() << ' ' << c.b_->getName() << endl ;
             }
         }
 
     }
 
 private:
-    vector<RigidBody> objects_ ;
+    vector<RigidBodyPtr> objects_ ;
 };
 
 static PhysicsWorld physics ;
@@ -67,7 +68,7 @@ static Vector4f sColors[4] =  {
 
 };
 
-vector<RigidBody> boxes;
+vector<RigidBodyPtr> boxes;
 
 void createScene() {
     scene.reset(new Scene) ;
@@ -87,8 +88,8 @@ void createScene() {
 
     Vector3f ground_hs{50., 50., 50.} ;
     scene->addBox(ground_hs, tr.matrix(), {0.5, 0.5, 0.5, 1})->setName("ground") ;
-    RigidBody ground(CollisionShape::Ptr(new BoxCollisionShape(ground_hs)), tr);
-    ground.setName("ground") ;
+    RigidBodyPtr ground = make_shared<RigidBody>(CollisionShape::Ptr(new BoxCollisionShape(ground_hs)), tr);
+    ground->setName("ground") ;
     physics.addBody(ground) ;
 
     // create static pole
@@ -109,8 +110,8 @@ void createScene() {
     CollisionShape::Ptr meshColShape(new StaticMeshCollisionShape("/home/malasiot/Downloads/CoffeeTable.obj")) ;
     meshColShape->setLocalScale(3.5);
 
-    RigidBody mesh(1.0, new UpdateSceneMotionState(meshNode), meshColShape);
-    mesh.setName("mesh") ;
+    RigidBodyPtr mesh = make_shared<RigidBody>(1.0, new UpdateSceneMotionState(meshNode), meshColShape);
+    mesh->setName("mesh") ;
     physics.addBody(mesh) ;
 
     // create collision shape for chain element
@@ -131,16 +132,16 @@ void createScene() {
         chain_node->setName(name) ;
 
         if ( i== lastBoxIndex ) {
-            RigidBody box(colShape, box_tr) ;
-            box.setName(name) ;
+            RigidBodyPtr box(new RigidBody(colShape, box_tr)) ;
+            box->setName(name) ;
             physics.addBody(box) ;
-            boxes.push_back(std::move(box)) ;
+            boxes.push_back(box) ;
         }
         else {
-            RigidBody box(mass, new UpdateSceneMotionState(chain_node), colShape) ;
-            box.setName(name) ;
+            RigidBodyPtr box(new RigidBody(mass, new UpdateSceneMotionState(chain_node), colShape)) ;
+            box->setName(name) ;
             physics.addBody(box) ;
-            boxes.push_back(std::move(box)) ;
+            boxes.push_back(box) ;
         }
 
     }

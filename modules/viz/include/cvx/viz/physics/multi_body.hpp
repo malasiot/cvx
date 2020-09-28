@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Eigen/Geometry>
-#include <cvx/viz/physics/world.hpp>
+
 #include <cvx/viz/physics/collision.hpp>
 #include <cvx/viz/physics/convert.hpp>
 #include <cvx/viz/robot/urdf_robot.hpp>
@@ -10,10 +10,11 @@
 
 namespace cvx { namespace viz {
 
-
+class PhysicsWorld ;
 class Joint ;
+class MultiBody ;
 
-class Link {
+class Link: public CollisionObject {
 
 public:
 
@@ -22,15 +23,21 @@ public:
         return *this ;
     }
 
+    std::string getName() const override {
+        return name_ ;
+    }
+
 private:
 
     friend class MultiBody ;
+    friend struct MultiBodyData ;
     friend class Joint ;
 
     Link() {
         local_inertial_frame_.setIdentity() ;
     }
 
+    MultiBody *parent_ ;
     float mass_ ;
     std::string name_ ;
     Link *parent_link_ = nullptr ;
@@ -87,7 +94,7 @@ public:
         return *this ;
     }
 
-    Joint & setMotorMaxImpulse(float v) ;
+    void setMotorMaxImpulse(float v) ;
 
     void setMimicJointPosition() ;
 
@@ -106,6 +113,7 @@ public:
 private:
 
     friend class MultiBody ;
+    friend struct MultiBodyData ;
 
     Joint() = default ;
 
@@ -126,6 +134,9 @@ private:
 
 class MultiBody {
 public:
+
+    MultiBody() = default;
+
     Link &addLink(const std::string &name, float mass, cvx::viz::CollisionShape::Ptr cshape, const Eigen::Isometry3f &origin = Eigen::Isometry3f::Identity());
 
     Joint &addJoint(const std::string &name, JointType type, const std::string &parent, const std::string &child, const Eigen::Isometry3f &j2p);
@@ -146,15 +157,19 @@ public:
 
     Joint *findJoint(const std::string &name) ;
 
-    void create(cvx::viz::PhysicsWorld &physics, const Eigen::Isometry3f &root_tr = Eigen::Isometry3f::Identity());
-
     void loadURDF(cvx::viz::urdf::Robot &rb);
 
     void getLinkTransforms(std::map<std::string, Eigen::Isometry3f> &names) const ;
 
 private:
 
-    void buildTree();
+    friend class PhysicsWorld ;
+
+    btMultiBody *handle() const { return body_.get() ; }
+
+    void buildTree() ;
+
+    void create(PhysicsWorld &physics, const Eigen::Isometry3f &root_tr = Eigen::Isometry3f::Identity());
 
     void buildCollisionObject(int link_idx, const btTransform &link_transform);
 
@@ -166,7 +181,8 @@ private:
 
     void setMimic(const urdf::Joint &joint, Joint &j);
 
-private:
+    void setUserIndex(uint idx) const ;
+
     std::vector<Link> links_ ;
     std::map<std::string, int> link_map_ ;
     std::map<std::string, Joint> joints_ ;
@@ -177,7 +193,10 @@ private:
     Link *root_ ;
 
 
+
 };
+
+using MultiBodyPtr = std::shared_ptr<MultiBody>;
 
 } // namespace viz
 } // namespace cvx

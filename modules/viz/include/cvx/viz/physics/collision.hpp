@@ -15,6 +15,8 @@
 #include <bullet/BulletCollision/Gimpact/btGImpactShape.h>
 
 namespace cvx { namespace viz {
+
+
 class CollisionShape {
 
 public:
@@ -125,6 +127,14 @@ public:
 private:
 
     std::vector<CollisionShape::Ptr> children_ ;
+};
+
+
+class CollisionObject {
+
+public:
+    virtual std::string getName() const = 0 ;
+    virtual ~CollisionObject() {}
 };
 
 } // namespace viz
