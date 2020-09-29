@@ -46,7 +46,7 @@ private:
     Joint *parent_joint_ = nullptr ;
     std::vector<Link *> child_links_ ;
     std::vector<Joint *> child_joints_ ;
-    cvx::viz::CollisionShape::Ptr shape_ ;
+    cvx::viz::CollisionShapePtr shape_ ;
     std::unique_ptr<btCollisionShape> proxy_ ;
     std::unique_ptr<btMultiBodyLinkCollider> collider_ ;
 
@@ -139,7 +139,7 @@ public:
 
     MultiBody() = default;
 
-    Link &addLink(const std::string &name, float mass, cvx::viz::CollisionShape::Ptr cshape, const Eigen::Isometry3f &origin = Eigen::Isometry3f::Identity());
+    Link &addLink(const std::string &name, float mass, cvx::viz::CollisionShapePtr cshape, const Eigen::Isometry3f &origin = Eigen::Isometry3f::Identity());
 
     Joint &addJoint(const std::string &name, JointType type, const std::string &parent, const std::string &child, const Eigen::Isometry3f &j2p);
 

@@ -2,7 +2,7 @@
 
 namespace cvx { namespace viz {
 
-RigidBody::RigidBody(btScalar mass, btMotionState *ms, const CollisionShape::Ptr &shape, const Eigen::Vector3f &localInertia) {
+RigidBody::RigidBody(btScalar mass, btMotionState *ms, const CollisionShapePtr &shape, const Eigen::Vector3f &localInertia) {
     btAssert((!shape.handle() || shape.handle()->getShapeType() != INVALID_SHAPE_PROXYTYPE));
 
     collision_shape_ = shape ;
@@ -17,7 +17,7 @@ RigidBody::RigidBody(btScalar mass, btMotionState *ms, const CollisionShape::Ptr
 }
 
 // dynamic body with intertia computed by collision shape and mass
-RigidBody::RigidBody(btScalar mass, btMotionState *ms, const CollisionShape::Ptr &shape) {
+RigidBody::RigidBody(btScalar mass, btMotionState *ms, const CollisionShapePtr &shape) {
     btAssert((!shape->handle() || shape->handle_()->getShapeType() != INVALID_SHAPE_PROXYTYPE));
 
     collision_shape_ = shape ;
@@ -34,7 +34,7 @@ RigidBody::RigidBody(btScalar mass, btMotionState *ms, const CollisionShape::Ptr
 }
 
 // static body
-RigidBody::RigidBody(const CollisionShape::Ptr &shape, const Eigen::Affine3f &tr) {
+RigidBody::RigidBody(const CollisionShapePtr &shape, const Eigen::Affine3f &tr) {
     btVector3 localInertia(0, 0, 0);
 
     collision_shape_ = shape ;

@@ -10,7 +10,7 @@ using namespace Eigen ;
 namespace cvx { namespace viz {
 
 
-Link &MultiBody::addLink(const string &name, float mass, CollisionShape::Ptr cshape, const Isometry3f &origin) {
+Link &MultiBody::addLink(const string &name, float mass, CollisionShapePtr cshape, const Isometry3f &origin) {
     Link l ;
     l.name_ = name ;
     l.mass_ = mass ;
@@ -270,7 +270,7 @@ void MultiBody::loadURDF(urdf::Robot &rb) {
         Isometry3f col_origin = Isometry3f::Identity();
         if ( geom ) col_origin = geom->origin_ ;
 
-         CollisionShape::Ptr shape ;
+         CollisionShapePtr shape ;
 
          if ( const urdf::BoxGeometry *g = dynamic_cast<const urdf::BoxGeometry *>(geom) ) {
              shape.reset(new BoxCollisionShape(g->he_))  ;

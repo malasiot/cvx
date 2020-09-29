@@ -1,5 +1,6 @@
 #include <cvx/viz/physics/sensor.hpp>
 #include <cvx/viz/physics/collision.hpp>
+#include <cvx/viz/physics/world.hpp>
 
 namespace cvx { namespace viz {
 
@@ -36,5 +37,25 @@ void CameraSensor::doUpdate() {
     image_ = renderer_->getColor() ;
 }
 
+CollisionSensor::CollisionSensor(CollisionShapePtr shape): shape_(shape) {
+    ghost_.reset(new btGhostObject()) ;
+    ghost_->setCollisionShape(shape_->handle()) ;
+    ghost_->setCollisionFlags(ghost_->getCollisionFlags() | btCollisionObject::CF_NO_CONTACT_RESPONSE);
+    ghost_->setWorldTransform(toBulletTransform(getWorldTransform()));
+}
+
+void CollisionSensor::init(PhysicsWorld &w) {
+    w.getDynamicsWorld()->addCollisionObject(ghost_.get(), btBroadphaseProxy::SensorTrigger,btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger) ;
+}
+
+void CollisionSensor::doUpdate() {
+    collisions_.clear() ;
+    for( int i = 0; i < ghost_->getNumOverlappingObjects(); i++ ) {
+        btCollisionObject *ob = ghost_->getOverlappingObject(i);
+        CollisionObject *co = reinterpret_cast<CollisionObject *>(ob->getUserPointer()) ;
+        if ( co )
+            collisions_.push_back(co) ;
+    }
+}
 
 }}

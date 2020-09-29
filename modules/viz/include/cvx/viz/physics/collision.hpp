@@ -13,6 +13,8 @@
 #include <assimp/cimport.h>
 
 #include <bullet/BulletCollision/Gimpact/btGImpactShape.h>
+#include <bullet/BulletCollision/CollisionDispatch/btGhostObject.h>
+
 
 namespace cvx { namespace viz {
 
@@ -20,7 +22,7 @@ namespace cvx { namespace viz {
 class CollisionShape {
 
 public:
-    using Ptr = std::shared_ptr<CollisionShape> ;
+
 
     btCollisionShape *handle() const { return handle_.get() ; }
 
@@ -40,6 +42,8 @@ protected:
 
     std::unique_ptr<btCollisionShape> handle_ ;
 };
+
+using CollisionShapePtr = std::shared_ptr<CollisionShape> ;
 
 class BoxCollisionShape: public CollisionShape {
 public:
@@ -122,11 +126,11 @@ class GroupCollisionShape: public CollisionShape {
 public:
     GroupCollisionShape() ;
 
-    void addChild(CollisionShape::Ptr c, const Eigen::Affine3f &tr) ;
+    void addChild(CollisionShapePtr c, const Eigen::Affine3f &tr) ;
 
 private:
 
-    std::vector<CollisionShape::Ptr> children_ ;
+    std::vector<CollisionShapePtr> children_ ;
 };
 
 
@@ -138,11 +142,34 @@ public:
     virtual Eigen::Isometry3f getWorldTransform() const = 0 ;
 };
 
-
 struct ContactResult {
     const CollisionObject *a_, *b_ ;
     Eigen::Vector3f pa_, pb_, normal_ ;
 } ;
+
+class GhostObject: public CollisionObject {
+public:
+    GhostObject(CollisionShapePtr shape) ;
+
+    void setName(const std::string name) { name_ = name ; }
+    void setWorldTransform(const Eigen::Isometry3f &tr) ;
+
+    virtual std::string getName() const override { return name_ ; }
+    virtual Eigen::Isometry3f getWorldTransform() const override ;
+
+    bool isOverlapping() const ;
+    std::vector<CollisionObject *> getOverlapingObjects() const ;
+
+    btGhostObject *handle() const { return ghost_.get() ; }
+
+private:
+    std::string name_ ;
+    CollisionShapePtr shape_ ;
+    std::unique_ptr<btGhostObject> ghost_ ;
+};
+
+using GhostObjectPtr = std::shared_ptr<GhostObject> ;
+
 
 class CollisionFeedback {
 public:

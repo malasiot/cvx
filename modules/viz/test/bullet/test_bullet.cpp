@@ -53,14 +53,14 @@ void createScene() {
 
     Vector3f ground_hs{50.0f, 50.0f, 50.0f} ;
     scene->addBox(ground_hs, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
-    physics.addBody(make_shared<RigidBody>(CollisionShape::Ptr(new BoxCollisionShape(ground_hs)), tr)) ;
+    physics.addBody(make_shared<RigidBody>(CollisionShapePtr(new BoxCollisionShape(ground_hs)), tr)) ;
 
     //create a few dynamic rigidbodies
     // Re-using the same collision is better for memory usage and performance
 
     Vector3f cube_hs{.1f, .1f, .1f} ;
     GeometryPtr geom(new BoxGeometry(cube_hs)) ;
-    CollisionShape::Ptr colShape(new BoxCollisionShape(cube_hs));
+    CollisionShapePtr colShape(new BoxCollisionShape(cube_hs));
     btScalar mass(1.f);
 
     /// Create Dynamic Objects

@@ -88,7 +88,7 @@ void createScene() {
 
     Vector3f ground_hs{50., 50., 50.} ;
     scene->addBox(ground_hs, tr.matrix(), {0.5, 0.5, 0.5, 1})->setName("ground") ;
-    RigidBodyPtr ground = make_shared<RigidBody>(CollisionShape::Ptr(new BoxCollisionShape(ground_hs)), tr);
+    RigidBodyPtr ground = make_shared<RigidBody>(CollisionShapePtr(new BoxCollisionShape(ground_hs)), tr);
     ground->setName("ground") ;
     physics.addBody(ground) ;
 
@@ -107,7 +107,7 @@ void createScene() {
     meshNode->matrix() = meshTransform;
     scene->addChild(meshNode) ;
 
-    CollisionShape::Ptr meshColShape(new StaticMeshCollisionShape("/home/malasiot/Downloads/CoffeeTable.obj")) ;
+    CollisionShapePtr meshColShape(new StaticMeshCollisionShape("/home/malasiot/Downloads/CoffeeTable.obj")) ;
     meshColShape->setLocalScale(3.5);
 
     RigidBodyPtr mesh = make_shared<RigidBody>(1.0, new UpdateSceneMotionState(meshNode), meshColShape);
@@ -118,7 +118,7 @@ void createScene() {
 
     btScalar mass(1.0) ;
 
-    CollisionShape::Ptr colShape(new CylinderCollisionShape(chain_radius, chain_length)) ;
+    CollisionShapePtr colShape(new CylinderCollisionShape(chain_radius, chain_length)) ;
 
     int lastBoxIndex = TOTAL_BOXES - 1;
 

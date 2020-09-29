@@ -90,10 +90,43 @@ GroupCollisionShape::GroupCollisionShape() {
     handle_.reset(new btCompoundShape()) ;
 }
 
-void GroupCollisionShape::addChild(CollisionShape::Ptr c, const Affine3f &tr)
+void GroupCollisionShape::addChild(CollisionShapePtr c, const Affine3f &tr)
 {
     children_.emplace_back(c) ;
     static_cast<btCompoundShape *>(handle_.get())->addChildShape(toBulletTransform(tr), c->handle());
+}
+
+GhostObject::GhostObject(CollisionShapePtr shape): shape_(shape) {
+    ghost_.reset(new btGhostObject()) ;
+    ghost_->setCollisionShape(shape_->handle()) ;
+    ghost_->setCollisionFlags(ghost_->getCollisionFlags() | btCollisionObject::CF_NO_CONTACT_RESPONSE);
+    ghost_->setUserPointer(this) ;
+}
+
+void GhostObject::setWorldTransform(const Isometry3f &tr) {
+    ghost_->setWorldTransform(toBulletTransform(tr)) ;
+}
+
+Isometry3f GhostObject::getWorldTransform() const {
+    return toEigenTransform(ghost_->getWorldTransform());
+}
+
+std::vector<CollisionObject *> GhostObject::getOverlapingObjects() const
+{
+    vector<CollisionObject *> collisions ;
+
+    for( int i = 0; i < ghost_->getNumOverlappingObjects(); i++ ) {
+        btCollisionObject *ob = ghost_->getOverlappingObject(i);
+        CollisionObject *co = reinterpret_cast<CollisionObject *>(ob->getUserPointer()) ;
+        if ( co )
+            collisions.push_back(co) ;
+    }
+
+    return collisions ;
+}
+
+bool GhostObject::isOverlapping() const {
+    return ghost_->getNumOverlappingObjects() != 0 ;
 }
 
 }}

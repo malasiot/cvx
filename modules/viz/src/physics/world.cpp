@@ -2,6 +2,7 @@
 #include <cvx/viz/physics/multi_body.hpp>
 #include <cvx/viz/physics/convert.hpp>
 #include <bullet/BulletCollision/CollisionDispatch/btCollisionWorld.h>
+#include <bullet/BulletCollision/CollisionDispatch/btGhostObject.h>
 #include <bullet/BulletCollision/Gimpact/btGImpactCollisionAlgorithm.h>
 #include <bullet/BulletDynamics/ConstraintSolver/btNNCGConstraintSolver.h>
 #include <bullet/BulletDynamics/MLCPSolvers/btMLCPSolver.h>
@@ -20,7 +21,20 @@ PhysicsWorld::PhysicsWorld() {}
 
 void PhysicsWorld::tickCallback(btDynamicsWorld *world, btScalar step) {
     PhysicsWorld *w = static_cast<PhysicsWorld *>(world->getWorldUserInfo()) ;
+    w->updateSimTime(step) ;
+
     w->queryCollisions() ;
+    for( SensorPtr sensor: w->sensors_ )
+        sensor->update(w->getSimTime()) ;
+
+}
+
+void PhysicsWorld::updateSimTime(float step) {
+    sim_time_ += step ;
+}
+
+float PhysicsWorld::getSimTime() const {
+    return sim_time_ ;
 }
 
 void PhysicsWorld::createDefaultDynamicsWorld() {
@@ -50,6 +64,8 @@ void PhysicsWorld::createDefaultDynamicsWorld() {
 
     dynamics_world_->setInternalTickCallback(tickCallback, static_cast<void *>(this)) ;
 
+    broadphase_->getOverlappingPairCache()->setInternalGhostPairCallback(new btGhostPairCallback());
+
 }
 
 
@@ -71,19 +87,12 @@ void PhysicsWorld::createMultiBodyDynamicsWorld()
     dynamics_world_->setGravity(btVector3(0, -10, 0));
 
     dynamics_world_->setInternalTickCallback(tickCallback, static_cast<void *>(this)) ;
+
+    broadphase_->getOverlappingPairCache()->setInternalGhostPairCallback(new btGhostPairCallback());
 }
 
 PhysicsWorld::~PhysicsWorld()
 {
-    //remove the rigidbodies from the dynamics world and delete them
-    /*
-    if ( dynamics_world_ ) {
-        int i;
-        for (i = dynamics_world_->getNumConstraints() - 1; i >= 0; i--) {
-            dynamics_world_->removeConstraint(dynamics_world_->getConstraint(i));
-        }
-    }
-    */
 }
 
 btDynamicsWorld *PhysicsWorld::getDynamicsWorld() {
@@ -197,6 +206,12 @@ uint PhysicsWorld::addMultiBody(const MultiBodyPtr &body) {
     return idx ;
 }
 
+uint PhysicsWorld::addGhost(const GhostObjectPtr &ghost)
+{
+     dynamics_world_->addCollisionObject(ghost->handle(), btBroadphaseProxy::SensorTrigger,btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger) ;
+
+}
+
 void PhysicsWorld::addConstraint(const Constraint &c) {
     dynamics_world_->addConstraint(c.handle());
     constraints_.emplace_back(std::move(c)) ;
@@ -270,6 +285,12 @@ void PhysicsWorld::setCollisionFilter(CollisionFilter *f) {
     pair_cache->setOverlapFilterCallback(filter_callback_.get());
 }
 
+void PhysicsWorld::addSensor(SensorPtr sensor) {
+    assert(dynamics_world_);
+    sensors_.push_back(sensor) ;
+    sensor->init(*this) ;
+}
+
 void PhysicsWorld::setCollisionFeedback(CollisionFeedback *feedback) {
     collision_feedback_ = feedback ;
 }
@@ -288,7 +309,7 @@ void PhysicsWorld::queryCollisions() {
         assert(coA != nullptr) ;
 
         const CollisionObject *coB = static_cast<const CollisionObject *>(obB->getUserPointer());
-        assert(coB != nullptr) ;
+     //   assert(coB != nullptr) ;
 
         int numContacts = contactManifold->getNumContacts();
 

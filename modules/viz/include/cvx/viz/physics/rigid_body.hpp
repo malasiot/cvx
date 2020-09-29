@@ -17,13 +17,13 @@ struct RigidBodyData ;
 class RigidBody: public CollisionObject {
 public :
     // dynamic body with given inertia
-    RigidBody(btScalar mass, btMotionState *ms, const CollisionShape::Ptr &shape, const Eigen::Vector3f &localInertia) ;
+    RigidBody(btScalar mass, btMotionState *ms, const CollisionShapePtr &shape, const Eigen::Vector3f &localInertia) ;
 
     // dynamic body with intertia computed by collision shape and mass
-    RigidBody(btScalar mass, btMotionState *ms, const CollisionShape::Ptr &shape) ;
+    RigidBody(btScalar mass, btMotionState *ms, const CollisionShapePtr &shape) ;
 
     // static body
-    RigidBody(const CollisionShape::Ptr &shape, const Eigen::Affine3f &tr) ;
+    RigidBody(const CollisionShapePtr &shape, const Eigen::Affine3f &tr) ;
 
     btRigidBody *handle() const;
 
@@ -40,7 +40,7 @@ private:
 
     std::string name_ ;
     std::unique_ptr<btRigidBody> handle_ ;
-    CollisionShape::Ptr collision_shape_ ;
+    CollisionShapePtr collision_shape_ ;
     std::unique_ptr<btMotionState> motion_state_ ;
 };
 

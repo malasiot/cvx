@@ -17,6 +17,7 @@
 #include <cvx/viz/physics/rigid_body.hpp>
 #include <cvx/viz/physics/multi_body.hpp>
 #include <cvx/viz/physics/constraints.hpp>
+#include <cvx/viz/physics/sensor.hpp>
 #include <cvx/viz/scene/camera.hpp>
 
 namespace cvx { namespace viz {
@@ -48,6 +49,7 @@ public:
     // return the index of the object in the internal list
     uint addBody(const RigidBodyPtr &body);
     uint addMultiBody(const MultiBodyPtr &body) ;
+    uint addGhost(const GhostObjectPtr &ghost) ;
 
     void addConstraint(const Constraint &c);
 
@@ -63,11 +65,15 @@ public:
     // call this to disable collision among pairs of objects
     void setCollisionFilter(CollisionFilter *f) ;
 
+    void addSensor(SensorPtr sensor) ;
+
 private:
 
     void addCollisionShape(const btCollisionShape *shape);
     void queryCollisions();
     static void tickCallback(btDynamicsWorld *world, btScalar step);
+    void updateSimTime(float step) ;
+    float getSimTime() const ;
 
     btAlignedObjectArray<const btCollisionShape *> collision_shapes_ ;
     std::unique_ptr<btBroadphaseInterface> broadphase_ ;
@@ -80,10 +86,13 @@ private:
     std::map<std::string, uint> body_map_ ;
     std::vector<MultiBodyPtr> multi_bodies_ ;
     std::map<std::string, uint> multi_body_map_ ;
+    std::vector<GhostObjectPtr> ghosts_ ;
+    std::vector<SensorPtr> sensors_ ;
     std::vector<Constraint> constraints_ ;
     std::unique_ptr<btOverlapFilterCallback> filter_callback_ ;
     std::unique_ptr<btInternalTickCallback> tick_callback_ ;
     CollisionFeedback *collision_feedback_ = nullptr ;
+    float sim_time_ = 0.0f;
 
 
 };

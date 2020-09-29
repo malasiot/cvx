@@ -2,16 +2,34 @@
 
 #include <cvx/viz/scene/scene_fwd.hpp>
 #include <cvx/viz/scene/camera.hpp>
+#include <cvx/viz/physics/collision.hpp>
 #include <cvx/viz/renderer/renderer.hpp>
 #include <Eigen/Geometry>
 #include <memory>
 
+#include <bullet/BulletCollision/CollisionDispatch/btGhostObject.h>
+
 namespace cvx { namespace viz {
 
 class CollisionObject ;
+class PhysicsWorld ;
 
 class Sensor {
 public:
+
+    void setParent(CollisionObject *parent) {
+        parent_ = parent ;
+    }
+
+    void setPose(const Eigen::Isometry3f &pose) {
+        pose_ = pose ;
+    }
+
+    // called when adding a sensor in the world
+    virtual void init(PhysicsWorld &world) {}
+
+    // called when the world is destroyed
+    virtual void destroy(PhysicsWorld &world) {} ;
 
     // called by physics thread
     void update(float ts) ;
@@ -56,6 +74,25 @@ private:
     std::unique_ptr<OffscreenRenderer> renderer_ ;
 };
 
+
+class CollisionSensor: public Sensor {
+public:
+    CollisionSensor(CollisionShapePtr shape) ;
+
+    bool hasCollisions() const { return !collisions_.empty() ; }
+    size_t numCollisions() { return collisions_.size() ; }
+
+    void init(PhysicsWorld &world) override;
+
+protected:
+    virtual void doUpdate() override ;
+
+private:
+
+    CollisionShapePtr shape_;
+    std::unique_ptr<btGhostObject> ghost_ ;
+    std::vector<CollisionObject *> collisions_ ;
+};
 
 
 }}

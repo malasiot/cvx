@@ -43,6 +43,11 @@ public:
     GUI(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics):
     SimulationGui(scene, physics) {
         physics_.setCollisionFeedback(this) ;
+        collision_sensor_.reset(new GhostObject(CollisionShapePtr(new SphereCollisionShape(0.1)))) ;
+        Isometry3f tr = Isometry3f::Identity() ;
+        tr.translate(Vector3f(0, 0, -0.5)) ;
+        collision_sensor_->setWorldTransform(tr) ;
+        physics_.addGhost(collision_sensor_) ;
     }
 
     void onUpdate(float delta) override {
@@ -50,15 +55,19 @@ public:
         body->getLinkTransforms(transforms) ;
         scene->updateTransforms(transforms) ;
         SimulationGui::onUpdate(delta) ;
+        cout << collision_sensor_->isOverlapping() << endl ;
+
 
 
     }
 
     void processContact(ContactResult &r) override {
+        if ( r.a_ == nullptr || r.b_ == nullptr ) return ;
         if ( r.a_->getName() == "ground" || r.b_->getName() == "ground" ) return  ;
         cout << r.a_->getName() << ' ' << r.b_->getName() << endl ;
     }
 
+    GhostObjectPtr  collision_sensor_ ;
 
 
 };
@@ -106,7 +115,7 @@ void createScene() {
 
     Vector3f ground_hs{3.5f, 0.05f, 3.5f} ;
     scene->addBox(ground_hs, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
-    RigidBodyPtr ground_rb(new RigidBody(CollisionShape::Ptr(new BoxCollisionShape(ground_hs)), tr));
+    RigidBodyPtr ground_rb(new RigidBody(CollisionShapePtr(new BoxCollisionShape(ground_hs)), tr));
     ground_rb->setName("ground");
     physics.addBody(ground_rb) ;
 
@@ -118,7 +127,7 @@ void createScene() {
     Vector3f box_hs{0.05, link_size/2, 0.05} ;
     float box_mass = 0.1 ;
 
-    CollisionShape::Ptr box_shape(new BoxCollisionShape(box_hs)) ;
+    CollisionShapePtr box_shape(new BoxCollisionShape(box_hs)) ;
 
     Isometry3f offset ;
     offset.setIdentity() ;
@@ -153,7 +162,7 @@ void createScene() {
     col_tr.translate(Vector3f{0.0, -1.5+0.2, -0.25});
     NodePtr cube = makeCube("cube", col_hs, {1, 0 , 0, 1}, scene) ;
     cube->matrix() = col_tr ;
-    RigidBodyPtr cube_rb(new RigidBody(0.15, new UpdateSceneMotionState(cube), CollisionShape::Ptr(new BoxCollisionShape(col_hs)))) ;
+    RigidBodyPtr cube_rb(new RigidBody(0.15, new UpdateSceneMotionState(cube), CollisionShapePtr(new BoxCollisionShape(col_hs)))) ;
     cube_rb->setName("cube") ;
     physics.addBody(cube_rb) ;
 }

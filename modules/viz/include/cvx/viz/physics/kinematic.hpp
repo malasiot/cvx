@@ -40,7 +40,7 @@ private:
     std::map<std::string, Joint> joints_ ;
 
     void create(const urdf::Robot &robot) ;
-    static CollisionShape::Ptr makeCollisionShape(const urdf::Geometry *geom) ;
+    static CollisionShapePtr makeCollisionShape(const urdf::Geometry *geom) ;
 };
 
 } // namespace viz
