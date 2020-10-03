@@ -9,7 +9,7 @@ using namespace Eigen ;
 
 namespace cvx { namespace viz {
 
-SimpleQtViewer::SimpleQtViewer() {
+SimpleQtViewer::SimpleQtViewer(): rdr_(Renderer::RENDER_SHADOWS) {
     setFocusPolicy(Qt::StrongFocus) ;
 }
 
@@ -30,6 +30,8 @@ void SimpleQtViewer::initCamera(const Vector3f &c, float r, UpAxis axis) {
    trackball_.setZoomScale(0.1*r) ;
 
    camera_->setBgColor({1, 1, 1, 1}) ;
+
+   rdr_.setCamera(camera_) ;
 }
 
 void SimpleQtViewer::setScene(const ScenePtr &scene) {
@@ -101,6 +103,7 @@ void SimpleQtViewer::wheelEvent(QWheelEvent *event) {
 void SimpleQtViewer::initializeGL()
 {
     gl3wInit() ;
+
 }
 
 void SimpleQtViewer::resizeGL(int w, int h) {
@@ -114,7 +117,10 @@ void SimpleQtViewer::resizeGL(int w, int h) {
 
 void SimpleQtViewer::paintGL()
 {
-    rdr_.init(camera_) ;
+    GLuint fbo = this->defaultFramebufferObject() ;
+    rdr_.setDefaultFBO(fbo) ;
+
+
     rdr_.render(scene_) ;
 
     if ( draw_axes_ ) {

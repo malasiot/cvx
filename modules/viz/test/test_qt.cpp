@@ -202,7 +202,7 @@ void TestRopeWidget::resizeGL(int w, int h) {
 
 void TestRopeWidget::paintGL()
 {
-    rdr_.init(camera_) ;
+
     rdr_.render(scene_) ;
 }
 
@@ -226,7 +226,7 @@ TestRopeWidget::TestRopeWidget(ScenePtr scene): scene_(scene) {
 
      camera_->setBgColor({1, 1, 1, 1}) ;
 
-
+    rdr_.setCamera(camera_) ;
 }
 
 int main(int argc, char **argv)

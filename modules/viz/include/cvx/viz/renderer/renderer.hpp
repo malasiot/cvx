@@ -1,5 +1,5 @@
-#ifndef __CVX_VIZ_RENDERER_HPP__
-#define __CVX_VIZ_RENDERER_HPP__
+#ifndef CVX_VIZ_RENDERER_HPP
+#define CVX_VIZ_RENDERER_HPP
 
 #include <memory>
 
@@ -23,8 +23,7 @@ public:
     Renderer(int flags = 0) ;
     ~Renderer() ;
 
-    // init renderer
-    void init(const CameraPtr &cam) ;
+    void setCamera(const CameraPtr &cam) ;
 
     void clearZBuffer();
 
@@ -59,6 +58,7 @@ public:
 
     void circle(const Eigen::Vector3f &center, const Eigen::Vector3f &normal, float radius, const Eigen::Vector4f &color, float lineWidth = 1.0) ;
 
+    void setDefaultFBO(uint fbo) ;
 private:
 
     std::unique_ptr<detail::RendererImpl> impl_ ;

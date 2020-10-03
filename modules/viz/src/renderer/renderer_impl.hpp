@@ -1,5 +1,5 @@
-#ifndef __VSIM_RENDERER_IMPL_HPP__
-#define __VSIM_RENDERER_IMPL_HPP__
+#ifndef VSIM_RENDERER_IMPL_HPP
+#define VSIM_RENDERER_IMPL_HPP
 
 #include <memory>
 
@@ -15,6 +15,7 @@
 
 #include "text_item.hpp"
 #include "mesh_data.hpp"
+#include "shadow_map.hpp"
 
 namespace cvx { namespace viz { namespace detail {
 
@@ -22,16 +23,19 @@ class RendererImpl {
 public:
 
 
-    RendererImpl(int flags):  flags_(flags), default_material_(new PhongMaterialInstance) {
-    }
+    RendererImpl(int flags);
     ~RendererImpl() ;
 
-    void init(const CameraPtr &cam) ;
+    void setCamera(const CameraPtr &cam) ;
 
     void renderScene(const ScenePtr &scene) ;
 
     void render(const ScenePtr &scene, const NodePtr &node, const Eigen::Matrix4f &mat) ;
     void render(const ScenePtr &scene, const DrawablePtr &geom, const Eigen::Matrix4f &mat) ;
+
+    void renderShadowMap(const ScenePtr &scene, const Eigen::Vector3f &ldir) ;
+    void renderShadowMap(const ScenePtr &scene, const NodePtr &node, const Eigen::Matrix4f &mat) ;
+    void renderShadowMap(const ScenePtr &scene, const DrawablePtr &geom, const Eigen::Matrix4f &mat) ;
 
     void clearZBuffer() ;
 
@@ -54,22 +58,32 @@ public:
     cv::Mat getColor(cv::Mat &bg, float alpha);
     cv::Mat getDepth();
 
+    void setupShadows(const Eigen::Vector3f &ldir);
+
+    void setDefaultFBO(GLuint fbo) {
+        default_fbo_ = fbo ;
+    }
+
 private:
 
-    Eigen::Matrix4f perspective_, proj_ ;
+    Eigen::Matrix4f perspective_, proj_, ls_mat_ ;
     GLuint query_ ;
  //   Eigen::Vector4f bg_clr_= { 0, 0, 0, 1 } ;
     float znear_, zfar_ ;
     MaterialInstancePtr default_material_ ;
+    CameraPtr cam_ ;
 
     uint light_index_ = 0 ;
 
     static detail::GlyphCacheMap g_glyphs ;
 
-    OpenGLShaderProgram::Ptr line_shader_ ;
+    OpenGLShaderProgram::Ptr line_shader_, shadow_map_shader_, shadow_debug_shader_ ;
     GLuint line_vao_, line_vbo_, line_idx_vbo_ ;
     GLint line_width_range_[2] ;
     int flags_ ;
+
+    ShadowMap shadow_map_ ;
+    GLuint default_fbo_ = 0 ;
 
 
 } ;

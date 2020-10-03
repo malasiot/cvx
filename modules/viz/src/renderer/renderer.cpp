@@ -16,11 +16,12 @@ using namespace Eigen ;
 namespace cvx { namespace viz {
 
 
-void Renderer::init(const CameraPtr &cam) {
-    impl_->init(cam) ;
+void Renderer::setCamera(const CameraPtr &cam) {
+    impl_->setCamera(cam) ;
 }
 
 void Renderer::render(const ScenePtr &scene) {
+    impl_->renderShadowMap(scene, Vector3f{ 1, 1, 1 }) ;
     impl_->renderScene(scene) ;
 }
 
@@ -106,6 +107,10 @@ void Renderer::circle(const Vector3f &center, const Vector3f &normal, float radi
 {
     Vector3f axis(normal.y(), -normal.x(), normal.z()) ;
     arc(center, normal, axis, radius, radius, 0, 2*M_PI, color, false, lineWidth) ;
+}
+
+void Renderer::setDefaultFBO(uint fbo) {
+    impl_->setDefaultFBO(fbo);
 }
 
 

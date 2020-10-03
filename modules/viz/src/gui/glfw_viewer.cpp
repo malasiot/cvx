@@ -26,6 +26,7 @@ cvx::viz::GLFWViewer::GLFWViewer(cvx::viz::ScenePtr scene): glfwRenderWindow(), 
     camera_.reset(new PerspectiveCamera(1.0, 50*M_PI/180, 0.0001, 10*r)) ;
     trackball_.setCamera(camera_, c + Vector3f{0.0, 0, 2*r}, c, {0, 1, 0}) ;
     trackball_.setZoomScale(0.1*r) ;
+    rdr_.setCamera(camera_) ;
 }
 
 void GLFWViewer::onInit() {
@@ -79,18 +80,15 @@ void GLFWViewer::onMouseButtonReleased(uint button, size_t x, size_t y, uint fla
 void GLFWViewer::onMouseMoved(double xpos, double ypos) {
     trackball_.setClickPoint(xpos, ypos) ;
     trackball_.update() ;
-
 }
 
 void GLFWViewer::onMouseWheel(double x) {
     trackball_.setScrollDirection(x>0);
     trackball_.update() ;
-
 }
 
 void GLFWViewer::onUpdate(double delta) {
-    rdr_.init(camera_) ;
-    rdr_.render(scene_) ;
+     rdr_.render(scene_) ;
 }
 } // namespace viz
 } // namespace cvx

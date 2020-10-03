@@ -328,7 +328,7 @@ int main(int argc, char *argv[]) {
     // initialize renderer
 
     Renderer rdr ;
-    rdr.init(cam) ;
+    rdr.setCamera(cam) ;
     rdr.render(scene) ;
 
     // obtain the color buffer

@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
     OffscreenRenderer rdr(width, height) ;
 
     // render scene (possibly multiple times)
-    rdr.init(cam) ;
+    rdr.setCamera(cam) ;
     rdr.render(scene) ;
     rdr.text("ABCDabcd", 100, 100, Font("arial", 32), { 1, 0, 0} ) ;
     // obtain the color buffer

@@ -66,7 +66,7 @@ struct Environment {
         // create the offscreen window
 
         renderer_.reset(new OffscreenRenderer(width, height)) ;
-        renderer_->init(cam_) ;
+        renderer_->setCamera(cam_) ;
 
     }
 
@@ -137,7 +137,7 @@ struct Environment {
 
         updateScene() ;
 
-        renderer_->init(cam_) ;
+
         renderer_->render(scene_) ;
 
         // obtain the color buffer

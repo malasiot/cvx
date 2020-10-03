@@ -49,7 +49,7 @@ MaterialPtr materialSingleton(std::map<int, MaterialPtr> &instances, int flags) 
     }
 }
 
-enum { USE_SKINNING = 1 } ;
+enum { USE_SKINNING = 1, HAS_SHADOWS = 2 } ;
 
 class MaterialInstance {
 
@@ -61,6 +61,7 @@ public:
     virtual void applyTransform(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) {}
     virtual void applyLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) {}
     virtual void applyBoneTransform(uint idx, const Eigen::Matrix4f &tf) ;
+    virtual void applyShadow(const Eigen::Matrix4f &mat) { applyDefaultShadow(mat) ; }
 
     void setFlags(int flags) {
         flags_ = flags ;
@@ -72,6 +73,7 @@ protected:
 
     void applyDefaultPerspective(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) ;
     void applyDefaultLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) ;
+    void applyDefaultShadow(const Eigen::Matrix4f &ls);
 
     std::shared_ptr<Material> material_ ;
     int flags_ ;

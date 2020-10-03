@@ -79,7 +79,7 @@ void TestAnimation::resizeGL(int w, int h) {
 
 void TestAnimation::paintGL()
 {
-    rdr_.init(camera_) ;
+
     rdr_.render(scene_) ;
 
     rdr_.clearZBuffer();
@@ -107,6 +107,8 @@ TestAnimation::TestAnimation(): rdr_(Renderer::RENDER_SHADOWS) {
     trackball_.setZoomScale(0.1*r) ;
 
     camera_->setBgColor({1, 1, 1, 1}) ;
+
+    rdr_.setCamera(camera_) ;
 
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(updateAnimation()));

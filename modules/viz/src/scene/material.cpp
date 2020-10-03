@@ -25,6 +25,10 @@ string vertex_shader_code =
         out vec3 color ;
 #endif
 
+#ifdef HAS_SHADOWS
+        out vec4 lspos ;
+#endif
+
 #ifdef USE_SKINNING
         layout (location = 3) in ivec4 boneIDs;
         layout (location = 4) in vec4  boneWeights;
@@ -38,10 +42,14 @@ string vertex_shader_code =
         layout (location = 5) in vec2 vuv;
         out vec2 uv;
 #endif
-
+        uniform mat4 model ;
         uniform mat4 mvp;
         uniform mat4 mv;
         uniform mat3 mvn ;
+
+#ifdef HAS_SHADOWS
+        uniform mat4 mls ;
+#endif
 
         void main()
         {
@@ -72,6 +80,10 @@ string vertex_shader_code =
         normal = mvn * normall;
 #endif
 
+#ifdef HAS_SHADOWS
+        vec3 fpos = vec3(model * posl);
+        lspos = mls * vec4(fpos, 1);
+#endif
 
 #ifdef HAS_COLORS
        color = vcolor ;
@@ -169,6 +181,9 @@ static string phong_fragment_shader_common =
         precision mediump float;
         in vec3 normal;
         in vec3 position;
+#ifdef HAS_SHADOWS
+        in vec4 lspos ;
+#endif
 
         const int MAX_LIGHTS = 10;
         const int AMBIENT_LIGHT = 0 ;
@@ -201,11 +216,38 @@ static string phong_fragment_shader_common =
 
         uniform MaterialParameters g_material;
 
-        out vec4 FragColor;
+#ifdef HAS_SHADOWS
+        uniform sampler2D shadowMap ;
 
-        vec4 phongIllumination(vec4 dc) {
+        float bias = 0.005 ;
+
+        float ShadowCalculation(vec4 fragPosLightSpace)
+        {
+            // perform perspective divide
+            vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+            // transform to [0,1] range
+            projCoords = projCoords * 0.5 + 0.5;
+            // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+            float closestDepth = texture(shadowMap, projCoords.xy).r;
+            // get depth of current fragment from light's perspective
+            float currentDepth = projCoords.z;
+            // check whether current frag pos is in shadow
+            float shadow = currentDepth  > closestDepth + bias ? 1.0 : 0.0;
+
+            return shadow;
+        }
+#endif
+
+     out vec4 FragColor;
+
+     vec4 phongIllumination(vec4 dc) {
         vec3 N = normalize(normal);
         vec4 finalColor = vec4(0, 0, 0, 1.0);
+
+        float shadow  = 0.0 ;
+#ifdef HAS_SHADOWS
+        shadow = ShadowCalculation(lspos);
+#endif
 
         for (int i=0;i<MAX_LIGHTS;i++)
         {
@@ -257,11 +299,11 @@ static string phong_fragment_shader_common =
         * pow(max(dot(R,E),0.0f),g_material.shininess);
         Ispec = clamp(Ispec, 0.0, 1.0);
 
-        finalColor +=  att*clamp(Ispec + Idiff, 0.0, 1.0);
+        finalColor +=  att*clamp((1 - shadow)*(Ispec + Idiff), 0.0, 1.0);
 
         }
 
-        return finalColor ;
+        return  finalColor ;
         }
         )";
 
@@ -337,6 +379,7 @@ gl::ShaderProgram::Ptr PhongMaterial::prog()
     std::string preproc ;
     preproc.append("#define HAS_NORMALS\n") ;
     if ( flags_ & USE_SKINNING )  preproc.append("#define USE_SKINNING\n") ;
+    if ( flags_ & HAS_SHADOWS )  preproc.append("#define HAS_SHADOWS\n") ;
 
     vs->addSourceString(version_header) ;
     vs->addSourceString(preproc) ;
@@ -345,6 +388,7 @@ gl::ShaderProgram::Ptr PhongMaterial::prog()
     gl::Shader::Ptr fs(new gl::Shader(gl::Shader::Fragment)) ;
 
     fs->addSourceString(version_header) ;
+    fs->addSourceString(preproc) ;
     fs->addSourceString(phong_fragment_shader_common) ;
     fs->addSourceString(phong_fragment_shader_material, "phong_fragment_shader_material")  ;
 
@@ -589,7 +633,15 @@ void MaterialInstance::applyDefaultPerspective(const Matrix4f &cam, const Matrix
     p->setUniform("mvp", mvp) ;
     p->setUniform("mv", mv) ;
     p->setUniform("mvn", wp) ;
+    p->setUniform("model", model) ;
 }
+
+void MaterialInstance::applyDefaultShadow(const Matrix4f &ls) {
+    auto prog = material_->prog() ;
+    prog->setUniform("mls", ls) ;
+    prog->setUniform("depthTexture", 1) ;
+}
+
 
 void MaterialInstance::applyDefaultLight(uint light_index, const LightPtr &light, const Affine3f &tf)
 {

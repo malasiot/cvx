@@ -25,6 +25,7 @@ void Sensor::update(float ts)
 CameraSensor::CameraSensor(CameraPtr camera, NodePtr scene): camera_(camera), scene_(scene) {
     const Viewport &vp = camera_->getViewport() ;
     renderer_.reset(new OffscreenRenderer(vp.width_, vp.height_)) ;
+    renderer_->setCamera(camera_) ;
 }
 
 cv::Mat CameraSensor::getImage() {
@@ -33,7 +34,6 @@ cv::Mat CameraSensor::getImage() {
 
 void CameraSensor::doUpdate() {
     camera_->setViewTransform(getWorldTransform().matrix());
-    renderer_->init(camera_) ;
     image_ = renderer_->getColor() ;
 }
 

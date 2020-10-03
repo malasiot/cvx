@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
 
     ScenePtr scene(new Scene) ;
      //scene->load("/home/malasiot/Downloads/greek_column.obj") ;
-  //   scene->load("/home/malasiot/Downloads/cube.obj") ;
+     scene->load("/home/malasiot/Downloads/cube.obj") ;
 
 
     MeshPtr sphere = Mesh::flatten(Mesh::createCapsule(0.1, 0.5, 9, 2, 16)) ;
