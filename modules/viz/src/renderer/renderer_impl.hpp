@@ -33,7 +33,7 @@ public:
     void render(const ScenePtr &scene, const NodePtr &node, const Eigen::Matrix4f &mat) ;
     void render(const ScenePtr &scene, const DrawablePtr &geom, const Eigen::Matrix4f &mat) ;
 
-    void renderShadowMap(const ScenePtr &scene, const Eigen::Vector3f &ldir) ;
+    void renderShadowMap(const ScenePtr &scene) ;
     void renderShadowMap(const ScenePtr &scene, const NodePtr &node, const Eigen::Matrix4f &mat) ;
     void renderShadowMap(const ScenePtr &scene, const DrawablePtr &geom, const Eigen::Matrix4f &mat) ;
 
@@ -64,6 +64,10 @@ public:
         default_fbo_ = fbo ;
     }
 
+    void enableShadows(bool shadows = true) {
+        has_shadows_ = shadows ;
+    }
+
 private:
 
     Eigen::Matrix4f perspective_, proj_, ls_mat_ ;
@@ -85,6 +89,8 @@ private:
     ShadowMap shadow_map_ ;
     GLuint default_fbo_ = 0 ;
     const float shadow_bias_ = 0.005f ;
+    bool has_shadow_light_ = false ;
+    bool has_shadows_ = true ;
 
 
 } ;

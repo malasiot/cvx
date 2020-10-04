@@ -1,6 +1,7 @@
 #include "renderer_impl.hpp"
 #include "font_manager.hpp"
 #include "glyph_cache.hpp"
+#include "util.hpp"
 
 #include <iostream>
 #include <cstring>
@@ -26,86 +27,7 @@ using namespace Eigen ;
 using namespace cvx::util ;
 
 namespace cvx { namespace viz { namespace detail {
-#define _DEBUG
 
-void
-errorCallback( GLenum source,
-                 GLenum type,
-                 GLuint id,
-                 GLenum severity,
-                 GLsizei length,
-                 const GLchar* message,
-                 const void* userParam )
-{
-  fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
-            type, severity, message );
-}
-
-void CheckOpenGLError(const char* stmt, const char* fname, int line)
-{
-    GLenum err = glGetError();
-    if (err != GL_NO_ERROR)
-    {
-        printf("OpenGL error %08x, at %s:%i - for %s\n", err, fname, line, stmt);
-        abort();
-    }
-}
-
-#ifdef _DEBUG
-    #define GL_CHECK(stmt) do { \
-            stmt; \
-            CheckOpenGLError(#stmt, __FILE__, __LINE__); \
-        } while (0)
-#else
-    #define GL_CHECK(stmt) stmt
-#endif
-
-// @brief Returns a view transformation matrix like the one from glu's lookAt
-/// @see http://www.opengl.org/sdk/docs/man2/xhtml/gluLookAt.xml
-/// @see glm::lookAt
-template<typename Derived>
-Eigen::Matrix<typename Derived::Scalar,4,4> lookAt(Derived const & eye, Derived const & center, Derived const & up){
-  typedef Eigen::Matrix<typename Derived::Scalar,4,4> Matrix4;
-  typedef Eigen::Matrix<typename Derived::Scalar,3,1> Vector3;
-  Vector3 f = (center - eye).normalized();
-  Vector3 u = up.normalized();
-  Vector3 s = f.cross(u).normalized();
-  u = s.cross(f);
-  Matrix4 mat = Matrix4::Zero();
-  mat(0,0) = s.x();
-  mat(0,1) = s.y();
-  mat(0,2) = s.z();
-  mat(0,3) = -s.dot(eye);
-  mat(1,0) = u.x();
-  mat(1,1) = u.y();
-  mat(1,2) = u.z();
-  mat(1,3) = -u.dot(eye);
-  mat(2,0) = -f.x();
-  mat(2,1) = -f.y();
-  mat(2,2) = -f.z();
-  mat(2,3) = f.dot(eye);
-  mat.row(3) << 0,0,0,1;
-  return mat;
-}
-
-/// @see glm::ortho
-template<typename Scalar>
-Eigen::Matrix<Scalar,4,4> ortho( Scalar const& left,
-                                 Scalar const& right,
-                                 Scalar const& bottom,
-                                 Scalar const& top,
-                                 Scalar const& zNear,
-                                 Scalar const& zFar ) {
-    Eigen::Matrix<Scalar,4,4> mat = Eigen::Matrix<Scalar,4,4>::Identity();
-    mat(0,0) = Scalar(2) / (right - left);
-    mat(1,1) = Scalar(2) / (top - bottom);
-    mat(2,2) = - Scalar(2) / (zFar - zNear);
-    mat(3,0) = - (right + left) / (right - left);
-    mat(3,1) = - (top + bottom) / (top - bottom);
-    mat(3,2) = - (zFar + zNear) / (zFar - zNear);
-    return mat;
-}
 
 #define POSITION_LOCATION    0
 #define NORMALS_LOCATION    1
@@ -176,16 +98,15 @@ const GLuint shadow_map_width = 1024 ;
 const GLuint shadow_map_height = 1024 ;
 
 void RendererImpl::setupShadows(const Vector3f &ldir) {
-    if ( shadow_map_.ready() ) return ;
-
-    shadow_map_.init(shadow_map_width, shadow_map_height) ;
-
-    shadow_map_shader_.reset(new OpenGLShaderProgram(shadow_map_shader_vs, shadow_map_shader_fs));
-    shadow_debug_shader_.reset(new OpenGLShaderProgram(shadow_debug_shader_vs, shadow_debug_shader_fs));
-
-    Matrix4f lightProjection = ortho(-5.0f, 5.0f, -5.0f, 5.0f, -10.0f, 10.0f);
+    Matrix4f lightProjection = ortho(-10.0f, 10.0f, -10.0f, 10.0f, -10.0f, 10.0f);
     Matrix4f lightView = lookAt(ldir, Vector3f{0, 0, 0}, Vector3f(0.0, 1.0, 0.0));
     ls_mat_ = lightProjection * lightView;
+
+    if ( !shadow_map_.ready() ) {
+        shadow_map_.init(shadow_map_width, shadow_map_height) ;
+        shadow_map_shader_.reset(new OpenGLShaderProgram(shadow_map_shader_vs, shadow_map_shader_fs));
+        shadow_debug_shader_.reset(new OpenGLShaderProgram(shadow_debug_shader_vs, shadow_debug_shader_fs));
+    }
 }
 
 
@@ -249,21 +170,31 @@ void RendererImpl::renderScene(const ScenePtr &scene) {
 
     proj_ = cam_->getViewMatrix() ;
 
-    if ( flags_ & HAS_SHADOWS )
+    if ( has_shadows_ && has_shadow_light_ )
         shadow_map_.bindTexture(GL_TEXTURE1);
 
     render(scene, scene, Matrix4f::Identity()) ;
-
-    shadow_debug_shader_->use() ;
-    shadow_debug_shader_->setUniform("depthMap", 0);
-    shadow_debug_shader_->setUniform("near_plane", -10.f) ;
-    shadow_debug_shader_->setUniform("far_plane", 7.0f) ;
-
-    shadow_map_.bindTexture(GL_TEXTURE0) ;
-   // renderQuad() ;
 }
 
-void RendererImpl::renderShadowMap(const ScenePtr &scene, const Vector3f &ldir) {
+void RendererImpl::renderShadowMap(const ScenePtr &scene) {
+
+    Vector3f ldir ;
+    has_shadow_light_ = false ;
+
+    auto lights = scene->lights() ;
+    if ( !lights.empty() ) {
+        if ( DirectionalLight *dl = dynamic_cast<DirectionalLight *>(lights[0].get()) ) {
+            ldir = dl->direction_ ;
+            has_shadow_light_ = true ;
+        } else if ( SpotLight *sl = dynamic_cast<SpotLight *>(lights[0].get()) ) {
+            ldir = sl->direction_ ;
+            has_shadow_light_ = true ;
+        } else if ( PointLight *pl = dynamic_cast<PointLight *>(lights[0].get()) ) {
+            ldir = pl->position_ ;
+            has_shadow_light_ = true ;
+        }
+    }
+
 
     setupShadows(ldir);
     // render node hierarchy
@@ -410,7 +341,7 @@ void RendererImpl::render(const ScenePtr &scene, const DrawablePtr &geom, const 
     MaterialInstancePtr material = geom->material() ;
     if ( !material ) material = default_material_ ;
 
-    if ( flags_ & Renderer::RENDER_SHADOWS )
+    if ( has_shadows_ )
         material->setFlags(HAS_SHADOWS) ;
 
     material->use() ;

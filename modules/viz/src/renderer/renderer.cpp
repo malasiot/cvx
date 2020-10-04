@@ -21,7 +21,8 @@ void Renderer::setCamera(const CameraPtr &cam) {
 }
 
 void Renderer::render(const ScenePtr &scene) {
-    impl_->renderShadowMap(scene, Vector3f{ 0.5, 0.5, 1 }) ;
+
+    impl_->renderShadowMap(scene) ;
     impl_->renderScene(scene) ;
 }
 
