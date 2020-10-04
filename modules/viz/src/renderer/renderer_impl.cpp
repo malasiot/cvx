@@ -416,7 +416,7 @@ void RendererImpl::render(const ScenePtr &scene, const DrawablePtr &geom, const 
     material->use() ;
     material->applyParameters() ;
     material->applyTransform(perspective_, proj_, mat) ;
-    material->applyShadow(ls_mat_) ;
+    material->applyShadow(ls_mat_, shadow_bias_) ;
     setLights(scene, material) ;
 
     if ( mesh && mesh->hasSkeleton() )

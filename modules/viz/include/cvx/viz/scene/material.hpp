@@ -61,7 +61,7 @@ public:
     virtual void applyTransform(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) {}
     virtual void applyLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) {}
     virtual void applyBoneTransform(uint idx, const Eigen::Matrix4f &tf) ;
-    virtual void applyShadow(const Eigen::Matrix4f &mat) { applyDefaultShadow(mat) ; }
+    virtual void applyShadow(const Eigen::Matrix4f &mat, float bias) { applyDefaultShadow(mat, bias) ; }
 
     void setFlags(int flags) {
         flags_ = flags ;
@@ -73,7 +73,7 @@ protected:
 
     void applyDefaultPerspective(const Eigen::Matrix4f &cam, const Eigen::Matrix4f &view, const Eigen::Matrix4f &model) ;
     void applyDefaultLight(uint idx, const LightPtr &light, const Eigen::Affine3f &tf) ;
-    void applyDefaultShadow(const Eigen::Matrix4f &ls);
+    void applyDefaultShadow(const Eigen::Matrix4f &ls, float bias);
 
     std::shared_ptr<Material> material_ ;
     int flags_ ;

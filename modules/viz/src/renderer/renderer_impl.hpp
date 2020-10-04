@@ -84,6 +84,7 @@ private:
 
     ShadowMap shadow_map_ ;
     GLuint default_fbo_ = 0 ;
+    const float shadow_bias_ = 0.005f ;
 
 
 } ;
