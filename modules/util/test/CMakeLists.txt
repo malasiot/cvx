@@ -45,3 +45,6 @@ target_link_libraries(test_json cvx_util )
 add_executable(test_format test_format.cpp)
 target_link_libraries(test_format cvx_util)
 
+add_executable(test_scanner test_scanner.cpp)
+target_link_libraries(test_scanner cvx_util)
+
