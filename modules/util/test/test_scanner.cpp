@@ -8,9 +8,10 @@ class Scanner {
 public:
     Scanner(std::istream &strm): strm_(strm) {}
 
-    // get single character
+    // get a single character (this should not be a delimeter)
     char read() {
         assert (strm_.hasMore()) ;
+        column_++ ;
         return strm_.read() ;
     }
 
@@ -25,15 +26,17 @@ public:
     // backtrack the scanner
 
     bool expect(const char *seq) {
-        size_t pos = strm_.position() ;
+        saveState() ;
+
         bool match = true ;
         const char *p = seq ;
 
         while ( strm_.hasMore() && *p ) {
             char c = strm_.read() ;
+            column_ ++ ;
             if ( *p != c ) {
                 match = false ;
-                strm_.setPosition(pos) ;
+                restoreState() ;
                 break ;
             }
             ++p ;
@@ -42,18 +45,23 @@ public:
         return match ;
     }
 
-
-
     void skipDelimeters() {
         while ( hasMore() ) {
             char c = strm_.read() ;
+
             if ( !delimeter_(c) ) {
                 strm_.putBack() ;
                 break ;
+            } else if ( c == '\n' ) {
+                line_ ++ ;
+                column_ = 0 ;
+            } else {
+                column_++ ;
             }
         }
     }
 
+    // get a delimeted token
     std::string nextToken() {
 
         std::string token ;
@@ -61,20 +69,30 @@ public:
 
         while ( hasMore() ) {
             char c = strm_.read() ;
-            if ( delimeter_(c) ) break ;
-            token.push_back(c) ;
+
+            if ( delimeter_(c) ) {
+                strm_.putBack() ;
+                break ;
+            }
+            else
+                token.push_back(c) ;
         }
 
+        column_ += token.size() ;
         return token ;
     }
 
-    bool expectDouble(double &v) {
+    // parse floating point number
 
-        size_t anchor = strm_.position() ;
+    bool expectDouble(double &v, bool &is_decimal) {
 
-        enum state { sign, asign, a, b, esign, e, end, error } ;
+        saveState() ;
 
-        state state = sign ;
+        is_decimal = false ;
+
+        enum state { S_BEGIN, S_INF, S_NAN, S_AFTER_SIGN, S_DEC, S_FRAC, S_ESIGN, S_EXP, S_END, S_ERROR } ;
+
+        state state = S_BEGIN ;
 
         std::string n_str ;
 
@@ -82,60 +100,84 @@ public:
 
             char c = read() ;
 
-            if ( state == sign )  {
-                if ( c == '+' || c == '-' ) {
-                    state = asign ;
-                } else if ( isdigit(c) ) {
-                    state = a ;
-                } else if ( c == '.' ) {
-                    state = b ;
-                }
-            } else if ( state == asign ) {
-                if ( c == '.' ) {
-                    state = b ;
-                } else if ( isdigit(c) ) {
-                    state = a ;
-                } else {
-                    state = error ;
-                }
-            } else if ( state == a ) {
-                if ( isdigit(c) ) {
-                } else if ( c == '.' )  {
-                    state = b ;
-                } else {
-                    state = end ;
-                }
-            } else if ( state == b ) {
-                if ( isdigit(c) ) {
-                } else if ( ( c == 'e' || c == 'E' )  ) {
-                    state = esign ;
-                } else {
-                    if ( isdigit(n_str.back()) )
-                        state = end ;
-                    else
-                        state = error;
-                }
-            } else if ( state == esign ) {
-                if ( c == '+' || c == '-' || isdigit(c) ) {
-                    state = e ;
-                } else
-                    state = error ;
-            } else if ( state == e ) {
+            switch ( state ) {
+            case S_BEGIN: {
+                if ( c == 'i' || c == 'I' ) state = S_INF ;
+                else if ( c == 'n' || c == 'N' ) state = S_NAN ;
+                else if ( c == '+' || c == '-' ) state = S_AFTER_SIGN ;
+                else if ( isdigit(c) ) state = S_DEC ;
+                else if ( c == '.' ) state = S_FRAC ;
+                else state = S_ERROR ;
+                break ;
+            }
+            case S_AFTER_SIGN: {
+                if ( c == '.' ) state = S_FRAC ;
+                else if ( isdigit(c) ) state = S_DEC ;
+                else state = S_ERROR ;
+                break ;
+            }
+            case S_DEC: {
                 if ( isdigit(c) ) ;
-                else state = end ;
+                else if ( c == '.' ) state = S_FRAC ;
+                else {
+                    is_decimal = true ;
+                    strm_.putBack() ;
+                    v = atoi(n_str.c_str()) ;
+                    return true ;
+                }
+                break ;
+            }
+            case S_FRAC: {
+                if ( isdigit(c) ) ;
+                else if ( ( c == 'e' || c == 'E' ) ) state = S_ESIGN ;
+                else if ( n_str.size() > 1 ) state = S_END ;
+                else state = S_ERROR ;
+
+                break ;
+            }
+            case S_ESIGN: {
+                if ( c == '+' || c == '-' || isdigit(c) ) state = S_EXP ;
+                else state = S_ERROR ;
+                break ;
+            }
+            case S_EXP: {
+                if ( isdigit(c) ) ;
+                else state = S_END;
+                break ;
+            }
+            case S_NAN: {
+                size_t n = n_str.size() ;
+                if ( n == 1 && ( c == 'a' || c == 'A' )) ;
+                else if ( n == 2 && ( c == 'n' || c == 'N') ) ;
+                else if ( n == 3 ) state = S_END ;
+                else state = S_ERROR ;
+                break ;
+            }
+            case S_INF: {
+                size_t n = n_str.size() ;
+                if ( n == 1 && ( c == 'n' || c == 'N' )) ;
+                else if ( n == 2 && ( c == 'f' || c == 'F') ) ;
+                else if ( n == 3 ) state = S_END ;
+                else state = S_ERROR ;
+                break ;
             }
 
-            if ( state == error ) {
-                strm_.setPosition(anchor) ;
+            default:
+                break ;
+
+            }
+
+            if ( state == S_ERROR )  {
+                restoreState() ;
                 return false ;
-            } else if ( state == end ) {
+            } else if ( state == S_END ) {
                 strm_.putBack() ;
                 v = atof(n_str.c_str()) ;
                 return true ;
             } else {
                 n_str += c ;
+                column_ ++ ;
             }
-
         }
 
         return true ;
@@ -220,24 +262,89 @@ private:
         bool has_more_ = true ;
     };
 
+
+    struct State {
+        size_t position_ = 0 ;
+        size_t column_ = 0 ;
+        size_t line_ = 0 ;
+    };
+
+    void saveState() {
+        anchor_.position_ = strm_.position() ;
+        anchor_.column_= column_ ;
+        anchor_.line_ = line_ ;
+    }
+
+    void restoreState() {
+        strm_.setPosition(anchor_.position_) ;
+        column_ = anchor_.column_ ;
+        line_ = anchor_.line_ ;
+    }
+
+
     StreamWrapper strm_ ;
+    State anchor_ ;
+    size_t column_ = 0, line_ = 0  ;
 
 };
 
+std::string parseString(Scanner &s) {
+    char startc = s.read() ;
+
+    std::string res ;
+    bool is_escape = false ;
+    char c ;
+    while ( s.hasMore() ) {
+        c = s.read() ;
+
+        if ( c == startc ) {
+            return res ;
+        }
+        else if ( c == '\\' ) {
+            is_escape = true ;
+        } else if ( is_escape ) {
+            switch (c) {
+            case '"':
+                res += '"'; break ;
+            case '/':
+                res += '/'; break ;
+            case '\\':
+                res += '\\'; break;
+            case 'b':
+                res += '\b'; break ;
+            case 'f':
+                res += '\f'; break ;
+            case 'n':
+                res += '\n'; break ;
+            case 'r':
+                res += '\r'; break ;
+            case 't':
+                res += '\t'; break ;
+            default:
+                 return std::string() ;
+            }
+            is_escape = false ;
+        } else {
+            res += c ;
+        }
+    }
+    if ( c != startc ) return std::string() ;
+
+    return res ;
+}
 
 using namespace std ;
 
 int main(int argc, char *argv[]) {
 
-    istringstream strm("10.4e01 etet") ;
+    istringstream strm("2. \"et\"45'et\" dd") ;
     Scanner s(strm) ;
 
-    double v ;
-    s.expectDouble(v) ;
-    cout <<v << endl ;
-    while (s.hasMore() ) {
-        string token = s.nextToken() ;
-        cout << token << endl ;
+    while ( s.hasMore() ) {
+        s.skipDelimeters() ;
+        char c = s.peek() ;
+        if ( c == '\'' || c == '"' ) cout << parseString(s) << endl ;
+        else cout << s.nextToken() << endl ;
     }
 
 
