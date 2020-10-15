@@ -48,7 +48,10 @@ int main() {
         echo_server.init_asio();
 
         // Register our message handler
-        echo_server.set_message_handler(bind(&on_message,&echo_server,::_1,::_2));
+      //  echo_server.set_message_handler(bind(&on_message,&echo_server,::_1,::_2));
+          echo_server.set_message_handler([&echo_server](websocketpp::connection_hdl hdl, message_ptr msg) {
+              on_message(&echo_server, hdl, msg);
+          }) ;
 
         // Listen on port 9002
         echo_server.listen(asio::ip::tcp::v4(), 9002);
