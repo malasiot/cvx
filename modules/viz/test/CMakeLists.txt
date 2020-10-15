@@ -5,6 +5,7 @@ include_directories(
     ${EIGEN3_INCLUDE_DIR}
     ${OpenCV_INCLUDE_DIRS}
     ../src/3rdparty
+    ../src/3rdparty/asio
 )
 
 add_executable(test_renderer test_renderer.cpp)
@@ -44,6 +45,10 @@ add_executable(test_animation test_animation.cpp test_animation.hpp)
 target_link_libraries(test_animation cvx_viz Qt5::Widgets )
 
 add_subdirectory(bullet)
+
+add_executable(test_ws test_ws.cpp)
+target_link_libraries(test_ws  )
+
 #add_subdirectory(openni)
 #add_subdirectory(pbd)
 #add_subdirectory(mh)
