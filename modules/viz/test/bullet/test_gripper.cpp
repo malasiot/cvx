@@ -98,12 +98,12 @@ void createScene() {
 
     Vector3f ground_hs{1.5f, 0.05f, 1.5f} ;
     scene->addBox(ground_hs, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
-    physics.addBody(make_shared<RigidBody>(CollisionShapePtr(new BoxCollisionShape(ground_hs)), tr)) ;
+    physics.addRigidBody(make_shared<RigidBody>(CollisionShapePtr(new BoxCollisionShape(ground_hs)), tr)) ;
 
     Affine3f box_tr(Translation3f{0, -1.2, 0}) ;
     Vector3f box_hs{0.03, 0.03f, 0.03f} ;
     auto box = scene->addBox(box_hs, box_tr.matrix(), Vector4f{0.5, 1.5, 0, 1}) ;
-    physics.addBody(make_shared<RigidBody>(2.0, new UpdateSceneMotionState(box), CollisionShapePtr(new BoxCollisionShape(box_hs)))) ;
+    physics.addRigidBody(make_shared<RigidBody>(2.0, new UpdateSceneMotionState(box), CollisionShapePtr(new BoxCollisionShape(box_hs)))) ;
 
 
     string path = "/home/malasiot/local/bullet3/examples/pybullet/gym/pybullet_data/pr2_gripper.urdf" ;

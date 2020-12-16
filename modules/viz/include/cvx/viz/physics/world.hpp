@@ -15,6 +15,7 @@
 
 #include <cvx/viz/physics/collision.hpp>
 #include <cvx/viz/physics/rigid_body.hpp>
+#include <cvx/viz/physics/soft_body.hpp>
 #include <cvx/viz/physics/multi_body.hpp>
 #include <cvx/viz/physics/constraints.hpp>
 #include <cvx/viz/physics/sensor.hpp>
@@ -35,6 +36,7 @@ public:
 
     void createDefaultDynamicsWorld();
     void createMultiBodyDynamicsWorld();
+    void createSoftBodyDynamicsWorld() ;
 
     btDynamicsWorld* getDynamicsWorld();
 
@@ -47,16 +49,20 @@ public:
     bool rayPick(const Eigen::Vector3f &origin, const Eigen::Vector3f &dir, RayHitResult &res);
 
     // return the index of the object in the internal list
-    uint addBody(const RigidBodyPtr &body);
+    uint addRigidBody(const RigidBodyPtr &body);
     uint addMultiBody(const MultiBodyPtr &body) ;
+    uint addSoftBody(const SoftBodyPtr &body);
+
     uint addGhost(const GhostObjectPtr &ghost) ;
 
     void addConstraint(const Constraint &c);
 
     RigidBodyPtr getRigidBody(uint idx) const ;
+    SoftBodyPtr getSoftBody(uint idx) const ;
     MultiBodyPtr getMultiBody(uint idx) const ;
 
     RigidBodyPtr findRigidBody(const std::string &name) ;
+    SoftBodyPtr findSoftBody(const std::string &name) ;
     MultiBodyPtr findMultiBody(const std::string &name) ;
 
     // Call this to receive reports on collisions after each step
@@ -66,6 +72,9 @@ public:
     void setCollisionFilter(CollisionFilter *f) ;
 
     void addSensor(SensorPtr sensor) ;
+
+    btSoftBodyWorldInfo &getSoftBodyWorldInfo() { return soft_body_world_info_ ; }
+
 
 private:
 
@@ -84,6 +93,8 @@ private:
 
     std::vector<RigidBodyPtr> bodies_ ;
     std::map<std::string, uint> body_map_ ;
+    std::vector<SoftBodyPtr> soft_bodies_ ;
+    std::map<std::string, uint> soft_body_map_ ;
     std::vector<MultiBodyPtr> multi_bodies_ ;
     std::map<std::string, uint> multi_body_map_ ;
     std::vector<GhostObjectPtr> ghosts_ ;
@@ -92,6 +103,8 @@ private:
     std::unique_ptr<btOverlapFilterCallback> filter_callback_ ;
     std::unique_ptr<btInternalTickCallback> tick_callback_ ;
     CollisionFeedback *collision_feedback_ = nullptr ;
+
+    btSoftBodyWorldInfo soft_body_world_info_ ;
     float sim_time_ = 0.0f;
 
 

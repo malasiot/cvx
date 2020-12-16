@@ -53,7 +53,7 @@ void createScene() {
 
     Vector3f ground_hs{50.0f, 50.0f, 50.0f} ;
     scene->addBox(ground_hs, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
-    physics.addBody(make_shared<RigidBody>(CollisionShapePtr(new BoxCollisionShape(ground_hs)), tr)) ;
+    physics.addRigidBody(make_shared<RigidBody>(CollisionShapePtr(new BoxCollisionShape(ground_hs)), tr)) ;
 
     //create a few dynamic rigidbodies
     // Re-using the same collision is better for memory usage and performance
@@ -79,7 +79,7 @@ void createScene() {
                 node->setPickable(true);
                 node->setName(cvx::util::format("%d %d %d", i, j, k)) ;
 
-                physics.addBody(make_shared<RigidBody>(mass, new UpdateSceneMotionState(node), colShape));
+                physics.addRigidBody(make_shared<RigidBody>(mass, new UpdateSceneMotionState(node), colShape));
             }
         }
     }

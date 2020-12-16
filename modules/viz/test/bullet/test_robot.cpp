@@ -117,7 +117,7 @@ void createScene() {
     scene->addBox(ground_hs, tr.matrix(), Vector4f{0.5, 0.5, 0.5, 1}) ;
     RigidBodyPtr ground_rb(new RigidBody(CollisionShapePtr(new BoxCollisionShape(ground_hs)), tr));
     ground_rb->setName("ground");
-    physics.addBody(ground_rb) ;
+    physics.addRigidBody(ground_rb) ;
 
     DirectionalLight *dl = new DirectionalLight(Vector3f(0.5, 0.5, 1)) ;
     dl->diffuse_color_ = Vector3f(1, 1, 1) ;
@@ -164,7 +164,7 @@ void createScene() {
     cube->matrix() = col_tr ;
     RigidBodyPtr cube_rb(new RigidBody(0.15, new UpdateSceneMotionState(cube), CollisionShapePtr(new BoxCollisionShape(col_hs)))) ;
     cube_rb->setName("cube") ;
-    physics.addBody(cube_rb) ;
+    physics.addRigidBody(cube_rb) ;
 }
 
 

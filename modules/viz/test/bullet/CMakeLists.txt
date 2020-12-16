@@ -29,8 +29,8 @@ add_executable(test_bullet_robot test_robot.cpp bullet_gui.cpp bullet_gui.hpp)
 set_target_properties(test_bullet_robot PROPERTIES AUTOMOC TRUE)
 target_link_libraries(test_bullet_robot cvx_viz ${BULLET_LIBRARIES})
 
-#add_executable(test_cloth test_cloth.cpp bullet_gui.cpp bullet_gui.hpp)
-#set_target_properties(test_cloth PROPERTIES AUTOMOC TRUE)
-#target_link_libraries(test_cloth cvx_viz ${BULLET_LIBRARIES})
+add_executable(test_cloth test_cloth.cpp bullet_gui.cpp bullet_gui.hpp)
+set_target_properties(test_cloth PROPERTIES AUTOMOC TRUE)
+target_link_libraries(test_cloth cvx_viz ${BULLET_LIBRARIES})
 
 ENDIF(BULLET_FOUND)

@@ -19,7 +19,7 @@ class SimulationGui : public cvx::viz::SimpleQtViewer
     Q_OBJECT
 public:
     SimulationGui(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics) ;
-
+    SimulationGui(cvx::viz::ScenePtr scene, cvx::viz::PhysicsWorld &physics, const Eigen::Vector3f &c, float r);
 protected:
 
     cvx::viz::PhysicsWorld &physics_ ;

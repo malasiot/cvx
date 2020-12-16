@@ -17,6 +17,16 @@ SimulationGui::SimulationGui(ScenePtr scene, PhysicsWorld &physics): SimpleQtVie
     startAnimations() ;
 }
 
+SimulationGui::SimulationGui(ScenePtr scene, PhysicsWorld &physics, const Eigen::Vector3f &c, float r): SimpleQtViewer(), physics_(physics), picker_(physics) {
+    setScene(scene) ;
+
+    initCamera(c, r) ;
+
+    camera_->setBgColor({1, 1, 1, 1}) ;
+
+    startAnimations() ;
+}
+
 void SimulationGui::mousePressEvent(QMouseEvent *event)
 {
     if ( event->modifiers() & Qt::ControlModifier ) {

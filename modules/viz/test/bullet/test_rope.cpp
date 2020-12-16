@@ -90,7 +90,7 @@ void createScene() {
     scene->addBox(ground_hs, tr.matrix(), {0.5, 0.5, 0.5, 1})->setName("ground") ;
     RigidBodyPtr ground = make_shared<RigidBody>(CollisionShapePtr(new BoxCollisionShape(ground_hs)), tr);
     ground->setName("ground") ;
-    physics.addBody(ground) ;
+    physics.addRigidBody(ground) ;
 
     // create static pole
  //   Affine3f poleTransform(Translation3f{0.5, 5, 0}) ;
@@ -112,7 +112,7 @@ void createScene() {
 
     RigidBodyPtr mesh = make_shared<RigidBody>(1.0, new UpdateSceneMotionState(meshNode), meshColShape);
     mesh->setName("mesh") ;
-    physics.addBody(mesh) ;
+    physics.addRigidBody(mesh) ;
 
     // create collision shape for chain element
 
@@ -134,13 +134,13 @@ void createScene() {
         if ( i== lastBoxIndex ) {
             RigidBodyPtr box(new RigidBody(colShape, box_tr)) ;
             box->setName(name) ;
-            physics.addBody(box) ;
+            physics.addRigidBody(box) ;
             boxes.push_back(box) ;
         }
         else {
             RigidBodyPtr box(new RigidBody(mass, new UpdateSceneMotionState(chain_node), colShape)) ;
             box->setName(name) ;
-            physics.addBody(box) ;
+            physics.addRigidBody(box) ;
             boxes.push_back(box) ;
         }
 

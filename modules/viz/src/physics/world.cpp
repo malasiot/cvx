@@ -1,6 +1,7 @@
 #include <cvx/viz/physics/world.hpp>
 #include <cvx/viz/physics/multi_body.hpp>
 #include <cvx/viz/physics/convert.hpp>
+#include <cvx/viz/physics/soft_body.hpp>
 #include <bullet/BulletCollision/CollisionDispatch/btCollisionWorld.h>
 #include <bullet/BulletCollision/CollisionDispatch/btGhostObject.h>
 #include <bullet/BulletCollision/Gimpact/btGImpactCollisionAlgorithm.h>
@@ -89,6 +90,47 @@ void PhysicsWorld::createMultiBodyDynamicsWorld()
     dynamics_world_->setInternalTickCallback(tickCallback, static_cast<void *>(this)) ;
 
     broadphase_->getOverlappingPairCache()->setInternalGhostPairCallback(new btGhostPairCallback());
+}
+
+
+const int maxProxies = 32766;
+
+void PhysicsWorld::createSoftBodyDynamicsWorld()
+{
+    collision_config_.reset( new btSoftBodyRigidBodyCollisionConfiguration() ) ;
+    dispatcher_.reset( new btCollisionDispatcher(collision_config_.get()) ) ;
+
+
+    soft_body_world_info_.m_dispatcher = dispatcher_.get() ;
+
+    btVector3 worldAabbMin(-1000, -1000, -1000);
+    btVector3 worldAabbMax(1000, 1000, 1000);
+
+    broadphase_.reset(new btAxisSweep3(worldAabbMin, worldAabbMax, maxProxies));
+
+    soft_body_world_info_.m_broadphase = broadphase_.get();
+
+    solver_.reset(new btSequentialImpulseConstraintSolver());
+
+    btSoftBodySolver* softBodySolver = 0;
+
+    dynamics_world_.reset( new btSoftRigidDynamicsWorld(dispatcher_.get(), broadphase_.get(), solver_.get(), collision_config_.get(), softBodySolver));
+
+
+    dynamics_world_->setGravity(btVector3(0, -10, 0));
+
+    dynamics_world_->setInternalTickCallback(tickCallback, static_cast<void *>(this)) ;
+
+    soft_body_world_info_.m_gravity.setValue(0, -10, 0) ;
+    soft_body_world_info_.m_sparsesdf.Initialize() ;
+
+    soft_body_world_info_.m_sparsesdf.Reset();
+
+    soft_body_world_info_.air_density = (btScalar)1.2;
+    soft_body_world_info_.water_density = 0;
+    soft_body_world_info_.water_offset = 0;
+    soft_body_world_info_.water_normal = btVector3(0, 0, 0);
+
 }
 
 PhysicsWorld::~PhysicsWorld()
@@ -182,7 +224,7 @@ void PhysicsWorld::addCollisionShape(const btCollisionShape *shape) {
     collision_shapes_.push_back(shape) ;
 }
 
-uint PhysicsWorld::addBody(const RigidBodyPtr &body) {
+uint PhysicsWorld::addRigidBody(const RigidBodyPtr &body) {
     dynamics_world_->addRigidBody(body->handle());
     uint idx = bodies_.size() ;
     bodies_.emplace_back(body) ;
@@ -206,6 +248,21 @@ uint PhysicsWorld::addMultiBody(const MultiBodyPtr &body) {
     return idx ;
 }
 
+uint PhysicsWorld::addSoftBody(const SoftBodyPtr &body) {
+    btSoftRigidDynamicsWorld *dw = dynamic_cast<btSoftRigidDynamicsWorld *>(dynamics_world_.get());
+    assert(dw != nullptr ) ;
+
+    dw->addSoftBody(body->handle());
+    uint idx = soft_bodies_.size() ;
+    soft_bodies_.emplace_back(body) ;
+    body->handle()->setUserIndex(idx) ;
+    body->handle()->setUserPointer(reinterpret_cast<void *>(body.get())) ;
+    string bname = body->getName() ;
+    if ( !bname.empty() )
+        soft_body_map_.emplace(bname, idx) ;
+    return idx ;
+}
+
 uint PhysicsWorld::addGhost(const GhostObjectPtr &ghost)
 {
      dynamics_world_->addCollisionObject(ghost->handle(), btBroadphaseProxy::SensorTrigger,btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger) ;
@@ -222,6 +279,11 @@ RigidBodyPtr PhysicsWorld::getRigidBody(uint idx) const {
 }
 
 
+SoftBodyPtr PhysicsWorld::getSoftBody(uint idx) const {
+    return soft_bodies_[idx];
+}
+
+
 MultiBodyPtr PhysicsWorld::getMultiBody(uint idx) const {
     return multi_bodies_[idx];
 }
@@ -233,6 +295,15 @@ RigidBodyPtr PhysicsWorld::findRigidBody(const string &name) {
     else
         return nullptr ;
 }
+
+SoftBodyPtr PhysicsWorld::findSoftBody(const string &name) {
+    auto it = soft_body_map_.find(name) ;
+    if ( it != soft_body_map_.end() )
+        return getSoftBody(it->second) ;
+    else
+        return nullptr ;
+}
+
 
 MultiBodyPtr PhysicsWorld::findMultiBody(const string &name) {
     auto it = multi_body_map_.find(name) ;
