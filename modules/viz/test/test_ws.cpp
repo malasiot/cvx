@@ -53,6 +53,11 @@ int main() {
               on_message(&echo_server, hdl, msg);
           }) ;
 
+          echo_server.set_http_handler([&echo_server](websocketpp::connection_hdl hdl){
+              auto locl = hdl.lock() ;
+
+          });
+
         // Listen on port 9002
         echo_server.listen(asio::ip::tcp::v4(), 9002);
 

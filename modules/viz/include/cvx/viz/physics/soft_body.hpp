@@ -11,6 +11,7 @@
 #include <cvx/viz/physics/collision.hpp>
 #include <cvx/viz/physics/convert.hpp>
 #include <cvx/util/geometry/point_list.hpp>
+#include <cvx/viz/scene/geometry.hpp>
 
 namespace cvx { namespace viz {
 
@@ -31,7 +32,7 @@ public :
         return name_ ;
     }
 
-    util::PointList3f getVertices() const ;
+    virtual GeometryPtr getVisualGeometry() const = 0 ;
 
     Eigen::Isometry3f getWorldTransform() const override { return tr_ ; }
 protected:
@@ -48,6 +49,10 @@ using SoftBodyPtr = std::shared_ptr<SoftBody> ;
 class SoftPatch2D: public SoftBody {
 public:
     SoftPatch2D(PhysicsWorld &w, const float size, uint numX, uint numY, uint flags) ;
+    SoftPatch2D(PhysicsWorld &physics, const Eigen::Vector3f &c00, const Eigen::Vector3f &c10, const Eigen::Vector3f &c01,
+                uint nvX, uint nvY, uint flags, bool gendiags);
+
+    GeometryPtr getVisualGeometry() const override ;
 };
 } // namespace viz
 } // namespace cvx

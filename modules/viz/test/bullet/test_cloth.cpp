@@ -1,6 +1,3 @@
-/* these should be included before QtGui */
-/* there will be a warning that you cannot mix glew with Qt GL which you can ignore */
-
 #include <cvx/viz/scene/material.hpp>
 #include <cvx/util/geometry/point_list.hpp>
 
@@ -33,16 +30,6 @@ using namespace cvx::util ;
 
 static PhysicsWorld physics ;
 static ScenePtr scene ;
-static btSoftBody *cloth ;
-
-static GeometryPtr makeClothGeometry(const PointList3f &vtx) {
-    PointList3f  colors ;
-
-    for( uint i=0 ; i<vtx.size() ; i++ ) {
-       colors.push_back({1, 0, 0}) ;
-    }
-    return make_shared<MeshGeometry>(Mesh::makePointCloud(vtx, colors)) ;
-}
 
 class TestClothWidget: public SimulationGui {
 public:
@@ -59,7 +46,7 @@ public:
     void updateClothGeometry() {
         auto dr = node_->getDrawable(0) ;
 
-        dr->setGeometry(makeClothGeometry(cloth_->getVertices())) ;
+        dr->setGeometry(cloth_->getVisualGeometry()) ;
     }
 
     SoftBodyPtr cloth_ ;
@@ -145,21 +132,19 @@ void createScene() {
 
 
     const btScalar s = 4;  //size of cloth patch
-    const int NUM_X = 91;  //vertices on X axis
-    const int NUM_Z = 91;  //vertices on Z axis
+    const int NUM_X = 31;  //vertices on X axis
+    const int NUM_Z = 31;  //vertices on Z axis
 
-    SoftBodyPtr sb(new SoftPatch2D(physics, s, NUM_X, NUM_Z, 1+2));
+    SoftBodyPtr sb(new SoftPatch2D(physics, {-2, 3, 0}, {2, 3, 0}, {-2, 3, 4}, NUM_X, NUM_Z, 1+2, false));
     sb->setName("cloth");
     physics.addSoftBody(sb) ;
 
-    PointList3f vertices = sb->getVertices() ;
 
     NodePtr node(new Node) ;
 
     node->setName("cloth") ;
-    MaterialInstancePtr material(new PerVertexColorMaterialInstance(0.5f)) ;
 
-    DrawablePtr dr(new Drawable(makeClothGeometry(vertices), material)) ;
+    DrawablePtr dr(new Drawable(sb->getVisualGeometry(), nullptr)) ;
 
     node->addDrawable(dr) ;
 
@@ -190,7 +175,7 @@ int main(int argc, char **argv)
     QSurfaceFormat::setDefaultFormat(format);
 
     QMainWindow window ;
-    window.setCentralWidget(new TestClothWidget(scene, physics, { 0, 0, 0}, 13.0)) ;
+    window.setCentralWidget(new TestClothWidget(scene, physics, { 0, 0, 0}, 3.0)) ;
     window.resize(512, 512) ;
     window.show() ;
 
