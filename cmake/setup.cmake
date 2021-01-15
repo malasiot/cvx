@@ -23,5 +23,11 @@ endif()
 
 set(LIBRARY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include/cvx/)
 
+# Version variables
+set(MAJOR_VERSION 1)
+set(MINOR_VERSION 0)
+set(PATCH_VERSION 0)
+set(PROJECT_VERSION ${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION})
+
 # Create 'version.hpp'
 configure_file(${CMAKE_SOURCE_DIR}/cmake/version.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/version.hpp" @ONLY)

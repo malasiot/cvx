@@ -9,9 +9,9 @@ include(dependencies)
 
 add_subdirectory(src)
 
-#if (BUILD_TESTS)
+if (BUILD_TESTS)
 add_subdirectory(test)
-#endif ()
+endif ()
 
 include(install)
 
