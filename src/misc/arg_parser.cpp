@@ -9,7 +9,7 @@ using namespace std ;
 
 namespace cvx {
 
-void ArgumentParser::parse(int argc, const char *argv[], uint c0) {
+void ArgumentParser::parse(size_t argc, const char *argv[], size_t c0) {
 
     Container::iterator cpos = positional_.begin() ;
 
@@ -227,11 +227,11 @@ void ArgumentParser::printOptions(ostream &strm, uint line_length, uint min_desc
     }
 }
 
-void ArgumentParser::consumeArg(const Container::iterator &match, int argc, const char *argv[], uint &c) {
+void ArgumentParser::consumeArg(const Container::iterator &match, size_t argc, const char *argv[], size_t &c) {
     Option &a = *match ;
     a.matched_ = true ;
 
-    uint maxc = ( a.max_args_ == -1 ) ? argc-1 : std::min(c + a.max_args_-1, (uint)argc-1) ;
+    std::size_t maxc = ( a.max_args_ == std::numeric_limits<std::size_t>::max() ) ? argc-1 : std::min(c + a.max_args_-1, argc-1) ;
 
     std::string args ;
 

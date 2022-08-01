@@ -9,6 +9,7 @@
 #include <istream>
 #include <iterator>
 #include <sstream>
+#include <limits>
 
 #include <cvx/misc/optional.hpp>
 
@@ -33,10 +34,10 @@ public:
     ArgumentParser() {}
 
     // returns true if the command group has been succesfully matched
-    bool isMatched() const { return is_matched_ ; }
+    bool matched() const { return is_matched_ ; }
 
     // current argument index
-    uint pos() const { return pos_ ; }
+    size_t pos() const { return pos_ ; }
 
     class Option ;
 
@@ -47,13 +48,13 @@ public:
     // if the option is not given on the command line otherwise one can use the .setDefault function
 
     template<class T>
-    Option &addOption(const std::string &flags, T &value) {
+    Option &option(const std::string &flags, T &value) {
         options_.emplace_back(flags, std::make_shared<ValueHolder<T>>(value)) ;
         return options_.back();
     }
 
     template<class T>
-    Option &addOption(const std::string &flags, optional<T> &value) {
+    Option &option(const std::string &flags, optional<T> &value) {
         options_.emplace_back(flags, std::make_shared<OptionalValueHolder<T>>(value)) ;
         return options_.back();
     }
@@ -63,7 +64,7 @@ public:
     // flags is a list of acceptable flags (delimited by '|' or ',')
 
     template<class T>
-    Option &addOption(const std::string &flags, std::vector<T> &value) {
+    Option &option(const std::string &flags, std::vector<T> &value) {
         options_.emplace_back(flags, std::make_shared<ValueListHolder<T>>(value)) ;
         return options_.back() ;
     }
@@ -72,7 +73,7 @@ public:
     // The parser is a lambda that should parse the value and store it to a captured variable
     // flags is a list of acceptable flags (delimited by '|' or ',')
 
-    Option &addOption(const std::string &flags, ValueParser parser) {
+    Option &option(const std::string &flags, ValueParser parser) {
         options_.emplace_back(flags, std::make_shared<ValueAdapter>(parser)) ;
         return options_.back() ;
     }
@@ -80,64 +81,62 @@ public:
     // Positional options
 
     template<class T>
-    Option &addPositional(T &value) {
+    Option &positional(T &value) {
         positional_.emplace_back(std::make_shared<ValueHolder<T>>(value)) ;
         return positional_.back();
     }
 
     template<class T>
-    Option &addPositional(std::vector<T> &value) {
+    Option &positional(std::vector<T> &value) {
         positional_.emplace_back(std::make_shared<ValueListHolder<T>>(value)) ;
         return positional_.back();
     }
 
-    Option &addPositional(ValueParser parser) {
+    Option &positional(ValueParser parser) {
         positional_.emplace_back(std::make_shared<ValueAdapter>(parser)) ;
         return positional_.back();
     }
 
     // Parse the command line. In case of failure an exception is thrown. Last argument is the first command line argument to consider
-    void parse(int argc, const char *argv[], uint c = 1) ;
+    void parse(size_t argc, const char *argv[], size_t c = 1) ;
 
     void printUsage(std::ostream &strm, uint line_length = 80, uint min_description_width = 40) ;
 
     // set the description of the command printed first in the usage print out.
-    void setDescription(const std::string &desc) {
+    void description(const std::string &desc) {
         description_ = desc ;
     }
 
     // set the caption printed before the list of options:
-    void setOptionsCaption(const std::string &caption) {
+    void optionsCaption(const std::string &caption) {
         options_caption_ = caption ;
     }
 
     // set the text printed after the list of options:
-    void setEpilog(const std::string &epilog) {
+    void epilog(const std::string &epilog) {
         epilog_ = epilog ;
     }
 
     class Option {
     public:
 
-        // Set minimum args expected ( default 1 )
-        Option &setMinArgs(int minargs) {
-            min_args_ = minargs ;
-            if ( max_args_ >= 0 )
-                max_args_ = std::max(min_args_, max_args_) ;
+        // set number of args expected (default 0)
+        Option &numArgs(std::size_t n) {
+            min_args_ = max_args_ = n ;
             return *this ;
         }
 
-        // Set maximum args expected ( default 1 ). set to -1 for infinite
-        Option &setMaxArgs(int maxargs) {
-            max_args_ = maxargs ;
-            if ( maxargs >= 0 )
-                min_args_ = std::min(min_args_, maxargs) ;
+        // set min/max number of args expected
+        Option &numArgs(std::size_t narg_min, std::size_t narg_max) {
+            min_args_ = narg_min ; max_args_ = narg_max ;
+            assert(min_args_ <= max_args_) ;
             return *this ;
         }
 
-        // Set constant number of args
-        Option &setNumArgs(int numargs) {
-            return setMinArgs(numargs) ;
+        // except any number of arguments greater that minargs
+        Option &numArgsAtLeast(size_t minargs) {
+            min_args_ = minargs ; max_args_ = std::numeric_limits<std::size_t>::max() ;
+            return *this ;
         }
 
         // Set option as required (not checked for positional arguments)
@@ -147,7 +146,7 @@ public:
         }
 
         // Set description paragraph to be written on help output
-        Option &setDescription(const std::string &desc) {
+        Option &description(const std::string &desc) {
             description_ = desc ;
             return *this ;
         }
@@ -155,29 +154,28 @@ public:
         // Set variable name to be written on help output (default is <arg>)
         // We let the user provide a concise and meaningful semantic name (e.g. including default values)
         // instead of trying to make this automatically
-        Option &setName(const std::string &name) {
+        Option &name(const std::string &name) {
             name_ = name ;
             return *this ;
         }
 
         // if the option did not match and the default value is set then the argument value will be set to this as if provided on the commandline
-        Option &setDefault(const std::string &defaultValue) {
-            default_value_ = defaultValue ;
+        Option &defaultValue(const std::string &default_value) {
+            default_value_ = default_value ;
             return *this ;
         }
 
         // if the option matches but no arguments given the implicit value is set to this as if provided in the command line
-        Option &setImplicit(const std::string &implicitValue) {
-            implicit_value_ = implicitValue ;
+        Option &implicitValue(const std::string &implicit_value) {
+            implicit_value_ = implicit_value ;
             return *this ;
         }
-
 
         // set a functor to be called after the option has been succefully parsed. Return true to continue with the rest of the args, false to stop.
         // This is usefull to parse subcommands. Declare a positional argument and then on setAction callback call the appropriate ArgumentParser for the subcommand
         // based on the positional variable value
 
-        Option &setAction(std::function<bool()> cb) {
+        Option &action(std::function<bool()> cb) {
             action_ = cb ;
             return *this ;
         }
@@ -206,7 +204,7 @@ public:
         std::function<bool()> action_ = nullptr ;
 
         bool matched_ = false, is_group_switch_ = false ;
-        int min_args_, max_args_ ;        // minimum and maximum args acceptable
+        std::size_t min_args_ = 0, max_args_ = 0 ;        // minimum and maximum args acceptable
     };
 
 private:
@@ -284,7 +282,7 @@ private:
 private:
     typedef std::vector<Option> Container ;
 
-    void consumeArg(const Container::iterator &match, int argc, const char *argv[], uint &c);
+    void consumeArg(const Container::iterator &match, size_t argc, const char *argv[], size_t &c);
     Container::iterator findMatchingArg(const std::string &arg) ;
     void checkRequired() ;
     void setDefaults();
@@ -297,7 +295,7 @@ private:
     std::string usage_ ;
 
     bool is_matched_ = false ;
-    uint pos_ = 0 ;
+    size_t pos_ = 0 ;
 };
 
 template<>

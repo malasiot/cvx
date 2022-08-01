@@ -34,31 +34,31 @@ static void test_simple(int argc, const char *argv[]) {
     int pos ;
     bool print_help = true ;
     ArgumentParser args ;
-    args.setDescription("test_argparse [options] output (input)+ \nList information about the FILEs (the current directory by default).\nSort entries alphabetically if none of -cftuvSUX nor --sort is specified.") ;
+    args.description("test_argparse [options] output (input)+ \nList information about the FILEs (the current directory by default).\nSort entries alphabetically if none of -cftuvSUX nor --sort is specified.") ;
 
-    args.addOption("-h|--help", print_help).setMaxArgs(0).setDescription("print this help message").setDefault("false") ;
-    args.addOption("-f|--flag", f).setMinArgs(0).setMaxArgs(1).setDescription("first flag").setName("[<arg>]").setImplicit("4.0") ;
-    args.addOption("-b|--bbox", bbox).setNumArgs(4).setDescription("bounding box").setName("<minx> <miny> <maxx> <maxy>") ;
-    args.addOption("--test", items).setMinArgs(2).setMaxArgs(-1).setDescription("second flag").setName("<arg1> <arg2> [ ... <argN>]") ;
-    args.addOption("--custom", [&](istream &strm) {
+    args.option("-h|--help", print_help).numArgs(0).description("print this help message").defaultValue("false") ;
+    args.option("-f|--flag", f).numArgs(0, 1).required().description("first flag").name("[<arg>]").defaultValue("4.0").implicitValue("7.8") ;
+    args.option("-b|--bbox", bbox).numArgs(4).description("bounding box").name("<minx> <miny> <maxx> <maxy>") ;
+    args.option("--test", items).numArgsAtLeast(2).description("second flag").name("<arg1> <arg2> [ ... <argN>]") ;
+    args.option("--custom", [&](istream &strm) {
         strm >> val ;
         return true ;
-    }).setDescription("custom flag") ;
-    args.addPositional(files).setMaxArgs(-1) ;
+    }).description("custom flag") ;
+    args.positional(files).numArgsAtLeast(0) ;
 
     try {
         args.parse(argc, argv) ;
 
-        if ( print_help ) {
-            cout << "Usage: prog [options] position files" << endl ;
-            cout << "Options:" << endl ;
+        if ( print_help )
             args.printUsage(std::cout) ;
-        }
+
     } catch ( ArgumentParserException &e ) {
-        cout << e.what() << endl ;
+        if ( !print_help )
+            cout << e.what() << endl ;
         args.printUsage(std::cout) ;
     }
 
+    cout << f << endl ;
 
 }
 
@@ -68,7 +68,7 @@ void test_git(int argc, const char *argv[]) {
     ArgumentParser clone_group ;
     ArgumentParser init_group ;
 
-    root.setDescription(R"(usage: git [--version] [--help] [-C <path>] [-c name=value]
+    root.description(R"(usage: git [--version] [--help] [-C <path>] [-c name=value]
 [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]
 [-p | --paginate | --no-pager] [--no-replace-objects] [--bare]
 [--git-dir=<path>] [--work-tree=<path>] [--namespace=<name>]
@@ -87,8 +87,8 @@ to read about a specific subcommand or concept.")") ;
     bool print_help = false ;
     string cmd ;
 
-    root.addOption("-h|--help", print_help).setMaxArgs(0).setDescription("print this help message").setImplicit("true") ;
-    root.addPositional(cmd).setAction( [&] {
+    root.option("-h|--help", print_help).numArgs(0).description("print this help message").implicitValue("true") ;
+    root.positional(cmd).numArgs(1).action( [&] {
         if ( cmd == "init" ) {
             try {
                 init_group.parse(argc, argv, root.pos()) ;
@@ -121,20 +121,20 @@ to read about a specific subcommand or concept.")") ;
     bool verbose = false, quiet = false, bare = false  ;
     string origin_name, repo, dir, tmpl ;
 
-    clone_group.setDescription("usage: git clone [<options>] [--] <repo> [<dir>]") ;
-    clone_group.addOption("-v|--verbose", verbose).setNumArgs(0).setDescription("be more verbose").setImplicit("true") ;
-    clone_group.addOption("-o|--origin", origin_name).setNumArgs(1).setDescription("use <name> instead of 'origin' to track upstream").setName("<name>") ;
-    clone_group.addOption("-h|--help", print_help).setMaxArgs(0).setDescription("print this help message").setImplicit("true") ;
-    clone_group.addPositional(repo).required() ;
-    clone_group.addPositional(dir) ;
+    clone_group.description("usage: git clone [<options>] [--] <repo> [<dir>]") ;
+    clone_group.option("-v|--verbose", verbose).numArgs(0).description("be more verbose").implicitValue("true") ;
+    clone_group.option("-o|--origin", origin_name).numArgs(1).description("use <name> instead of 'origin' to track upstream").name("<name>") ;
+    clone_group.option("-h|--help", print_help).numArgs(0).description("print this help message").implicitValue("true") ;
+    clone_group.positional(repo).required() ;
+    clone_group.positional(dir) ;
 
 
 
-    init_group.setDescription("usage: git init [-q | --quiet] [--bare] [--template=<template-directory>] [--shared[=<permissions>]] [<directory>]") ;
-    init_group.addOption("--template", tmpl).setDescription("directory from which templates will be used").setName("<template-directory>");
-    init_group.addOption("--bare", bare).setNumArgs(0).setDescription("create a bare repository") ;
-    init_group.addOption("-h|--help", print_help).setMaxArgs(0).setDescription("print this help message").setImplicit("true") ;
-    init_group.addPositional(dir) ;
+    init_group.description("usage: git init [-q | --quiet] [--bare] [--template=<template-directory>] [--shared[=<permissions>]] [<directory>]") ;
+    init_group.option("--template", tmpl).description("directory from which templates will be used").defaultValue("<template-directory>");
+    init_group.option("--bare", bare).numArgs(0).description("create a bare repository") ;
+    init_group.option("-h|--help", print_help).numArgs(0).description("print this help message").implicitValue("true") ;
+    init_group.positional(dir) ;
 
     try {
         root.parse(argc, argv) ;
