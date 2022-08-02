@@ -27,38 +27,40 @@ static void test_simple(int argc, const char *argv[]) {
     ArgumentParser parser ;
 
     BBox bbox ;
-    float f = 2.0;
+    optional<float> f;
     int val ;
     std::vector<std::string> files ;
-    std::vector<std::string> items ;
+    std::vector<int> items ;
     int pos ;
-    bool print_help = true ;
+    bool print_help = false ;
     ArgumentParser args ;
     args.description("test_argparse [options] output (input)+ \nList information about the FILEs (the current directory by default).\nSort entries alphabetically if none of -cftuvSUX nor --sort is specified.") ;
 
-    args.option("-h|--help", print_help).numArgs(0).description("print this help message").defaultValue("false") ;
-    args.option("-f|--flag", f).numArgs(0, 1).required().description("first flag").name("[<arg>]").defaultValue("4.0").implicitValue("7.8") ;
-    args.option("-b|--bbox", bbox).numArgs(4).description("bounding box").name("<minx> <miny> <maxx> <maxy>") ;
-    args.option("--test", items).numArgsAtLeast(2).description("second flag").name("<arg1> <arg2> [ ... <argN>]") ;
-    args.option("--custom", [&](istream &strm) {
+    args.option("-h|--help").implicit(print_help, true).description("print this help message") ;
+    args.option("-f|--flag").value(f, "flag").required().description("first flag") ;
+    args.option("-b|--bbox").value(bbox.min_x_, "minx").value(bbox.min_y_, "miny").value(bbox.max_x_, "maxx").value(bbox.max_y_, "maxy")
+            .description("bounding box") ;
+    args.option("--test").value(items, true).description("second flag") ;
+    /*args.option("--custom", [&](istream &strm) {
         strm >> val ;
         return true ;
     }).description("custom flag") ;
-    args.positional(files).numArgsAtLeast(0) ;
+    */
+//    args.positional(files).numArgsAtLeast(0) ;
 
     try {
         args.parse(argc, argv) ;
 
-        if ( print_help )
+        if ( args.has("--help") )
             args.printUsage(std::cout) ;
 
     } catch ( ArgumentParserException &e ) {
-        if ( !print_help )
+     //   if ( !print_help )
             cout << e.what() << endl ;
         args.printUsage(std::cout) ;
     }
 
-    cout << f << endl ;
+    cout << f.value_or(0) << endl ;
 
 }
 
@@ -86,7 +88,7 @@ to read about a specific subcommand or concept.")") ;
 
     bool print_help = false ;
     string cmd ;
-
+#if 0
     root.option("-h|--help", print_help).numArgs(0).description("print this help message").implicitValue("true") ;
     root.positional(cmd).numArgs(1).action( [&] {
         if ( cmd == "init" ) {
@@ -135,7 +137,7 @@ to read about a specific subcommand or concept.")") ;
     init_group.option("--bare", bare).numArgs(0).description("create a bare repository") ;
     init_group.option("-h|--help", print_help).numArgs(0).description("print this help message").implicitValue("true") ;
     init_group.positional(dir) ;
-
+#endif
     try {
         root.parse(argc, argv) ;
 
@@ -150,5 +152,5 @@ to read about a specific subcommand or concept.")") ;
 
 int main(int argc, const char *argv[]) {
     test_simple(argc, argv) ;
-    test_git(argc, argv) ;
+//    test_git(argc, argv) ;
 }

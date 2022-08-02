@@ -1,5 +1,5 @@
 #include <cvx/misc/arg_parser.hpp>
-#include <cvx/misc/strings.hpp>
+
 
 #include <algorithm>
 #include <cassert>
@@ -9,11 +9,30 @@ using namespace std ;
 
 namespace cvx {
 
+bool ArgumentParser::has(const char *flag) {
+    for( const auto &o: options_ ) {
+        for( const auto &f: o.flags_ ) {
+            if ( f == flag && o.matched_ ) {
+                return true ;
+            }
+        }
+    }
+    return false ;
+}
+
 void ArgumentParser::parse(size_t argc, const char *argv[], size_t c0) {
+    std::vector<std::string> args ;
+    std::copy(argv + c0, argv + argc, std::back_inserter(args)) ;
+
+    parse(args) ;
+}
+
+void ArgumentParser::parse(const std::vector<std::string> &argv) {
+    size_t argc = argv.size() ;
 
     Container::iterator cpos = positional_.begin() ;
 
-    pos_ = c0 ;
+    pos_ = 0 ;
 
     while ( pos_ < argc ) {
 
@@ -23,13 +42,13 @@ void ArgumentParser::parse(size_t argc, const char *argv[], size_t c0) {
 
             if ( match != options_.end() ) { // found
                 ++pos_ ; // skip flag
-                consumeArg(match, argc, argv, pos_)  ;
+                consumeArg(match, argv, pos_)  ;
                 if ( match->action_ && !match->action_() ) break ;
             }
             else throw InvalidOption(*this, argv[pos_]) ; // unknown option
         } else if ( cpos != positional_.end() ) {  // try positional arguments
             string val = argv[pos_] ;
-            consumeArg(cpos, argc, argv, pos_) ;
+            consumeArg(cpos, argv, pos_) ;
             if ( cpos->action_ && !cpos->action_() ) break ;
             ++cpos ;
         } else throw InvalidOption(*this, argv[pos_]) ;
@@ -227,54 +246,30 @@ void ArgumentParser::printOptions(ostream &strm, uint line_length, uint min_desc
     }
 }
 
-void ArgumentParser::consumeArg(const Container::iterator &match, size_t argc, const char *argv[], size_t &c) {
+void ArgumentParser::consumeArg(const Container::iterator &match, const std::vector<std::string> &argv, size_t &c) {
     Option &a = *match ;
     a.matched_ = true ;
 
-    std::size_t maxc = ( a.max_args_ == std::numeric_limits<std::size_t>::max() ) ? argc-1 : std::min(c + a.max_args_-1, argc-1) ;
-
-    std::string args ;
-
-    uint n_args = 0 ;
-    while ( c <= maxc ) {
-
-        string arg(argv[c]) ;
-
-        if ( argv[c][0] == '-' ) break ; // too many values
-        else {
-            n_args ++ ;
-            if ( !args.empty() ) args += '\n' ;
-            args += arg ;
-        }
-        ++c ;
-    }
-
-    if ( n_args < a.min_args_  ) throw IncorrectArguments(*this, a.short_flag_) ;
-
-    if ( n_args > 0 ) {
-        istringstream strm(args) ;
-        if ( !a.value_->read(strm) ) throw IncorrectArguments(*this, a.short_flag_) ;
-    }
-    else if ( !a.implicit_value_.empty() ) { // no args passed so try to store the implicit value
-        stringstream strm(a.implicit_value_) ;
-        if ( !a.value_->read(strm) ) throw IncorrectArguments(*this, a.short_flag_) ;
+    for(const auto &val: a.values_ ) {
+        if ( !val->read(c, argv) )
+            throw IncorrectArguments(*this, a.short_flag_) ;
     }
 }
 
-ArgumentParser::Container::iterator ArgumentParser::findMatchingArg(const string &arg)
-{
+ArgumentParser::Container::iterator ArgumentParser::findMatchingArg(const string &arg) {
     return std::find_if(options_.begin(), options_.end(), [&arg] ( const Container::value_type &t) { return t.matches(arg) ;} ) ;
 }
 
 
 void ArgumentParser::setDefaults()
 {
-    for( auto &&o: options_ ) {
+ /*   for( auto &&o: options_ ) {
         if ( !o.matched_ && !o.default_value_.empty() ) {
             stringstream strm(o.default_value_) ;
             if ( !o.value_->read(strm) )  ;
         }
     }
+    */
 }
 
 void ArgumentParser::checkRequired()
@@ -290,7 +285,10 @@ string ArgumentParser::Option::formatOptionFlags() const
 
     stringstream ss ;
     ss << "  " << join(flags_, "|") ;
-    if ( !name_.empty() && max_args_ > 0 ) ss << ' ' << name_ ;
+
+    for( const auto &v: values_ ) {
+        ss << ' ' << v->name() ;
+    }
 
     string first_column = ss.str() ;
 
@@ -314,6 +312,23 @@ void ArgumentParser::Option::printDescription(ostream &strm, uint first_column_w
     }
 }
 
+ArgumentParser::Option::Option(const string &flags):
+    is_required_(false), matched_(false), is_positional_(false)
+{
+    name_ = "<arg>" ;
+
+    flags_ = split(flags, "|,") ;
+
+    assert(!flags.empty()) ;
+    short_flag_ = flags_[0] ;
+    for(const string &f : flags_) {
+        if ( startsWith(f, "--") ) continue ;
+        else if ( f.at(0) == '-' )
+            short_flag_ = f ;
+    }
+}
+
+/*
 ArgumentParser::Option::Option(const string &flags, std::shared_ptr<Value> val): value_(val), min_args_(1), max_args_(1),
     is_required_(false), matched_(false), is_positional_(false)
 {
@@ -331,7 +346,7 @@ ArgumentParser::Option::Option(std::shared_ptr<Value> val): value_(val), min_arg
 {
     name_ = "<arg>" ;
 }
-
+*/
 
 bool ArgumentParser::Option::matches(const string &arg) const
 {
