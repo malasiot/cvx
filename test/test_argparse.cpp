@@ -27,7 +27,7 @@ static void test_simple(int argc, const char *argv[]) {
     ArgumentParser parser ;
 
     BBox bbox ;
-    optional<float> f;
+    float f;
     int val ;
     std::vector<std::string> files ;
     std::vector<int> items ;
@@ -36,17 +36,24 @@ static void test_simple(int argc, const char *argv[]) {
     ArgumentParser args ;
     args.description("test_argparse [options] output (input)+ \nList information about the FILEs (the current directory by default).\nSort entries alphabetically if none of -cftuvSUX nor --sort is specified.") ;
 
-    args.option("-h|--help", "print this help message").implicit(print_help, true) ;
-    args.option("-f|--flag", "first flag").value(f).required() ;
-    args.option("-b|--bbox <minx> <miny> <maxx> <maxy>", "bounding box").value(bbox.min_x_).value(bbox.min_y_).value(bbox.max_x_).value(bbox.max_y_) ;
-    args.option("--test", "second flag").value(items, true) ;
-    args.option("--custom", "custom flag")
-            .value([&](std::istream &strm)->bool {
+    args.option("-h|--help", "print this help message") ;
+    args.option("-f|--flag", "first flag").value(f).required().implicit("2.0") ;
+    args.option("-b|--bbox <minx>:<miny>:<maxx>:<maxy>", "bounding box").value(bbox).
+            valueParser([&](istream &strm) {
+        string s ;
+        std::getline(strm, s, ':') ; bbox.min_x_ = std::stod(s) ;
+        std::getline(strm, s, ':') ; bbox.min_y_ = std::stod(s) ;
+        std::getline(strm, s, ':') ; bbox.max_x_ = std::stod(s) ;
+        std::getline(strm, s, ':') ; bbox.max_y_ = std::stod(s) ;
+        return (bool)strm ;
+    }) ;
+    args.option("-t|--test", "second flag").value(items) ;
+    args.option("--custom", "custom flag").value(val).valueParser([&](std::istream &strm)->bool {
         strm >> val ;
         return true ;
     }) ;
 
-    args.positional(files) ;
+  //  args.positional(files) ;
 
     try {
         args.parse(argc, argv) ;
@@ -60,7 +67,7 @@ static void test_simple(int argc, const char *argv[]) {
         args.printUsage(std::cout) ;
     }
 
-    cout << f.value_or(0) << endl ;
+    cout << f << endl ;
 
 }
 

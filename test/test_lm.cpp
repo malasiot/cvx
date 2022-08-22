@@ -3,7 +3,7 @@
 #include <Eigen/Core>
 
 #include <opencv2/opencv.hpp>
-#include <opencv2/xfeatures2d/nonfree.hpp>
+//#include <opencv2/xfeatures2d/nonfree.hpp>
 
 #include <cvx/math/rng.hpp>
 #include <cvx/math/solvers/lm.hpp>

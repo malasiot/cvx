@@ -38,11 +38,11 @@ void ArgumentParser::parse(const std::vector<std::string> &argv) {
 
         if ( argv[pos_][0] == '-' ) { // we have a non-positional option
 
-            auto match = findMatchingArg(argv[pos_]) ; // find matching arg
+            string val ;
+            auto match = findMatchingArg(argv[pos_], val) ; // find matching arg
 
             if ( match != options_.end() ) { // found
-                ++pos_ ; // skip flag
-                consumeArg(*match, argv, pos_)  ;
+                consumeArg(*match, val, argv, pos_)  ;
                 if ( match->action_ && !match->action_() ) break ;
             }
             else throw InvalidOption(*this, argv[pos_]) ; // unknown option
@@ -190,8 +190,8 @@ static void format_text(std::ostream& strm,  const std::string& str, unsigned li
             tmp.clear();
             i = 0 ;
         } else if (isspace(cur) && !isspace(last)) { // a word
-             strm << tmp;
-             tmp.clear();
+            strm << tmp;
+            tmp.clear();
         }
 
         tmp += cur;
@@ -245,33 +245,58 @@ void ArgumentParser::printOptions(ostream &strm, uint line_length, uint min_desc
     }
 }
 
-void ArgumentParser::consumeArg(Option &a, const std::vector<std::string> &argv, size_t &c) {
+void ArgumentParser::consumeArg(Option &a, const std::string &val, const std::vector<std::string> &argv, size_t &c) {
     a.matched_ = true ;
 
+    if ( !a.value_ ) { ++c ; }
+    else if ( val.empty() ) { // the value is specified after the flag
+        ++c ;
+        bool hasArg = ( c < argv.size() && !startsWith(argv[c], "-") ) ;
+
+        if ( hasArg ) {
+            if ( !a.value_->read(argv[c], a.value_parser_) )
+                throw IncorrectArguments(*this, a.short_flag_) ;
+            else c++ ;
+        }
+        else if ( !a.implicit_value_.empty() )  {
+            a.value_->read(a.implicit_value_, a.value_parser_) ;
+        }
+        else {
+            throw IncorrectArguments(*this, a.short_flag_) ;
+        }
+
+     } else {
+        if ( !a.value_->read(val, a.value_parser_) )
+            throw IncorrectArguments(*this, a.short_flag_) ;
+        c++ ;
+    }
+    /*
     for(const auto &val: a.values_ ) {
         if ( !val->read(c, argv) )
             throw IncorrectArguments(*this, a.short_flag_) ;
     }
+    */
 }
 
 void ArgumentParser::consumePositionalArg(Positional &a, const std::vector<std::string> &argv, size_t &c) {
     a.matched_ = true ;
-
+/*
     for(const auto &val: a.values_ ) {
         if ( !val->read(c, argv) )
             throw IncorrectArguments(*this, "") ;
     }
+    */
 }
 
 
-ArgumentParser::OptionsContainer::iterator ArgumentParser::findMatchingArg(const string &arg) {
-    return std::find_if(options_.begin(), options_.end(), [&arg] ( const OptionsContainer::value_type &t) { return t.matches(arg) ;} ) ;
+ArgumentParser::OptionsContainer::iterator ArgumentParser::findMatchingArg(const string &arg, string &val) {
+    return std::find_if(options_.begin(), options_.end(), [&arg, &val] ( const OptionsContainer::value_type &t) { return t.matches(arg, val) ;} ) ;
 }
 
 
 void ArgumentParser::setDefaults()
 {
- /*   for( auto &&o: options_ ) {
+    /*   for( auto &&o: options_ ) {
         if ( !o.matched_ && !o.default_value_.empty() ) {
             stringstream strm(o.default_value_) ;
             if ( !o.value_->read(strm) )  ;
@@ -363,10 +388,28 @@ ArgumentParser::Option::Option(std::shared_ptr<Value> val): value_(val), min_arg
 }
 */
 
-bool ArgumentParser::Option::matches(const string &arg) const
-{
-    return std::find(flags_.begin(), flags_.end(), arg) != flags_.end() ;
+bool ArgumentParser::Option::matches(const string &arg, string &val) const {
+    if ( !short_flag_.empty() ) { // short flag supported
+        if ( arg.size() >= 2 ) { // test if short flag is given
+            if ( arg.compare(0, 2, short_flag_) == 0 ) {
+                val = arg.substr(2) ;
+                return true ;
+            }
+        }
+    }
+
+    for ( const auto &flag: flags_ ) {
+        if ( startsWith(flag, "--") ) {
+            if ( arg.compare(0, flag.size(), flag ) == 0 ) {
+                if ( arg.size() > flag.size() && arg[flag.size()] == '=' ) { // parse argument
+                    val = arg.substr(flag.size()+1) ;
+                }
+                return true ;
+            }
+        }
+    }
+
+
+    return false ;
 }
-
-
 }

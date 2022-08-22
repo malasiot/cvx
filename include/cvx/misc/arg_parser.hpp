@@ -74,12 +74,12 @@ public:
         positional_.emplace_back(value, not_empty) ;
         return positional_.back();
     }
-
+/*
     Positional &positional(const ValueParser &parser) {
         positional_.emplace_back(parser) ;
         return positional_.back();
     }
-
+*/
     // Parse the command line. In case of failure an exception is thrown. Last argument is the first command line argument to consider
     void parse(size_t argc, const char *argv[], size_t c = 1) ;
 
@@ -114,39 +114,36 @@ public:
 
         template<typename T>
         Option &value(T &value) {
-            values_.emplace_back(std::make_shared<ValueHolder<T>>(value)) ;
+            value_ = std::make_shared<ValueHolder<T>>(value) ;
             return *this ;
         }
 
         // Same as above but indicating an optional argument
-
+#if 0
         template<typename T>
         Option &value(optional<T> &value) {
-            values_.emplace_back(std::make_shared<OptionalValueHolder<T>>(value)) ;
+            value_ = std::make_shared<OptionalValueHolder<T>>(value) ;
             return *this ;
         }
-
-        // Same as above but taking a list of values. Set flag not_empty to true to assert at least one argument
-
-        template<typename T>
-        Option &value(std::vector<T> &value, bool not_empty = false) {
-            values_.emplace_back(std::make_shared<ValueListHolder<T>>(value, not_empty)) ;
-            return *this ;
-        }
-
+#endif
         // Use this for defining a custom argument parser
         // The parser is a lambda that should parse the value and store it to a captured variable
 
-        Option &value(const ValueParser &value) {
-            values_.emplace_back(std::make_shared<ValueAdapter>(value)) ;
+        Option &valueParser(const ValueParser &parser) {
+            value_parser_ = parser ;
+            return *this ;
+        }
+
+        template<typename T>
+        Option &value(std::vector<T> &value) {
+            value_ = std::make_shared<ValueListHolder<T>>(value);
             return *this ;
         }
 
         // If the option is present set variable "value" equal to "v".
 
-        template<typename T>
-        Option &implicit(T &value, const T &v) {
-            values_.emplace_back(std::make_shared<ImplicitValue<T>>(value, v)) ;
+        Option &implicit(const std::string &v) {
+            implicit_value_ = v ;
             return *this ;
         }
 
@@ -174,7 +171,7 @@ public:
     protected:
 
         friend class ArgumentParser ;
-        bool matches(const std::string &arg) const ;
+        bool matches(const std::string &arg, std::string &val) const ;
 
         std::string formatOptionFlags() const ;
         void printHelp(std::ostream &strm) const;
@@ -185,8 +182,10 @@ public:
         std::string description_ ;        // description of this arg
         std::string short_flag_ ;         // short flag selected from the flags
         std::string name_ ;               // the arg name that will appear after the flag in the help printout
+        std::string implicit_value_ ;
         bool is_required_, is_positional_ ;
-        std::vector<std::shared_ptr<Value>> values_ ;
+        std::shared_ptr<Value> value_ ;
+        ValueParser value_parser_ ;
         std::function<bool()> action_ = nullptr ;
 
         bool matched_ = false, is_group_switch_ = false ;
@@ -194,32 +193,28 @@ public:
 
     class Positional {
     public:
-
+/*
         template<typename T>
         Positional(T &value) {
             values_.emplace_back(std::make_shared<ValueHolder<T>>(value)) ;
         }
-
+*/
         // Same as above but indicating an optional argument
-
+/*
         template<typename T>
         Positional(optional<T> &value) {
             values_.emplace_back(std::make_shared<OptionalValueHolder<T>>(value)) ;
         }
-
+*/
         // Same as above but taking a list of values. Set flag not_empty to true to assert at least one argument
 
+        /*
         template<typename T>
         Positional(std::vector<T> &value, bool not_empty = false) {
             values_.emplace_back(std::make_shared<ValueListHolder<T>>(value, not_empty)) ;
         }
+*/
 
-        // Use this for defining a custom argument parser
-        // The parser is a lambda that should parse the value and store it to a captured variable
-
-        Positional(const ValueParser &value) {
-            values_.emplace_back(std::make_shared<ValueAdapter>(value)) ;
-        }
 
     protected:
 
@@ -236,7 +231,7 @@ private:
     class Value {
     public:
         Value() = default ;
-        virtual bool read(size_t &c, const std::vector<std::string> &argv) = 0 ;
+        virtual bool read(const std::string &arg, ValueParser parser) = 0 ;
     };
 
 
@@ -246,31 +241,26 @@ private:
     public:
         ValueHolder(T &t): val_(t) {}
 
-        bool read(size_t &c, const std::vector<std::string> &argv) {
-            size_t argc = argv.size() ;
-            if ( c >= argc ) return false ;
-
+        bool read(const std::string &arg, ValueParser parser) {
             std::stringstream strm ;
-
-            std::string arg(argv[c]) ;
-            if ( cvx::startsWith(arg, "-") ) return false ;
-
             strm << arg ;
-            strm >> val_ ;
-            if ( (bool)strm ) { c++ ; return true ; }
-            return false ;
+            if ( !parser ) {
+                strm >> val_ ;
+                return  (bool)strm ;
+            } else
+                return parser(strm) ;
         }
 
     private:
         T &val_ ;
     };
-
+#if 0
     template <class T>
     class ImplicitValue: public Value {
     public:
         ImplicitValue(T &t, const T &imp): val_(t), implicit_(imp) {}
 
-        bool read(size_t &c, const std::vector<std::string> &argv) {
+        bool read(const std::string &arg, size_t &argc) {
             val_ = implicit_ ;
             return true ;
         }
@@ -285,13 +275,11 @@ private:
     public:
         OptionalValueHolder(optional<T> &t): val_(t) {}
 
-        bool read(size_t &c, const std::vector<std::string> &argv) {
-            size_t argc = argv.size() ;
-            if ( c >= argc ) return true ;
+        bool read(const std::vector<std::string> &argv, size_t &argc) {
+
 
             std::stringstream strm ;
 
-            std::string arg(argv[c]) ;
             if ( cvx::startsWith(arg, "-") ) return true ;
 
             T val ;
@@ -299,92 +287,73 @@ private:
             strm >> val ;
 
             if ( (bool)strm ) {
-                c++ ;
                 val_ = val ;
                 return true ;
             }
+
             return false ;
         }
 
     private:
         optional<T> &val_ ;
     };
-
+#endif
 
     template <class T>
     class ValueListHolder: public Value {
     public:
-        ValueListHolder(std::vector<T> &t, bool not_empty): list_(t),
-            not_empty_(not_empty) {}
+        ValueListHolder(std::vector<T> &t): list_(t) {}
 
-        bool read(size_t &c, const std::vector<std::string> &argv) {
-            size_t argc = argv.size() ;
-            if ( c >= argc  ) {
-                if ( !not_empty_ ) return true ; // no more values empty list
-                else return false ;
-            }
+        bool read(const std::string &arg, ValueParser parser) {
+            std::stringstream strm ;
 
-            list_.clear() ;
-            for( size_t pos = c ; pos < argc ; ++pos) {
-                std::stringstream strm ;
+            strm << arg ;
 
-                std::string arg(argv[pos]) ;
-                if ( cvx::startsWith(arg, "-") ) {
-                    if ( list_.empty() && not_empty_ ) return false ;
-                    else return true ;
-                }
 
-                T val ;
-                strm << arg ;
+            T val ;
+
+            if ( !parser ) {
+
                 strm >> val ;
-                if ( (bool)strm ) { list_.emplace_back(val) ; ++c ; }
+                if ( (bool)strm ) { list_.emplace_back(val) ; return true ; }
                 else return false ;
             }
-            return true ;
+
         }
 
     private:
         std::vector<T> &list_ ;
-        bool not_empty_ = false ;
     };
 
-
+    /*
     class ValueAdapter: public Value {
     public:
         ValueAdapter(const ValueParser &writer): writer_(writer) {}
 
-        bool read(size_t &c, const std::vector<std::string> &argv) {
-            size_t argc = argv.size() ;
-            if ( c >= argc ) return false ;
+        bool read(const std::string &arg) {
 
             std::stringstream strm ;
 
-            std::string arg(argv[c]) ;
             if ( cvx::startsWith(arg, "-") ) return false ;
 
             strm << arg ;
 
-            if ( writer_(strm) ) {
-                ++c ;
-                return true ;
-            }
-
-            return false ;
+            return writer_(strm) ;
         }
 
     private:
         ValueParser writer_ ;
     };
 
-
+*/
 private:
     using OptionsContainer = std::vector<Option> ;
     using PositionalContainer = std::vector<Positional> ;
 
     void parse(const std::vector<std::string> &args) ;
-    void consumeArg(Option &match, const std::vector<std::string> &argv, size_t &c);
+    void consumeArg(Option &match, const std::string &val, const std::vector<std::string> &arg, size_t &c);
     void consumePositionalArg(Positional &match, const std::vector<std::string> &argv, size_t &c);
-    OptionsContainer::iterator findMatchingArg(const std::string &arg) ;
+    OptionsContainer::iterator findMatchingArg(const std::string &arg, std::string &val) ;
     void checkRequired() ;
     void setDefaults();
     uint getOptimalColumnWidth(uint line_length, uint min_description_length);
