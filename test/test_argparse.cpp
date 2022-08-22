@@ -36,17 +36,17 @@ static void test_simple(int argc, const char *argv[]) {
     ArgumentParser args ;
     args.description("test_argparse [options] output (input)+ \nList information about the FILEs (the current directory by default).\nSort entries alphabetically if none of -cftuvSUX nor --sort is specified.") ;
 
-    args.option("-h|--help").implicit(print_help, true).description("print this help message") ;
-    args.option("-f|--flag").value(f, "flag").required().description("first flag") ;
-    args.option("-b|--bbox").value(bbox.min_x_, "minx").value(bbox.min_y_, "miny").value(bbox.max_x_, "maxx").value(bbox.max_y_, "maxy")
-            .description("bounding box") ;
-    args.option("--test").value(items, true).description("second flag") ;
-    /*args.option("--custom", [&](istream &strm) {
+    args.option("-h|--help", "print this help message").implicit(print_help, true) ;
+    args.option("-f|--flag", "first flag").value(f).required() ;
+    args.option("-b|--bbox <minx> <miny> <maxx> <maxy>", "bounding box").value(bbox.min_x_).value(bbox.min_y_).value(bbox.max_x_).value(bbox.max_y_) ;
+    args.option("--test", "second flag").value(items, true) ;
+    args.option("--custom", "custom flag")
+            .value([&](std::istream &strm)->bool {
         strm >> val ;
         return true ;
-    }).description("custom flag") ;
-    */
-//    args.positional(files).numArgsAtLeast(0) ;
+    }) ;
+
+    args.positional(files) ;
 
     try {
         args.parse(argc, argv) ;
