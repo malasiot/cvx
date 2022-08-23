@@ -50,8 +50,20 @@ ostream &operator << (ostream &strm, const std::vector<int> &data)  {
 
 int main(int argc, const char *argv[]) {
 
+    cout << Path("/i1/i2/i3/", "t1/t2").toString() << endl;
+    cout << Path("/i1/../i2//i3/").toString() << endl;
+    cout << Path("i1/../../i2/../i4").normalizePath().toString() << endl;
+     cout << Path("../i1/./../").normalizePath().toString() << endl;
+     cout << Path("i2/i3/").parentPath().parent() << endl ;
+     cout << Path("i1/../i2/").canonical() << endl ;
+
    // list_dirs_recursive(Path("/home/malasiot/source/maplite")) ;
 
+    cout << Path("/i1/i2/test").name() << endl ;
+    cout << Path("i1").name() << endl ;
+    cout << Path("i1/i2/file.txt").nameWithoutExtension() << endl ;
+    cout << Path("file.txt").nameWithoutExtension() << endl ;
+    cout << Path("i1/file").nameWithoutExtension() << endl ;
     int x = 2 ;
     LOG_ERROR_IF( x > 0, 123 << ' ' <<234 ) ;
 

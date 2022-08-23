@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include <cvx/misc/dir_iterator.hpp>
+#include <cvx/misc/strings.hpp>
 
 namespace cvx {
 
@@ -21,13 +22,32 @@ class Path {
 
     // filename or directory name
     std::string name() const {
-        return elements_.empty() ? std::string() : elements_.back() ;
+        if ( path_.empty() ) return {} ;
+        size_t npos = path_.find_last_of('/') ;
+        return ( npos == std::string::npos ) ? path_ : path_.substr(npos+1) ;
+    }
+
+    std::string nameWithoutExtension() const {
+        auto n = name() ;
+        if ( n.empty() ) return n ;
+        size_t pos = n.find_last_of('.') ;
+        return ( pos == std::string::npos ) ? n : n.substr(0, pos) ;
     }
 
     std::string extension() const ;
 
     // convert to string
     std::string toString() const ;
+
+    // remove redundant elements such as '.' and '..'
+    Path normalizePath() const ;
+    std::string normalize() const { return normalizePath().toString() ; }
+
+    // get parent directory if exists
+
+    std::string parent() const ;
+    Path parentPath() const ;
+
 
     // get absolute path
     Path absolutePath(const Path &base = Path::currentWorkingDir()) const ;
@@ -59,10 +79,6 @@ class Path {
         return isDirectory(toString()) ;
     }
 
-    // get parent directory if exists
-
-    std::string parent() const ;
-    Path parentPath() const ;
 
     DirectoryListing subDirs() const {
         return DirectoryListing(toString()) ;
@@ -102,8 +118,8 @@ class Path {
     }
 
     const std::string &root() const { return root_ ; }
-    const std::vector<std::string> &elements() const {
-        return elements_ ;
+    std::vector<std::string> elements() const {
+        return split(path_, "/");
     }
 
     bool mkdir() const {
@@ -150,6 +166,8 @@ private:
 
     std::string root_ ;
     PathElements elements_ ;
+
+    std::string path_ ;
 
     static const char path_separator_ ;
 } ;

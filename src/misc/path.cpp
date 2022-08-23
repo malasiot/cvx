@@ -14,8 +14,7 @@ Path::Path(const std::string &filepath) {
     parse(filepath) ;
 }
 
-string Path::extension() const
-{
+string Path::extension() const {
     string n = name() ;
     if ( n.empty() ) return n ;
 
@@ -24,8 +23,31 @@ string Path::extension() const
 }
 
 string Path::toString() const {
-    if ( elements_.empty() ) return root_ ;
-    return toString(elements_.cbegin(), elements_.cend()) ;
+    return root_ + path_ ;
+}
+
+Path Path::normalizePath() const {
+    const auto src_elements = split(path_, "/") ;
+    vector<string> dst_elements ;
+
+    auto end = src_elements.cend() ;
+    for ( auto it = src_elements.cbegin() ; it != end ; ++it ) {
+        if (*it == ".") ;
+        else if (*it == ".." ) {
+            if ( dst_elements.empty() || dst_elements.back() == ".." ) {
+                dst_elements.push_back("..") ;
+            } else {
+                dst_elements.pop_back();
+            }
+        } else {
+            dst_elements.push_back(*it) ;
+        }
+    }
+
+    Path result ;
+    result.root_ = root_ ;
+    result.path_ = join(dst_elements, "/") ;
+    return result ;
 }
 
 Path Path::absolutePath(const Path &base) const {
@@ -42,33 +64,17 @@ extern std::string resolve_sym_link(const std::string &path) ;
 Path Path::canonicalPath(const Path &base) const
 {
     Path source(absolutePath(base)) ;
-    Path res ;
 
-    bool rescan  ;
+    vector<string> elements ;
 
-    do  {
-        rescan = false ;
-        res.root_ = source.root_ ;
-        res.elements_.clear() ;
+    for( const auto &e: split(source.path_, "/") ) {
 
-        auto end = source.elements_.cend() ;
-        for ( auto it = source.elements_.cbegin() ; it != end ; ++it ) {
-            if (*it == ".") continue;
-            if (*it == ".." ) {
-                if ( !res.elements_.empty() ) {
-                    res.elements_.pop_back();
-                    continue;
-                }
-            }
+        std::string symlink = resolve_sym_link(e) ;
 
-            res.elements_.emplace_back(*it) ;
-
-            std::string symlink = resolve_sym_link(res.toString()) ;
-
-            if ( !symlink.empty() ) {
+        if ( !symlink.empty() ) {
                 // if this is a symlink we have to rebuild the source string and restart scanning to properly deal with "." abd ".."
+/*
 
-                res.elements_.pop_back();
 
                 Path link(symlink) ;
 
@@ -82,36 +88,37 @@ Path Path::canonicalPath(const Path &base) const
                     Path tmp(res) ;
                     tmp.append(link) ;
                     for( ++it ; it != end ; ++it )
-                         tmp.elements_.emplace_back(*it) ;
+                        tmp.elements_.emplace_back(*it) ;
                     source = tmp ;
                 }
                 rescan = true ;
                 break ;
-
+*/
             }
+        else {
+            elements.push_back(e) ;
         }
-    } while ( rescan ) ;
+    }
 
-    return res ;
+    Path res ;
+    res.root_ = source.root_ ;
+    res.path_ = join(elements, "/") ;
+
+    return Path(res).normalizePath() ;
 }
 
 string Path::parent() const {
-    if ( elements_.empty() ) return root_ ;
-    auto it = elements_.cbegin(), end = std::prev(elements_.cend()) ;
-    return toString(it, end) ;
+    return parentPath().toString() ;
 }
 
 Path Path::parentPath() const {
+    string path ;
+    size_t pos = path_.find_last_of('/') ;
+    path = ( pos == string::npos ) ? string() : path_.substr(0, pos) ;
+
     Path res ;
     res.root_ = root_ ;
-
-    if ( elements_.empty() ) return res ;
-
-    auto it = elements_.cbegin(), end = std::prev(elements_.cend()) ;
-
-    if ( it == end ) return res ;
-
-    res.elements_.assign(it, end) ;
+    res.path_ = path ;
 
     return res ;
 }
@@ -126,7 +133,8 @@ Path::Path(const std::string &parent, const string &child): Path(parent) {
 
 
 void Path::append(const Path &child_path) {
-    std::copy(child_path.elements().begin(), child_path.elements().end(), std::back_inserter(elements_)) ;
+    if ( !child_path.path_.empty() ) path_ += '/' ;
+    path_.append(child_path.path_) ;
 }
 
 
@@ -173,7 +181,6 @@ string Path::toString(PathElements::const_iterator start, PathElements::const_it
         res += *it ;
     }
     return res ;
-
 }
 
 std::string rand_string(uint sz) {

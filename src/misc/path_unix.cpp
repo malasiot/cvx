@@ -23,7 +23,7 @@ void Path::parse(const std::string &path) {
 
     if ( it == end ) return ; // empty path
 
-    if ( *it == '/' ) {
+    if ( *it == '/' ) { // check presence of root
         root_ = "/" ;
         ++it ;
     }
@@ -33,6 +33,9 @@ void Path::parse(const std::string &path) {
     for( ; it != end ; ++it ) {
         if ( *it == '/' ) {
             if ( !item.empty() ) {
+                if ( !path_.empty() ) path_ += '/' ;
+                path_.append(item) ;
+
                 elements_.emplace_back(item) ;
                 item.clear() ;
             }
@@ -40,8 +43,11 @@ void Path::parse(const std::string &path) {
         else item += *it ;
     }
 
-    if ( !item.empty() )
+    if ( !item.empty() ) {
         elements_.emplace_back(item) ;
+        path_ += '/' ;
+        path_.append(item) ;
+    }
 }
 
 const char Path::path_separator_ = '/' ;
