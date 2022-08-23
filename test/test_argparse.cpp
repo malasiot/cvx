@@ -14,13 +14,22 @@ struct BBox {
     BBox() = default ;
     BBox(float minx, float miny, float maxx, float maxy):
         min_x_(minx), min_y_(miny), max_x_(maxx), max_y_(maxy), empty_(false) {}
+};
 
-    friend std::istream &operator >> ( std::istream &strm, BBox &box ) {
-        strm >>box.min_x_ >> box.min_y_ >> box.max_x_ >> box.max_y_ ;
-        box.empty_ = false ;
-        return strm ;
+namespace cvx {
+template<>
+struct ValueParser<BBox> {
+    bool parse(const std::string &arg, BBox &bbox) {
+        stringstream strm(arg) ;
+        string s ;
+        std::getline(strm, s, ':') ; bbox.min_x_ = std::stod(s) ;
+        std::getline(strm, s, ':') ; bbox.min_y_ = std::stod(s) ;
+        std::getline(strm, s, ':') ; bbox.max_x_ = std::stod(s) ;
+        std::getline(strm, s, ':') ; bbox.max_y_ = std::stod(s) ;
+        return (bool)strm ;
     }
 };
+}
 
 static void test_simple(int argc, const char *argv[]) {
 
@@ -30,35 +39,25 @@ static void test_simple(int argc, const char *argv[]) {
     float f;
     int val ;
     std::vector<std::string> files ;
+    std::string file ;
     std::vector<int> items ;
     int pos ;
     bool print_help = false ;
     ArgumentParser args ;
     args.description("test_argparse [options] output (input)+ \nList information about the FILEs (the current directory by default).\nSort entries alphabetically if none of -cftuvSUX nor --sort is specified.") ;
 
-    args.option("-h|--help", "print this help message") ;
-    args.option("-f|--flag", "first flag").value(f).required().implicit("2.0") ;
-    args.option("-b|--bbox <minx>:<miny>:<maxx>:<maxy>", "bounding box").value(bbox).
-            valueParser([&](istream &strm) {
-        string s ;
-        std::getline(strm, s, ':') ; bbox.min_x_ = std::stod(s) ;
-        std::getline(strm, s, ':') ; bbox.min_y_ = std::stod(s) ;
-        std::getline(strm, s, ':') ; bbox.max_x_ = std::stod(s) ;
-        std::getline(strm, s, ':') ; bbox.max_y_ = std::stod(s) ;
-        return (bool)strm ;
-    }) ;
-    args.option("-t|--test", "second flag").value(items) ;
-    args.option("--custom", "custom flag").value(val).valueParser([&](std::istream &strm)->bool {
-        strm >> val ;
-        return true ;
-    }) ;
+    args.option("-h|--help", print_help, "print this help message") ;
+    args.option("-f|--flag [<v>]", f, "first flag").required().implicit("2.0") ;
+    args.option("-b|--bbox <minx>:<miny>:<maxx>:<maxy>", bbox, "bounding box") ;
 
-  //  args.positional(files) ;
+    args.option("-t|--test", items, "second flag") ;
+
+    args.positional("files", files) ;
 
     try {
         args.parse(argc, argv) ;
 
-        if ( args.has("--help") )
+        if ( print_help )
             args.printUsage(std::cout) ;
 
     } catch ( ArgumentParserException &e ) {
@@ -95,9 +94,10 @@ to read about a specific subcommand or concept.")") ;
 
     bool print_help = false ;
     string cmd ;
-#if 0
-    root.option("-h|--help", print_help).numArgs(0).description("print this help message").implicitValue("true") ;
-    root.positional(cmd).numArgs(1).action( [&] {
+
+    root.option("-h|--help", print_help, "print this help message") ;
+
+    root.positional("command", cmd, "Command").action( [&] {
         if ( cmd == "init" ) {
             try {
                 init_group.parse(argc, argv, root.pos()) ;
@@ -131,20 +131,18 @@ to read about a specific subcommand or concept.")") ;
     string origin_name, repo, dir, tmpl ;
 
     clone_group.description("usage: git clone [<options>] [--] <repo> [<dir>]") ;
-    clone_group.option("-v|--verbose", verbose).numArgs(0).description("be more verbose").implicitValue("true") ;
-    clone_group.option("-o|--origin", origin_name).numArgs(1).description("use <name> instead of 'origin' to track upstream").name("<name>") ;
-    clone_group.option("-h|--help", print_help).numArgs(0).description("print this help message").implicitValue("true") ;
-    clone_group.positional(repo).required() ;
-    clone_group.positional(dir) ;
-
-
+    clone_group.option("-v|--verbose", verbose, "be more verbose") ;
+    clone_group.option("-o|--origin <name>", origin_name,"use <name> instead of 'origin' to track upstream") ;
+    clone_group.option("-h|--help", print_help, "print this help message") ;
+    clone_group.positional("repo", repo, "Repository").required() ;
+    clone_group.positional("dir", dir, "Directory") ;
 
     init_group.description("usage: git init [-q | --quiet] [--bare] [--template=<template-directory>] [--shared[=<permissions>]] [<directory>]") ;
-    init_group.option("--template", tmpl).description("directory from which templates will be used").defaultValue("<template-directory>");
-    init_group.option("--bare", bare).numArgs(0).description("create a bare repository") ;
-    init_group.option("-h|--help", print_help).numArgs(0).description("print this help message").implicitValue("true") ;
-    init_group.positional(dir) ;
-#endif
+    init_group.option("--template", tmpl, "directory from which templates will be used") ;
+    init_group.option("--bare", bare, "create a bare repository") ;
+    init_group.option("-h|--help", print_help, "print this help message");
+    init_group.positional("dir", dir, "Directory") ;
+
     try {
         root.parse(argc, argv) ;
 
@@ -158,6 +156,6 @@ to read about a specific subcommand or concept.")") ;
 }
 
 int main(int argc, const char *argv[]) {
-    test_simple(argc, argv) ;
-//    test_git(argc, argv) ;
+//    test_simple(argc, argv) ;
+    test_git(argc, argv) ;
 }
