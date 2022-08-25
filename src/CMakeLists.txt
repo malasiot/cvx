@@ -144,6 +144,7 @@ target_link_libraries(cvx PUBLIC
         ${LAPACK_LIBRARIES}
         ${F2C_LIBRARIES}
         ${ZLIB_LIBRARIES}
+        stdc++fs
 )
 
 # Install library

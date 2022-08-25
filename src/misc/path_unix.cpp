@@ -35,8 +35,6 @@ void Path::parse(const std::string &path) {
             if ( !item.empty() ) {
                 if ( !path_.empty() ) path_ += '/' ;
                 path_.append(item) ;
-
-                elements_.emplace_back(item) ;
                 item.clear() ;
             }
         }
@@ -44,9 +42,10 @@ void Path::parse(const std::string &path) {
     }
 
     if ( !item.empty() ) {
-        elements_.emplace_back(item) ;
-        path_ += '/' ;
+        if ( !path_.empty() ) path_ += '/' ;
         path_.append(item) ;
+    } else {
+        trailing_slash_ = true ;
     }
 }
 
@@ -66,39 +65,39 @@ std::string resolve_sym_link(const std::string &path) {
 }
 
 
-Path Path::executablePath() {
+std::string Path::executablePath() {
     stringstream fpaths ;
     fpaths << "/proc/" << getpid() << "/exe" ;
     Path fpath(fpaths.str()) ;
 
-    if ( fpath.exists() ) return fpath.canonicalPath().parentPath() ;
-    else return Path() ;
+    if ( fpath.exists() ) return fpath.canonicalPath().parent() ;
+    else return {} ;
 }
 
 
-Path Path::currentWorkingDir() {
+std::string Path::currentWorkingDir() {
     char temp[1024];
     return ( ::getcwd(temp, 1024) ? std::string( temp ) : std::string() );
 }
 
 
-Path Path::homePath() {
+std::string Path::homePath() {
     const char *home_dir = getenv("HOME") ;
 
-    if ( home_dir ) return Path(home_dir) ;
-    else return Path() ;
+    if ( home_dir ) return std::string(home_dir) ;
+    else return {} ;
 }
 
-Path Path::tempPath() {
-    return Path("/tmp") ;
+std::string Path::tempPath() {
+    return "/tmp" ;
 }
 
-Path Path::nativeConfigDir(const std::string &app_name) {
-    return  homePath() / ".config" / app_name  ;
+std::string Path::nativeConfigDir(const std::string &app_name) {
+    return  Path::join(homePath(), ".config", app_name)  ;
 }
 
-Path Path::nativeDataDir() {
-    return homePath() / ".local/share/";
+std::string Path::nativeDataDir() {
+    return Path::join(homePath(), ".local/share/");
 }
 
 

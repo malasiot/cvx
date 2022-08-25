@@ -75,36 +75,36 @@ string get_data_folder(const string &app_name, int argc, char *argv[])
         Path data_dir = source_path / "data/" ;
 
         if ( data_dir.exists() ) {
-            return data_dir.canonical() ;
+            return data_dir.canonicalPath().native() ;
         }
 
         data_dir = source_path / "tests/data/" ;
 
         if ( data_dir.exists() ) {
-            return data_dir.canonical() ;
+            return data_dir.canonicalPath().native() ;
         }
     }
 
     // test if it is in user data folder
 
-    Path data_dir_default = Path::nativeDataDir() / app_name / "data/" ;
+    Path data_dir_default = Path(Path::nativeDataDir()) / app_name / "data/" ;
 
     if ( data_dir_default.exists() ) {
-        return data_dir_default.canonical() ;
+        return data_dir_default.canonicalPath().native() ;;
     }
 
 #ifndef _WIN32
     // test if it is in home directory ( a hidden file .application_name/data/ )
 
-    Path data_dir_home =  Path::homePath() / ("." + app_name ) / "data/" ;
+    Path data_dir_home =  Path(Path::homePath()) / ("." + app_name ) / "data/" ;
 
     if ( data_dir_home.exists() ) {
-        return data_dir_home.canonical() ;
+        return data_dir_home.canonicalPath().native() ; ;
     }
 
     // test if it is in home directory in .ros ( a hidden file .ros/.application_name/data/ )
 
-    Path data_dir_ros =  Path::homePath() / ".ros" / app_name  / "data/" ; ;
+    Path data_dir_ros =  Path(Path::homePath()) / ".ros" / app_name  / "data/" ; ;
 
     if ( data_dir_ros.exists() ) {
         return data_dir_ros.canonical() ;

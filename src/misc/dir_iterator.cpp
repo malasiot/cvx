@@ -148,7 +148,7 @@ const DirectoryFilter DirectoryFilters::Glob(const string &glob_pattern)
     return filter ;
 }
 
-DirectoryListing::DirectoryListing(const Path &dir, DirectoryFilter filter): dir_(dir.toString()), filter_(filter) {
+DirectoryListing::DirectoryListing(const Path &dir, DirectoryFilter filter): dir_(dir.native()), filter_(filter) {
 
 }
 

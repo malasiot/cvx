@@ -21,76 +21,69 @@ class Path {
     Path(const std::string &pathname) ;
 
     // filename or directory name
-    std::string name() const {
-        if ( path_.empty() ) return {} ;
-        size_t npos = path_.find_last_of('/') ;
-        return ( npos == std::string::npos ) ? path_ : path_.substr(npos+1) ;
-    }
+    std::string fileName() const;
 
-    std::string nameWithoutExtension() const {
-        auto n = name() ;
-        if ( n.empty() ) return n ;
-        size_t pos = n.find_last_of('.') ;
-        return ( pos == std::string::npos ) ? n : n.substr(0, pos) ;
-    }
+    std::string fileNameWithoutExtension() const;
 
     std::string extension() const ;
 
-    // convert to string
-    std::string toString() const ;
+    // convert to native string
+    std::string native() const ;
 
     // remove redundant elements such as '.' and '..'
-    Path normalizePath() const ;
-    std::string normalize() const { return normalizePath().toString() ; }
+    Path normalizedPath() const ;
+    std::string normalized() const { return normalizedPath().native() ; }
 
     // get parent directory if exists
 
     std::string parent() const ;
     Path parentPath() const ;
 
-
     // get absolute path
+
     Path absolutePath(const Path &base = Path::currentWorkingDir()) const ;
     std::string absolute(const Path &base = Path::currentWorkingDir()) const {
-        return absolutePath(base).toString() ;
+        return absolutePath(base).native() ;
     }
 
     // makes a unique path by eliminating "." and ".." and resolving symbolic links
+
     Path canonicalPath(const Path &base = Path::currentWorkingDir()) const ;
     std::string canonical(const Path &base = Path::currentWorkingDir()) const {
-        return canonicalPath(base).toString() ;
+        return canonicalPath(base).native() ;
     }
+
 
     // check if it is an absolute path
     bool isAbsolute() const { return !root_.empty() ; }
 
     // check if file exists
     bool exists() const {
-        return exists(toString()) ;
+        return exists(native()) ;
     }
 
     // check if it is a directory
     bool isDirectory() const {
-        return isDirectory(toString()) ;
+        return isDirectory(native()) ;
     }
 
     // check if it is a regular file
     bool isFile() const {
-        return isDirectory(toString()) ;
+        return isDirectory(native()) ;
     }
 
 
     DirectoryListing subDirs() const {
-        return DirectoryListing(toString()) ;
+        return DirectoryListing(native()) ;
     }
 
     DirectoryListing subDirs(DirectoryFilter filter) const {
-        return DirectoryListing(toString(), filter) ;
+        return DirectoryListing(native(), filter) ;
     }
 
     // append child path
 
-    void append(const Path &child) ;
+    Path &append(const Path &child) ;
 
     Path & operator /= (const Path & rhs) {
         append(rhs) ;
@@ -112,30 +105,100 @@ class Path {
         return *this / Path(rhs) ;
     }
 
-    friend std::ostream &operator << ( std::ostream &strm, const Path &path ) {
-        strm << path.toString() ;
-        return strm ;
+    static std::string join(const std::string base, const std::string &child1) {
+        return Path(base, child1).native() ;
+    }
+    static std::string join(const std::string base, const std::string &child1, const std::string &child2) {
+        return Path(base, child1).append(child2).native() ;
     }
 
+    static std::string join(const std::initializer_list<std::string> &rest) ;
+
     const std::string &root() const { return root_ ; }
+
+    struct ElementIterator
+    {
+        using iterator_category = std::forward_iterator_tag;
+        using difference_type   = std::ptrdiff_t;
+        using value_type        = std::string;
+        using pointer           = const std::string*;
+        using reference         = const std::string&;
+
+        const Path *path_ = nullptr ;
+        std::string current_ ;
+        std::string::const_iterator it_, end_ ;
+
+        ElementIterator(const Path *p): path_(p) {
+            it_ = std::begin(p->path_) ;
+            end_ = std::end(p->path_) ;
+            advance() ;
+        }
+
+        ElementIterator() = default ;
+
+        reference operator*() const { return current_; }
+
+        // Prefix increment
+        ElementIterator& operator++() {
+             advance() ;
+             return *this ;
+        }
+
+        void advance() {
+            current_.clear() ;
+            while ( it_ != end_ ) {
+                if (*it_ != '/') {
+                    current_ += *it_ ;
+                    ++it_ ;
+                } else {
+                    ++it_ ;
+                    break ;
+                }
+            }
+        }
+
+            // Postfix increment
+         ElementIterator operator++(int) { ElementIterator tmp = *this; ++(*this); return tmp; }
+
+         bool isValid() const { return it_ != end_ || !current_.empty(); }
+
+         friend bool operator== (const ElementIterator& a, const ElementIterator& b) {
+             return (a.path_ == b.path_ && a.it_ == b.it_ ) ||
+                     (!a.path_ && b.path_ && !b.isValid())
+                           || (!b.path_ && a.path_ && !a.isValid() ) ;
+         };
+
+         bool operator!= (const ElementIterator& b) {
+             return !(*this == b);
+         }
+    };
+
+    ElementIterator begin() const { return ElementIterator(this) ; }
+    ElementIterator end() const { return ElementIterator() ; }
+
     std::vector<std::string> elements() const {
         return split(path_, "/");
     }
 
+    friend std::ostream &operator << ( std::ostream &strm, const Path &path ) {
+        strm << path.native() ;
+        return strm ;
+    }
+
     bool mkdir() const {
-        return mkdir(toString()) ;
+        return mkdir(native()) ;
     }
 
     bool mkdirs() const ;
 
-    static Path currentWorkingDir() ;
-    static Path executablePath();
-    static Path homePath();
-    static Path tempPath();
-    static Path nativeDataDir();
-    static Path uniquePath(const Path &dir, const std::string &prefix, const std::string &suffix = "");
-    static Path tempFilePath(const std::string &prefix = "tmp-", const std::string &suffix = "");
-    static Path nativeConfigDir(const std::string &app_name);
+    static std::string currentWorkingDir() ;
+    static std::string executablePath();
+    static std::string homePath();
+    static std::string tempPath();
+    static std::string nativeDataDir();
+    static std::string uniquePath(const std::string &dir, const std::string &prefix, const std::string &suffix = "");
+    static std::string tempFilePath(const std::string &prefix = "tmp-", const std::string &suffix = "");
+    static std::string nativeConfigDir(const std::string &app_name);
 
     static bool exists(const std::string &path) ;
     static bool isDirectory(const std::string &path) ;
@@ -144,7 +207,7 @@ class Path {
     static bool mkdirs(const std::string &path) ;
     static bool remove(const std::string &path) ;
     static bool remove(const Path &path) {
-        return remove(path.toString()) ;
+        return remove(path.native()) ;
     }
 
     static bool rename(const std::string &orig_path, const std::string &new_path) ;
@@ -157,19 +220,16 @@ class Path {
     }
 
 private:
-    typedef std::vector<std::string> PathElements ;
-
     void parse(const std::string &path) ; // can throw InvalidPathException
-    std::string toString(PathElements::const_iterator start, PathElements::const_iterator end) const ;
 
 private:
 
-    std::string root_ ;
-    PathElements elements_ ;
+    std::string drive_ ;
+    std::string root_ ; // root dir
+    std::string path_ ; // relative path
+    bool trailing_slash_ = false ;
 
-    std::string path_ ;
-
-    static const char path_separator_ ;
+    static const char path_separator_ ; // native path separator
 } ;
 
 
@@ -177,6 +237,12 @@ class InvalidPathException: public std::runtime_error {
 public:
     InvalidPathException(const std::string &path_name):
         std::runtime_error("Invalid filesystem path: " + path_name) {}
+};
+
+class UnresolvedPathException: public std::runtime_error {
+public:
+    UnresolvedPathException(const std::string &path_name):
+        std::runtime_error("Unresolved path: " + path_name) {}
 };
 
 } // cvx

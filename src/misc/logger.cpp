@@ -192,7 +192,7 @@ static void formatMessage(std::ostream &strm, const string &pattern, LogLevel le
                 case 'F': // %F: file name
                     if ( !fileName.empty() )
                     {
-                        string file_name_ = Path(fileName).name() ;
+                        string file_name_ = Path(fileName).fileName() ;
                         printFormatedString(strm, file_name_, leftAlign, minLength, maxLength) ;
                     }
                     break ;

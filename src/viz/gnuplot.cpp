@@ -169,7 +169,7 @@ Gnuplot::~Gnuplot()
 string Gnuplot::make_tmp_file()
 {
     Path p = Path::uniquePath(Path::tempPath(), "tmp-gnuplot-") ;
-    string tmp_file_path = p.toString() ;
+    string tmp_file_path = p.native() ;
     tmp_files_.push_back(tmp_file_path) ;
 
     return tmp_file_path ;
