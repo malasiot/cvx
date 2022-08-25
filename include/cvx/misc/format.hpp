@@ -5,7 +5,8 @@
 #include <cvx/misc/variant.hpp>
 #include <sstream>
 
-// type safe string formating ala printf
+// type safe string formating based on a subset of Python formatspec
+// ushttps://docs.python.org/3/library/string.html#formatspec
 
 namespace cvx {
 
