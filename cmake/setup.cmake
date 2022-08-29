@@ -11,6 +11,8 @@ else()
   set(LIBRARY_TYPE STATIC)
 endif()
 
+set(CMAKE_DEBUG_POSTFIX d)
+
 # Set a default build type if none was specified
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting build type to 'Release'.")
