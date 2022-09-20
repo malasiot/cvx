@@ -9,7 +9,7 @@ set(@PROJECT_NAME_UPPERCASE@_INCLUDE_DIRS "@INSTALL_INCLUDE_DIR@")
 # Import the exported targets
 include("${CMAKE_INSTALL_PREFIX}/@INSTALL_CMAKE_DIR@/@PROJECT_NAME@Targets.cmake")
 
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 4 REQUIRED)
 
 # Set the expected library variable
 set(@PROJECT_NAME_UPPERCASE@_LIBRARIES @LIBRARY_NAME@)
