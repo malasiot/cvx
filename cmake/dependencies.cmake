@@ -13,3 +13,5 @@ find_package(ZLIB REQUIRED)
 
 find_package(F2C REQUIRED)
 find_package(LAPACK REQUIRED)
+
+find_package(SQLite3)

@@ -24,6 +24,7 @@ set ( LIB_SOURCES
     misc/json_writer.cpp
     misc/format.cpp
 
+
     geometry/trimesh_topology.cpp
     3rdparty/triangle.c
     3rdparty/nanoflann.hpp
@@ -51,6 +52,10 @@ if ( UNIX )
     list(APPEND LIB_SOURCES misc/path_unix.cpp misc/dir_iterator_unix.cpp)
 endif ( UNIX )
 
+if ( SQLITE3_FOUND )
+    list(APPEND LIB_SOURCES misc/database.cpp)
+endif()
+
 set ( LIB_HEADERS
 
     misc/binary_stream.hpp
@@ -75,6 +80,7 @@ set ( LIB_HEADERS
     misc/json_writer.hpp
     misc/variant.hpp
     misc/base64.hpp
+    misc/database.hpp
 
     geometry/point.hpp
     geometry/point_list.hpp
@@ -144,6 +150,7 @@ target_link_libraries(cvx PUBLIC
         ${LAPACK_LIBRARIES}
         ${F2C_LIBRARIES}
         ${ZLIB_LIBRARIES}
+        ${SQLITE3_LIBRARY}
         stdc++fs
 )
 
