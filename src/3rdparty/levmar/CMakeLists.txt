@@ -8,10 +8,11 @@ endif ( NOT LAPACK_FOUND )
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 # levmar library source files
-add_library(levmar SHARED
+add_library(levmar STATIC
   lm.c Axb.c misc.c lmlec.c lmbc.c lmblec.c lmbleic.c
   levmar.h misc.h compiler.h
 )
+set_property(TARGET levmar PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 install(TARGETS levmar
   EXPORT ${PROJECT_NAME}-export
