@@ -50,6 +50,10 @@ public:
     FormatArg(char c): c_(c), tag_(Type::Char) {}
     FormatArg(int i): i_(i), tag_(Type::SignedInteger) {}
     FormatArg(uint i): u_(i), tag_(Type::UnsignedInteger) {}
+    FormatArg(short i): i_(i), tag_(Type::SignedInteger) {}
+    FormatArg(unsigned short i): u_(i), tag_(Type::UnsignedInteger) {}
+    FormatArg(long i): i_(i), tag_(Type::SignedInteger) {}
+    FormatArg(unsigned long i): u_(i), tag_(Type::UnsignedInteger) {}
     FormatArg(long long i): i_(i), tag_(Type::SignedInteger) {}
     FormatArg(unsigned long long i): u_(i), tag_(Type::UnsignedInteger) {}
     FormatArg(float f): f_(f), tag_(Type::Float) {}

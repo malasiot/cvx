@@ -44,10 +44,9 @@ void ConsoleProgressPrinter::advance(unsigned int steps)
             strm_ << '.' ;
     }
 
-    if ( last_tick_ == 40 )
-    {
+    if ( last_tick_ == 40 ) {
         strm_ << " - done.\n" ;
-        last_tick_ == -1 ;
+        last_tick_ = -1 ;
     }
 
     strm_.flush() ;
@@ -57,7 +56,7 @@ void ConsoleProgressPrinter::advance(unsigned int steps)
 void ConsoleProgressPrinter::endTask()
 {
     if ( last_tick_ > 0 ) strm_ << " - done.\n" ;
-    last_tick_ == -1 ;
+    last_tick_ = -1 ;
 }
 
 }
