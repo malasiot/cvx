@@ -2,6 +2,7 @@
 #include <cvx/misc/strings.hpp>
 #include <regex>
 
+#include "dir_iterator_unix.hpp"
 
 #include <sys/types.h>
 #include <dirent.h>
@@ -14,93 +15,56 @@
 
 using namespace std ;
 
-namespace cvx {
+namespace cvx { namespace detail {
 
-class DirectoryIteratorImpl {
-public:
-    DirectoryIteratorImpl(const std::string &dir, std::function<bool (const DirectoryEntry &)> filter): handle_(NULL), dir_(dir), filter_(filter) {
-        first(dir) ;
-    }
+DirectoryIteratorImpl::DirectoryIteratorImpl(const std::string &dir, DirectoryFilter filter): handle_(nullptr), dir_(dir), filter_(filter) {
+    first(dir) ;
+}
 
-    bool first(const std::string &dir) {
-        if ( ( handle_ = ::opendir(dir.c_str()))== 0 ) return false ;
-        return next() ;
-    }
+DirectoryIteratorImpl::DirectoryIteratorImpl(const std::string &dir, const NameFilter &name_filter, DirectoryFilter filter):
+    handle_(nullptr), dir_(dir), name_filter_(name_filter), filter_(filter) {
+    first(dir) ;
+}
 
-    bool next() {
-        while ( 1 ) {
-            dp_ = ::readdir(handle_) ;
-            if ( dp_ == NULL ) break ;
-            if ( dp_->d_type == DT_DIR && ( !strcmp(dp_->d_name, ".") || !strcmp(dp_->d_name, "..") ) ) continue ;
-            current_.path_ = dp_->d_name ;
-            if ( dp_->d_type == DT_UNKNOWN )
-                current_.type_ = DirectoryEntry::Unknown ;
-            else {
-                if ( dp_->d_type == DT_DIR)
-                  current_.type_ = DirectoryEntry::Dir ;
-                else if ( dp_->d_type == DT_REG)
-                    current_.type_ = DirectoryEntry::File ;
-                else if ( dp_->d_type == DT_LNK )
-                    current_.type_ = DirectoryEntry::SymLink ;
-            }
-            if ( !filter_(current_) ) continue ;
+bool DirectoryIteratorImpl::first(const std::string &dir) {
+    if ( ( handle_ = ::opendir(dir.c_str()))== 0 ) return false ;
+    return next() ;
+}
 
-            break ;
+bool DirectoryIteratorImpl::next() {
+    while ( 1 ) {
+        dp_ = ::readdir(handle_) ;
+        if ( dp_ == NULL ) break ;
+        if ( dp_->d_type == DT_DIR && ( !strcmp(dp_->d_name, ".") || !strcmp(dp_->d_name, "..") ) ) continue ;
+        current_.path_ = dp_->d_name ;
+        if ( dp_->d_type == DT_UNKNOWN )
+            current_.type_ = DirectoryEntry::Unknown ;
+        else {
+            if ( dp_->d_type == DT_DIR)
+                current_.type_ = DirectoryEntry::Dir ;
+            else if ( dp_->d_type == DT_REG)
+                current_.type_ = DirectoryEntry::File ;
+            else if ( dp_->d_type == DT_LNK )
+                current_.type_ = DirectoryEntry::SymLink ;
         }
-        return ( dp_ != NULL ) ;
+        if ( current_.type_ ==  DirectoryEntry::Dir && !(filter_ & DirectoryFilter::MatchDirs ) ) continue ;
+        if ( current_.type_ ==  DirectoryEntry::File && !(filter_ & DirectoryFilter::MatchFiles ) ) continue ;
+        if ( !name_filter_.match(current_) ) continue ;
+
+        break ;
     }
-
-    bool isValid() { return handle_ != NULL && dp_ != NULL; }
-
-    ~DirectoryIteratorImpl() {
-        if ( handle_)
-            ::closedir(handle_) ;
-    }
-
-    const DirectoryEntry &current() const { return current_ ; }
-
-private:
-
-    friend class DirectoryIterator ;
-
-    DIR *handle_ ;
-    struct dirent *dp_ ;
-    string dir_ ;
-    DirectoryEntry current_ ;
-    std::function<bool (const DirectoryEntry &)> filter_ ;
-};
-
-
-DirectoryIterator::DirectoryIterator(const string &dir, std::function<bool (const DirectoryEntry &)> filter):
-    impl_(new DirectoryIteratorImpl(dir, filter)) {}
-
-DirectoryIterator::DirectoryIterator() {
+    return ( dp_ != NULL ) ;
 }
 
-const DirectoryEntry &DirectoryIterator::operator*() const
-{
-    assert(impl_) ;
-    return impl_->current() ;
-}
+bool DirectoryIteratorImpl::isValid() { return handle_ != NULL && dp_ != NULL; }
 
-const DirectoryEntry *DirectoryIterator::operator->() const
-{
-    assert(impl_) ;
-    return &impl_->current() ;
-}
-
-DirectoryIterator &DirectoryIterator::operator++()
-{
-    impl_->next() ;
-    return *this ;
-}
-
-bool operator==(DirectoryIterator a, DirectoryIterator b)
-{
-    return a.impl_ == b.impl_
-              || (!a.impl_ && b.impl_ && !b.impl_->isValid())
-              || (!b.impl_ && a.impl_ && !a.impl_->isValid());
+DirectoryIteratorImpl::~DirectoryIteratorImpl() {
+    if ( handle_)
+        ::closedir(handle_) ;
 }
 
 
+
+
+}
 }

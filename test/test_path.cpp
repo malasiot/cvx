@@ -27,6 +27,14 @@ void list_dirs_recursive(const Path &base) {
 
 int main(int argc, const char *argv[]) {
 
+    DirectoryIterator it("/home/malasiot/source/ramcip_certh/certh_core/src/", NameFilter("*.cpp", NameFilter::FileNames), DirectoryFilter::MatchFiles), dend ;
+
+    for( const auto &e: Path::glob("/home/malasiot/source/ramcip_certh/certh_core/src/",
+                                                   "*/*.cpp", true, true)) {
+        cout << e << endl ;
+    }
+
+
     cout << Path("/i1/i2/i3/", "t1/t2") << endl;
     cout << Path("/i1/../i2//i3/") << endl;
     cout << Path("i1/../../i2/../i4").normalizedPath() << endl;
@@ -52,7 +60,7 @@ int main(int argc, const char *argv[]) {
 
     Path::mkdirs("rr/") ;
 
-    vector<string> res = Path::glob("/home/malasiot/Downloads/", "e6*.png") ;
+  //  vector<string> res = Path:entries("/home/malasiot/source/human_tracking/pose_estimation/data/datasets/segtest/val/", "/*/f_*.json") ;
    cout << Path::tempFilePath("xx", ".png") << endl ;
 
 }

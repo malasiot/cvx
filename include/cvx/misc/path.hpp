@@ -114,6 +114,10 @@ class Path {
 
     static std::string join(const std::initializer_list<std::string> &rest) ;
 
+    static std::vector<std::string> glob(const std::string &dir, const std::string &pattern, bool relative = true, bool recursive = false) {
+           return entries(dir, NameFilter(pattern), DirectoryFilter::MatchAll, relative, recursive) ;
+    }
+
     const std::string &root() const { return root_ ; }
 
     struct ElementIterator
@@ -213,11 +217,8 @@ class Path {
     static bool rename(const std::string &orig_path, const std::string &new_path) ;
 
     // get directory contents matching the filter
-    static std::vector<std::string> entries(const std::string &dir, DirectoryFilter filter, bool relative = true) ;
-    // all files in dir matching glob pattern
-    static std::vector<std::string> glob(const std::string &dir, const std::string &pattern, bool relative = true) {
-        return entries(dir, DirectoryFilters::Glob(pattern), relative) ;
-    }
+    static std::vector<std::string> entries(const std::string &dir, DirectoryFilter filter, bool relative = true, bool recursive = false) ;
+    static std::vector<std::string> entries(const std::string &dir, const NameFilter &nf, DirectoryFilter filter, bool relative = true, bool recursive = false);
 
 private:
     void parse(const std::string &path) ; // can throw InvalidPathException
