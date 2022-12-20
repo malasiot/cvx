@@ -552,7 +552,6 @@ public:
     // import from JSON stream
 
     static Variant fromJSON(std::istream &strm) {
-
         JSONReader reader(strm) ;
 
         try {
@@ -564,6 +563,10 @@ public:
         }
     }
 
+    static Variant fromJSON(const std::string &src) {
+        std::istringstream strm(src) ;
+        return fromJSON(strm) ;
+    }
 
     // iterates dictionaries or arrays
 
@@ -702,20 +705,20 @@ private:
             return Variant::null() ;
         } else if ( tk == JSONToken::NUMBER ) {
             return Variant(reader.nextDouble()) ;
-        }
+        } else return nullptr ;
 
     }
 
     static Variant parseJSONObject(JSONReader &reader) {
 
-        Variant result{Variant::Object()};
+        Variant::Object result ;
 
         reader.beginObject() ;
         std::string key ;
         while ( reader.hasNext() ) {
             key = reader.nextName() ;
             Variant value = parseJSONValue(reader) ;
-            result.append(key, value) ;
+            result.emplace(key, value) ;
         }
         reader.endObject() ;
 
@@ -725,12 +728,12 @@ private:
 
     static Variant parseJSONArray(JSONReader &reader) {
 
-        Variant result{Variant::Array()} ;
+        Variant::Array result ;
 
         reader.beginArray() ;
 
         while ( reader.hasNext() ) {
-            result.append(parseJSONValue(reader)) ;
+            result.emplace_back(parseJSONValue(reader)) ;
         }
 
         reader.endArray() ;

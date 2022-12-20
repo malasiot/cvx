@@ -159,16 +159,13 @@ bool Path::mkdirs(const string &path) {
     return Path(path).mkdirs() ;
 }
 
-vector<string> Path::entries(const string &dir, DirectoryFilter filter, bool relative, bool recursive) {
-  return entries(dir, NameFilter(), filter, relative, recursive) ;
-}
 
-vector<string> Path::entries(const string &dir, const NameFilter &nf, DirectoryFilter filter, bool relative, bool recursive)
+vector<string> Path::entries(const string &dir, DirectoryFilter filter, bool relative, bool recursive)
 {
     vector<string> entries ;
 
     if ( recursive ) {
-        RecursiveDirectoryIterator dit(dir, nf, filter), dend ;
+        RecursiveDirectoryIterator dit(dir, filter), dend ;
         for( ; dit != dend ; ++dit ) {
             if ( relative )
                 entries.emplace_back(dit->path()) ;
@@ -176,7 +173,7 @@ vector<string> Path::entries(const string &dir, const NameFilter &nf, DirectoryF
                 entries.emplace_back(Path(dir, dit->path()).native()) ;
         }
     } else {
-        DirectoryIterator dit(dir, nf, filter), dend ;
+        DirectoryIterator dit(dir, filter), dend ;
         for( ; dit != dend ; ++dit ) {
             if ( relative )
                 entries.emplace_back(dit->path()) ;

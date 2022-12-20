@@ -12,8 +12,6 @@ class DirectoryIteratorImpl {
 public:
     DirectoryIteratorImpl(const std::string &dir, DirectoryFilter filter) ;
 
-    DirectoryIteratorImpl(const std::string &dir, const NameFilter &name_filter, DirectoryFilter filter) ;
-
     bool first(const std::string &dir) ;
 
     bool next() ;
@@ -34,7 +32,6 @@ private:
     struct dirent *dp_ ;
     std::string dir_ ;
     DirectoryEntry current_ ;
-    NameFilter name_filter_ ;
     DirectoryFilter filter_ ;
 };
 

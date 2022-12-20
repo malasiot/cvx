@@ -13,7 +13,7 @@ using namespace std ;
 using namespace cvx;
 
 void list_dirs_recursive(const Path &base) {
-    for( auto &e: DirectoryListing(base) ) {
+    for( auto &e: DirectoryListing(base.native()) ) {
         Path p(base, e) ;
 
         if ( e.isDirectory() ) {
@@ -27,10 +27,10 @@ void list_dirs_recursive(const Path &base) {
 
 int main(int argc, const char *argv[]) {
 
-    DirectoryIterator it("/home/malasiot/source/ramcip_certh/certh_core/src/", NameFilter("*.cpp", NameFilter::FileNames), DirectoryFilter::MatchFiles), dend ;
+    DirectoryIterator it("/home/malasiot/source/ramcip_certh/certh_core/src/", DirectoryFilter("*.cpp", DirectoryFilter::MatchFiles)), dend ;
 
     for( const auto &e: Path::glob("/home/malasiot/source/ramcip_certh/certh_core/src/",
-                                                   "*/*.cpp", true, true)) {
+                                                   "*/*.cpp", false, true)) {
         cout << e << endl ;
     }
 

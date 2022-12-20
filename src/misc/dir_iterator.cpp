@@ -115,17 +115,10 @@ static string glob_to_regex(const char *pat)
     return rx ;
 }
 
-DirectoryListing::DirectoryListing(const Path &dir, DirectoryFilter filter): dir_(dir.native()), filter_(filter) {
-
-}
 
 
 DirectoryIterator::DirectoryIterator(const string &dir, DirectoryFilter filter):
     impl_(new detail::DirectoryIteratorImpl(Path(dir).native(), filter)) {}
-
-DirectoryIterator::DirectoryIterator(const string &dir, const NameFilter &name_filter, DirectoryFilter filter):
-    impl_(new detail::DirectoryIteratorImpl(Path(dir).native(), name_filter, filter)) {
-}
 
 DirectoryIterator::DirectoryIterator() {
 }
@@ -171,11 +164,6 @@ RecursiveDirectoryIterator::RecursiveDirectoryIterator(const string &dir, Direct
     next() ;
 }
 
-RecursiveDirectoryIterator::RecursiveDirectoryIterator(const string &dir, const NameFilter &name_filter, DirectoryFilter filter):
-    dir_(Path(dir).native()), name_filter_(name_filter), filter_(filter) {
-    stack_.emplace(DirectoryIterator(dir_, name_filter_, DirectoryFilter::MatchAll) );
-    next() ;
-}
 
 const DirectoryEntry &RecursiveDirectoryIterator::operator*() const {
     assert(!stack_.empty()) ;
@@ -210,8 +198,9 @@ void RecursiveDirectoryIterator::next() {
         }
 
         DirectoryEntry e = *it ;
+        e.path_ = relativePath(it.dir(), e.path_) ;
         if ( e.type() == DirectoryEntry::Dir ) {
-            if ( ( filter_ & DirectoryFilter::MatchDirs ) && name_filter_.match(relativePath(it.dir(), e.path_)) ) {
+            if ( filter_.match(e) ) {
                 found = true ;
                 setCurrent() ;
             }
@@ -219,7 +208,7 @@ void RecursiveDirectoryIterator::next() {
             stack_.emplace(DirectoryIterator(sub_dir, DirectoryFilter::MatchAll)) ;
         } else {
             if ( e.type() == DirectoryEntry::File )  {
-                if ( ( filter_ & DirectoryFilter::MatchFiles ) && name_filter_.match(relativePath(it.dir(), e.path_)) ) {
+                if ( filter_.match(e) ) {
                     found = true ;
                     setCurrent() ;
                 }
@@ -249,7 +238,10 @@ RecursiveDirectoryIterator &RecursiveDirectoryIterator::operator++() {
     return *this ;
 }
 
-NameFilter::NameFilter(const string &pattern, Flags flags): flags_(flags) {
+DirectoryFilter::DirectoryFilter(DirectoryFilter::MatchFlags flags): flags_(flags) {
+}
+
+DirectoryFilter::DirectoryFilter(const string &pattern, MatchFlags flags): flags_(flags) {
     std::vector<string> el = split(pattern, ";") ;
 
     for(size_t i=0 ; i<el.size() ; i++) {
@@ -264,21 +256,19 @@ NameFilter::NameFilter(const string &pattern, Flags flags): flags_(flags) {
     }
 }
 
-bool NameFilter::match(const string &m) {
+bool DirectoryFilter::match(const DirectoryEntry &e) {
+    if ( e.type() ==  DirectoryEntry::Dir && !( flags_ & MatchDirs ) ) return false ;
+    if ( e.type() ==  DirectoryEntry::File && !( flags_ & MatchFiles ) ) return false ;
+    return matchName(e.path()) ;
+}
+
+bool DirectoryFilter::matchName(const string &m) {
     if ( pats_.empty() ) return true ;
     for(size_t i=0 ; i<pats_.size() ; i++ ) {
         if ( regex_match(m, pats_[i]) )
             return true ;
     }
     return false ;
-}
-
-bool NameFilter::match(const DirectoryEntry &e) {
-    if ( e.isDirectory() && ( flags_ == DirNames ) )
-        return match(e.path()) ;
-    else if ( e.type() == DirectoryEntry::File && flags_ == FileNames ){
-        return match(e.path()) ;
-    } else return true ;
 }
 
 

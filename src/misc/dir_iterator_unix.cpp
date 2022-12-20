@@ -21,10 +21,6 @@ DirectoryIteratorImpl::DirectoryIteratorImpl(const std::string &dir, DirectoryFi
     first(dir) ;
 }
 
-DirectoryIteratorImpl::DirectoryIteratorImpl(const std::string &dir, const NameFilter &name_filter, DirectoryFilter filter):
-    handle_(nullptr), dir_(dir), name_filter_(name_filter), filter_(filter) {
-    first(dir) ;
-}
 
 bool DirectoryIteratorImpl::first(const std::string &dir) {
     if ( ( handle_ = ::opendir(dir.c_str()))== 0 ) return false ;
@@ -47,9 +43,7 @@ bool DirectoryIteratorImpl::next() {
             else if ( dp_->d_type == DT_LNK )
                 current_.type_ = DirectoryEntry::SymLink ;
         }
-        if ( current_.type_ ==  DirectoryEntry::Dir && !(filter_ & DirectoryFilter::MatchDirs ) ) continue ;
-        if ( current_.type_ ==  DirectoryEntry::File && !(filter_ & DirectoryFilter::MatchFiles ) ) continue ;
-        if ( !name_filter_.match(current_) ) continue ;
+      if ( !filter_.match(current_) ) continue ;
 
         break ;
     }

@@ -5,81 +5,86 @@
 #include <cassert>
 
 namespace cvx {
-
+/*
+ *  The user has to define a model class that implements the following concept
+ *  struct Model {
+ *      int minSamples ; // should be set to the minimum number of samples required to fit the model
+ *      bool fit(const vector<size_t> &subset, ModelParams &params) ; // fits the model to a subset of the data
+ *              // may return false if the resulting model is not valid
+ *      void findInliers(const ModelParams &params, vector<size_t> &inliers) ; // return the data indexes that are considered inliers
+ *      float computeResidual(const vector<size_t> &inliers) ; // fit the model onto the inliers and compute resiudal
+ *  };
+ *
+ *  Optionally you can supply a sampling function of the form:
+ *  sampler(RNG &rng, int n, int total, vector<size_t> &samples)
+ *
+ */
 class RANSAC {
 public:
 
-    struct Parameters {
-        // Maximum error for a sample to be considered as an inlier. Note that
-        double max_error_ = 0.1;
-
-        // The probability of outliers in the sample set
-        double outlier_probability_ = 0.1;
-
-        size_t max_num_trials_ = 100 ;
-
-        // the minimum number of inliers to consider this as a potential good fit
-        size_t min_inliers_ = 5 ;
-    };
-
-    explicit RANSAC(const Parameters& params): params_(params) {}
+    // min_inliers is the minimum numbers of inliers to assume that the model fir is good
+    explicit RANSAC(int max_trials, int min_inliers): max_trials_(max_trials), min_inliers_(min_inliers) {}
     RANSAC() = default ;
 
-    template <typename Model>
-    bool estimate(size_t n, Model &model, std::vector<size_t> &best_subset, typename Model::Params &params) {
+    using Sampler = std::function<bool(RNG&, int, int, std::vector<size_t>&)> ;
+
+    static bool defaultSampler(RNG &rng, int n, int total, std::vector<size_t> &samples) {
+        rng.sample(n, total, samples) ;
+        return true ;
+    }
+
+    struct best_t{
+        float residual_ = std::numeric_limits<double>::max();
+        std::vector<size_t> subset_;
+    } ;
+
+    template <typename Model, typename Params>
+    bool estimate(size_t n, Model &model, std::vector<size_t> &best_subset, Params &best_params, Sampler sampler = defaultSampler ) {
         size_t N = Model::minSamples ;
 
         assert( N <= n ) ;
 
-        double log_probability  = log (1.0 - params_.outlier_probability_) ;
-        double one_over_indices = 1.0 / static_cast<double> (n);
+#pragma omp declare reduction(get_min : struct best_t :\
+    omp_out = (omp_in.residual_ < omp_out.residual_) ? omp_in : omp_out)\
+    initializer (omp_priv=best_t{})
 
-        RNG rng ;
-        size_t trial_count = 0 ;
-
-        double min_residual = std::numeric_limits<double>::max();
-
-        size_t max_trials = params_.max_num_trials_ ;
-
-        while ( trial_count < std::min(params_.max_num_trials_, max_trials) ) {
+        best_t best ;
+#pragma omp parallel for shared(model, sampler, N, n, rng_) reduction(get_min : best) schedule(static)
+        for( size_t trial_count = 0 ; trial_count < max_trials_ ; trial_count ++)  {
             std::vector<size_t> subset, inliers ;
-            rng.sample(N, n, subset) ;
+            Params params ;
+            if ( sampler(rng_, N, n, subset) ) {
 
-            typename Model::Params params ;
+                if ( model.fit(subset, params) ) { // try to fit the model to the subset of measurements returning the obtained model parameters and a success flag
 
-            if ( model.fit(subset, params) ) { // try to fit the model to the subset of measurements returning the obtained model parameters and a success flag
+                    // compute inliers given the model parameters
+                    model.findInliers(params, inliers) ;
 
-                // compute inliers given the model parameters and error threshold
-                double residual = model.findInliers(params, params_.max_error_, inliers) ;
+                    if ( inliers.size() > min_inliers_ ) {
 
-                if ( inliers.size() > params_.min_inliers_ ) {
-                    if ( residual < min_residual ) {
-                        min_residual = residual ;
-                        best_subset = inliers ;
+                        float residual = model.computeResidual(inliers) ;
 
-                        // update the number of trials
-
-                        double w = static_cast<double> (inliers.size()) * one_over_indices;
-                        double p_no_outliers = 1.0 - pow (w, (double)N);
-                        p_no_outliers = (std::max) (std::numeric_limits<double>::epsilon (), p_no_outliers);       // Avoid division by -Inf
-                        p_no_outliers = (std::min) (1.0 - std::numeric_limits<double>::epsilon (), p_no_outliers);   // Avoid division by 0.
-                        max_trials = log_probability / log (p_no_outliers);
+                        if ( residual < best.residual_ ) {
+                            best = best_t{residual, inliers};
+                        }
                     }
-
                 }
             }
-
-            trial_count ++ ;
         }
 
-        if ( best_subset.empty() ) return false ;
 
-        return model.fit(best_subset, params);
+        if ( best.subset_.empty() ) return false ;
+
+        best_subset = best.subset_ ;
+        return model.fit(best_subset, best_params);
     }
 
 protected:
-    Parameters params_;
+    int min_inliers_ ;
+    int max_trials_ ;
+    RNG rng_ ;
 };
+
 
 
 

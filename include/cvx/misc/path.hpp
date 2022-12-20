@@ -115,7 +115,7 @@ class Path {
     static std::string join(const std::initializer_list<std::string> &rest) ;
 
     static std::vector<std::string> glob(const std::string &dir, const std::string &pattern, bool relative = true, bool recursive = false) {
-           return entries(dir, NameFilter(pattern), DirectoryFilter::MatchAll, relative, recursive) ;
+           return entries(dir, DirectoryFilter(pattern, DirectoryFilter::MatchAll), relative, recursive) ;
     }
 
     const std::string &root() const { return root_ ; }
@@ -218,7 +218,6 @@ class Path {
 
     // get directory contents matching the filter
     static std::vector<std::string> entries(const std::string &dir, DirectoryFilter filter, bool relative = true, bool recursive = false) ;
-    static std::vector<std::string> entries(const std::string &dir, const NameFilter &nf, DirectoryFilter filter, bool relative = true, bool recursive = false);
 
 private:
     void parse(const std::string &path) ; // can throw InvalidPathException

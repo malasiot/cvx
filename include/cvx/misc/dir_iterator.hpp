@@ -38,34 +38,34 @@ private:
 };
 
 
-enum DirectoryFilter {
-    MatchDirs = 0x001,
-    MatchFiles = 0x002,
-    MatchAll = MatchDirs | MatchFiles
-};
+// used by directory iterator to list only files of specific type and/or matching a pattern
 
-class NameFilter {
+class DirectoryFilter {
 public:
-    enum Flags { FileNames, DirNames, None } ;
+    enum MatchFlags {
+        MatchDirs = 0x001,
+        MatchFiles = 0x002,
+        MatchAll = MatchDirs | MatchFiles
+    };
 
-    NameFilter(const std::string &pattern, Flags flags = FileNames) ;
-    NameFilter() = default ;
+    DirectoryFilter(MatchFlags flags = MatchAll) ;
+    DirectoryFilter(const std::string &pattern, MatchFlags flags = MatchFiles) ;
 
-    bool match(const std::string &m) ;
     bool match(const DirectoryEntry &e) ;
-
 private:
 
+    bool matchName(const std::string &m) ;
+    bool matchName(const DirectoryEntry &e) ;
+
     std::vector<std::regex> pats_ ;
-    Flags flags_ = None;
+    MatchFlags flags_ = MatchAll ;
 };
 
 // iterator class
 class DirectoryIterator: public std::iterator<std::forward_iterator_tag, DirectoryEntry> {
    public:
 
-    DirectoryIterator(const std::string &dir, DirectoryFilter filter = DirectoryFilter::MatchAll ) ;
-    DirectoryIterator(const std::string &dir, const NameFilter &name_filter, DirectoryFilter filter = DirectoryFilter::MatchAll ) ;
+    DirectoryIterator(const std::string &dir, DirectoryFilter filter = {} ) ;
     DirectoryIterator() ;
 
     const DirectoryEntry& operator*() const ;
@@ -89,7 +89,6 @@ class RecursiveDirectoryIterator: public std::iterator<std::forward_iterator_tag
    public:
 
     RecursiveDirectoryIterator(const std::string &dir, DirectoryFilter filter = DirectoryFilter::MatchAll ) ;
-    RecursiveDirectoryIterator(const std::string &dir, const NameFilter &name_filter, DirectoryFilter filter = DirectoryFilter::MatchAll ) ;
     RecursiveDirectoryIterator() = default ;
 
     const DirectoryEntry& operator*() const ;
@@ -106,7 +105,6 @@ private:
    std::stack<DirectoryIterator> stack_ ;
    bool is_valid_ = false ;
    DirectoryFilter filter_ ;
-   NameFilter name_filter_ ;
    std::string dir_ ;
    DirectoryEntry current_ ;
 
@@ -120,23 +118,15 @@ class DirectoryListing {
 public:
 
     DirectoryListing(const std::string &dir,
-                     DirectoryFilter filter = DirectoryFilter::MatchAll):
+                     DirectoryFilter filter ={}):
         dir_(dir), filter_(filter) {}
-    DirectoryListing(const std::string &dir, const NameFilter &name_filter,
-                     DirectoryFilter filter = DirectoryFilter::MatchAll):
-        dir_(dir), filter_(filter), name_filter_(name_filter) {}
 
-    DirectoryListing(const Path &dir,
-                     DirectoryFilter filter = DirectoryFilter::MatchAll) ;
-
-
-    DirectoryIterator begin() { return DirectoryIterator(dir_, name_filter_, filter_) ; }
+    DirectoryIterator begin() { return DirectoryIterator(dir_, filter_) ; }
     DirectoryIterator end() { return DirectoryIterator() ; }
 
 private:
     std::string dir_ ;
     DirectoryFilter filter_ ;
-    NameFilter name_filter_ ;
 };
 
 // iterator range class
@@ -144,20 +134,15 @@ class RecursiveDirectoryListing {
 public:
 
     RecursiveDirectoryListing(const std::string &dir,
-                     DirectoryFilter filter = DirectoryFilter::MatchAll):
+                              DirectoryFilter filter = {}):
         dir_(dir), filter_(filter) {}
-    RecursiveDirectoryListing(const std::string &dir, const NameFilter &name_filter,
-                     DirectoryFilter filter = DirectoryFilter::MatchAll):
-        dir_(dir), filter_(filter), name_filter_(name_filter) {}
 
-
-    RecursiveDirectoryIterator begin() { return RecursiveDirectoryIterator(dir_, name_filter_, filter_) ; }
+    RecursiveDirectoryIterator begin() { return RecursiveDirectoryIterator(dir_, filter_) ; }
     RecursiveDirectoryIterator end() { return RecursiveDirectoryIterator() ; }
 
 private:
     std::string dir_ ;
     DirectoryFilter filter_ ;
-    NameFilter name_filter_ ;
 };
 
 

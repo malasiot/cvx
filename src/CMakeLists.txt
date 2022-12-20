@@ -66,6 +66,7 @@ set ( LIB_HEADERS
     misc/arg_parser.hpp
     misc/dir_iterator.hpp
     misc/path.hpp
+    misc/timer.hpp
 
     misc/strings.hpp
     misc/zstream.hpp
