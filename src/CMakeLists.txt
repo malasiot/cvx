@@ -23,7 +23,8 @@ set ( LIB_SOURCES
     misc/json_reader.cpp
     misc/json_writer.cpp
     misc/format.cpp
-
+    misc/config.cpp
+    misc/json_tokenizer.cpp
 
     geometry/trimesh_topology.cpp
     3rdparty/triangle.c
@@ -82,6 +83,7 @@ set ( LIB_HEADERS
     misc/variant.hpp
     misc/base64.hpp
     misc/database.hpp
+    misc/config.hpp
 
     geometry/point.hpp
     geometry/point_list.hpp

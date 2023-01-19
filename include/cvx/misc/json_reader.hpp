@@ -8,7 +8,9 @@
 
 namespace cvx {
 
+namespace detail {
 class JSONTokenizer ;
+}
 
 enum class JSONToken { BEGIN_ARRAY, BEGIN_OBJECT, BOOLEAN, END_ARRAY,END_DOCUMENT, END_OBJECT,
        NAME, JSON_NULL, NUMBER, STRING, UNDEFINED } ;
@@ -61,7 +63,7 @@ public:
 private:
 
     enum State { EMPTY_DOCUMENT, NON_EMPTY_DOCUMENT, EMPTY_OBJECT, NON_EMPTY_OBJECT, EMPTY_ARRAY, NON_EMPTY_ARRAY, DANGLING_NAME, NV_VALUE } ;
-    std::shared_ptr<JSONTokenizer> tokenizer_ ;
+    std::shared_ptr<detail::JSONTokenizer> tokenizer_ ;
 
     JSONToken current_token_ ;
     std::stack<State> state_stack_ ;

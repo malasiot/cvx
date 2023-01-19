@@ -2,6 +2,8 @@
 #include <cvx/misc/format.hpp>
 #include <cvx/misc/variant.hpp>
 #include <cvx/misc/timer.hpp>
+#include <cvx/misc/config.hpp>
+
 #include <iostream>
 #include <iterator>
 #include <algorithm>
@@ -11,6 +13,22 @@ using namespace std ;
 using namespace cvx ;
 
 int main(int argc, char *argv[]) {
+
+    string cfgs =
+R"(
+{ value = 2,
+ @include "test.cfg" // include file
+            /*
+"hg": {
+    "data_folder": ""
+}
+            *
+}
+)";
+
+    istringstream strm(cfgs) ;
+
+    Config cofg(strm) ;
 
    Profiler p("code runs in: ") ;
     std::this_thread::sleep_for(15ms);
