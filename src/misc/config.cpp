@@ -1,26 +1,27 @@
-#include <cvx/misc/config.hpp>
+#include "config.hpp"
 
 #include "json_tokenizer.hpp"
 
 #include <iostream>
 #include <fstream>
 
+#include <cvx/misc/path.hpp>
+
 using namespace std ;
 
 namespace cvx {
 
-Config::Config() {
-    container_ = Variant::Object() ;
+
+ConfigParser::~ConfigParser(){
 }
 
-Config::~Config(){
-}
-
-void Config::loadFile(const std::string &fpath, const std::string &inc_path) {
+Variant ConfigParser::loadFile(const std::string &fpath, const std::string &inc_path) {
     using namespace detail ;
 
     ifstream strm(fpath) ;
     if ( !strm ) throw ConfigParseException("Cannot load config file: " + fpath) ;
+
+    Variant container ;
 
     ParseContext ctx ;
 
@@ -29,8 +30,9 @@ void Config::loadFile(const std::string &fpath, const std::string &inc_path) {
     ctx.path_ = fpath ;
 
     try {
-        parse(ctx, container_) ;
-        container_.toJSON(std::cout);
+        parse(ctx, container) ;
+        container.toJSON(std::cout);
+        return container ;
     } catch ( JSONTokenizerParseException &e ) {
         string msg = "Error while parsing: " + fpath + "\n" ;
         msg += e.what() ;
@@ -38,10 +40,12 @@ void Config::loadFile(const std::string &fpath, const std::string &inc_path) {
     }
 }
 
-void Config::loadString(const std::string &src, const std::string &inc_path) {
+Variant ConfigParser::loadString(const std::string &src, const std::string &inc_path) {
     using namespace detail ;
 
     istringstream strm(src) ;
+
+    Variant container ;
 
     ParseContext ctx ;
 
@@ -49,9 +53,10 @@ void Config::loadString(const std::string &src, const std::string &inc_path) {
     ctx.inc_path_ = inc_path ;
 
     try {
-        parse(ctx, container_) ;
-        container_.toJSON(std::cout);
+        parse(ctx, container) ;
+        container.toJSON(std::cout);
         cout << endl ;
+        return container ;
     } catch ( JSONTokenizerParseException &e ) {
         string msg = "Error while parsing from string\n" ;
         msg += e.what() ;
@@ -59,83 +64,8 @@ void Config::loadString(const std::string &src, const std::string &inc_path) {
     }
 }
 
-bool Config::hasKey(const std::string &path) {
-    Variant val ;
-    return ( container_.lookup(path, val) ) ;
-}
 
-bool Config::value(const char *path, std::string &value) const {
-    Variant val ;
-    if ( !container_.lookup(path, val) ) return false ;
-    value = val.toString() ;
-    return true ;
-}
-
-Config Config::group(const char *path) const {
-    Variant val ;
-    if ( !container_.lookup(path, val) || !val.isObject() )
-        throw ConfigKeyException(path) ;
-    else {
-        return val ;
-    }
-}
-
-bool Config::value(const char *path, bool &value) const {
-    Variant val ;
-    if ( !container_.lookup(path, val) ) return false ;
-    value = val.toBoolean() ;
-    return true ;
-}
-
-bool Config::value(const char *path, unsigned int &value) const {
-    Variant val ;
-    if ( !container_.lookup(path, val) ) return false ;
-    uint64_t v = val.toUnsignedInteger() ;
-    value = static_cast<unsigned int>(v) ;
-    return true ;
-}
-
-bool Config::value(const char *path, int &value) const {
-    Variant val ;
-    if ( !container_.lookup(path, val) ) return false ;
-    int64_t v = val.toSignedInteger() ;
-    value = static_cast<int>(v) ;
-    return true ;
-}
-
-bool Config::value(const char *path, unsigned long long &value) const {
-    Variant val ;
-    if ( !container_.lookup(path, val) ) return false ;
-    uint64_t v = val.toUnsignedInteger() ;
-    value = static_cast<unsigned long long>(v) ;
-    return true ;
-}
-
-bool Config::value(const char *path, long long &value) const {
-    Variant val ;
-    if ( !container_.lookup(path, val) ) return false ;
-    int64_t v = val.toSignedInteger() ;
-    value = static_cast<long long>(v) ;
-    return true ;
-}
-
-bool Config::value(const char *path, float &value) const {
-    Variant val ;
-    if ( !container_.lookup(path, val) ) return false ;
-    double v = val.toFloat() ;
-    value = static_cast<float>(v) ;
-    return true ;
-}
-
-bool Config::value(const char *path, double &value) const {
-    Variant val ;
-    if ( !container_.lookup(path, val) ) return false ;
-    value = val.toFloat() ;
-    return true ;
-}
-
-
-bool Config::parseNameValue(ParseContext &ctx, Variant &v) {
+bool ConfigParser::parseNameValue(ParseContext &ctx, Variant &v) {
     using namespace detail ;
 
     Token tk = ctx.tokenizer_->nextToken() ;
@@ -150,6 +80,29 @@ bool Config::parseNameValue(ParseContext &ctx, Variant &v) {
         }
         else ctx.tokenizer_->throwException("unexpected token") ;
 
+    } else if ( tk == TOKEN_INCLUDE ) {
+        string ipath = ctx.tokenizer_->token_string_literal_ ;
+
+        cvx::Path p(ipath) ;
+
+        string apath = p.absolute(ctx.inc_path_.empty() ? Path::currentWorkingDir(): ctx.inc_path_) ;
+        ifstream strm(apath) ;
+
+        if ( !strm ) throw ConfigParseException("Cannot load include file: " + apath) ;
+
+        ParseContext ic ;
+        ic.tokenizer_.reset(new JSONTokenizer(strm, true)) ;
+        ic.inc_path_ = ctx.inc_path_ ;
+        ic.path_ = apath ;
+
+        try {
+            parse(ic, v) ;
+        } catch ( JSONTokenizerParseException &e ) {
+            string msg = "Error while parsing: " + ic.path_ + "\n" ;
+            msg += e.what() ;
+            throw ConfigParseException(msg) ;
+        }
+
     } else if ( tk == TOKEN_EOF_DOCUMENT || tk == TOKEN_CLOSE_BRACE )
         return false ;
     else
@@ -157,7 +110,7 @@ bool Config::parseNameValue(ParseContext &ctx, Variant &v) {
 
 }
 
-Variant Config::parseValue(Config::ParseContext &ctx) {
+Variant ConfigParser::parseValue(ConfigParser::ParseContext &ctx) {
     using namespace detail ;
 
     Token tk = ctx.tokenizer_->nextToken() ;
@@ -200,17 +153,12 @@ Variant Config::parseValue(Config::ParseContext &ctx) {
 
         } while ( tk != TOKEN_CLOSE_BRACKET ) ;
         return v ;
-    } else if ( tk == TOKEN_INCLUDE ) {
-        ifstream strm(ctx.tokenizer_->token_string_literal_) ;
-        ParseContext ic ;
-        ic.tokenizer_.reset(new JSONTokenizer(strm)) ;
-        parse(ic, ctx.var_) ;
     }
 
 
 }
 
-void Config::parse(Config::ParseContext &ctx, Variant &v) {
+void ConfigParser::parse(ConfigParser::ParseContext &ctx, Variant &v) {
     while( parseNameValue(ctx, v) ) ;
 
 }

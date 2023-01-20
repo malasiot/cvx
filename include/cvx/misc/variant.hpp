@@ -10,6 +10,7 @@
 #include <sstream>
 #include <string>
 #include <cassert>
+#include <type_traits>
 
 #include <cvx/misc/strings.hpp>
 #include <cvx/misc/json_reader.hpp>
@@ -97,35 +98,7 @@ public:
         new (&data_.a_) Array(std::move(value)) ;
     }
 
-    Variant(std::initializer_list<Variant> values, bool auto_type = true, Type t = Type::Array) {
-        bool is_an_object = std::all_of(values.begin(), values.end(),
-                                        [](const Variant& element) {
-            return element.isArray() && element.length() == 2 && element[0].isString() ;
-        });
-
-        if ( !auto_type ) {
-            if ( t == Type::Array ) is_an_object = false ;
-            else if ( t == Type::Object && !is_an_object)
-                throw std::runtime_error("cannot create object from initializer list");
-        }
-
-        if (is_an_object) {
-            Object result ;
-
-            std::for_each(values.begin(), values.end(), [&](const Variant& element)
-            {
-                result.emplace(element.data_.a_[0].data_.s_,
-                        element.data_.a_[1]) ;
-            });
-            tag_ = Type::Object ;
-            new (&data_.o_) Object(result) ;
-        }
-        else {
-            tag_ = Type::Array ;
-            new (&data_.o_) Array(values) ;
-        }
-
-    }
+    Variant(std::initializer_list<Variant> values, bool auto_type = true, Type t = Type::Array);
 
     static Variant array(std::initializer_list<Variant> values) {
         return Variant(values, false, Type::Array) ;
@@ -152,54 +125,13 @@ public:
         return *this ;
     }
 
-    Variant(Variant&& other): tag_(other.tag_) {
-        switch (tag_)
-        {
-        case Type::Object:
-            new (&data_.o_) Object(std::move(other.data_.o_)) ;
-            break;
-        case Type::Array:
-            new (&data_.a_) Array(std::move(other.data_.a_)) ;
-            break;
-        case Type::String:
-            new (&data_.s_) string_t(std::move(other.data_.s_)) ;
-            break;
-        case Type::Boolean:
-            data_.b_ = other.data_.b_ ;
-            break;
-        case Type::UnsignedInteger:
-            data_.u_ = other.data_.u_ ;
-            break;
-        case Type::SignedInteger:
-            data_.i_ = other.data_.i_ ;
-            break;
-        case Type::Float:
-            data_.d_ = other.data_.d_ ;
-            break;
-        case Type::Function:
-            new (&data_.f_) Function(std::move(other.data_.f_)) ;
-        default:
-            break;
-        }
-
-        other.tag_ = Type::Undefined ;
-    }
+    Variant(Variant&& other);
 
     // make Object from a dictionary
-    static Variant fromDictionary(const Dictionary &dict) {
-        Variant::Object obj ;
-        for( const auto &p: dict )
-            obj.insert({p.first, p.second}) ;
-        return std::move(obj) ;
-    }
+    static Variant fromDictionary(const Dictionary &dict);
 
     // make Array from dictionary where each element is the Object {<keyname>: <key>, <valname>: <val>}
-    static Variant fromDictionaryAsArray(const Dictionary &dict, const std::string &keyname = "key", const std::string &valname = "val") {
-        Variant::Array ar ;
-        for( const auto &p: dict )
-            ar.emplace_back(Variant::Object({{keyname, p.first}, {valname, p.second}})) ;
-        return std::move(ar) ;
-    }
+    static Variant fromDictionaryAsArray(const Dictionary &dict, const std::string &keyname = "key", const std::string &valname = "val");
 
     // make Array from a vector of values
     template<class T>
@@ -265,187 +197,73 @@ public:
     }
 
     // convert value to string
-    std::string toString() const {
-        switch (tag_)
-        {
-        case Type::String:
-            return data_.s_;
-        case Type::Boolean: {
-            std::ostringstream strm ;
-            strm << data_.b_ ;
-            return strm.str() ;
-        }
-        case Type::UnsignedInteger:
-            return std::to_string(data_.u_) ;
-        case Type::SignedInteger:
-            return std::to_string(data_.i_) ;
-        case Type::Float:
-            return std::to_string(data_.d_) ;
-        default:
-            return std::string();
-        }
+    std::string toString() const;
+
+    double toFloat() const;
+
+    signed_integer_t toSignedInteger() const;
+
+    unsigned_integer_t toUnsignedInteger() const;
+
+    bool toBoolean() const;
+
+    Object toObject() const;
+
+    // get primitive value
+
+    template<typename T>
+    std::enable_if_t<std::is_floating_point_v<T>, T> as() const {
+        return static_cast<T>(toFloat()) ;
     }
 
-    double toFloat() const {
-        switch (tag_)
-        {
-        case Type::String:
-            try {
-            return std::stod(data_.s_);
-        }
-            catch ( ... ) {
-            return 0.0 ;
-        }
-
-        case Type::Boolean:
-            return (double)data_.b_ ;
-        case Type::UnsignedInteger:
-            return (double)data_.u_ ;
-        case Type::SignedInteger:
-            return (double)data_.i_ ;
-        case Type::Float:
-            return (double)data_.d_ ;
-        default:
-            return 0.0;
-        }
+    template<typename T>
+    std::enable_if_t<std::is_signed<T>::value, T> as() const {
+        return static_cast<T>(toSignedInteger()) ;
     }
 
-    signed_integer_t toSignedInteger() const {
-        switch (tag_)
-        {
-        case Type::String:
-            try {
-            return std::stoll(data_.s_);
-        }
-            catch ( ... ) {
-            return 0 ;
-        }
-        case Type::Boolean:
-            return static_cast<signed_integer_t>(data_.b_) ;
-        case Type::UnsignedInteger:
-            return static_cast<signed_integer_t>(data_.u_) ;
-        case Type::SignedInteger:
-            return static_cast<signed_integer_t>(data_.i_) ;
-        case Type::Float:
-            return static_cast<signed_integer_t>(data_.d_) ;
-        default:
-            return 0;
-        }
+    template<typename T>
+    std::enable_if_t<std::is_unsigned<T>::value, T> as() const {
+        return static_cast<T>(toUnsignedInteger()) ;
     }
 
-    unsigned_integer_t toUnsignedInteger() const {
-        switch (tag_)
-        {
-        case Type::String:
-            try {
-            return std::stoull(data_.s_);
-        }
-            catch ( ... ) {
-            return 0 ;
-        }
-        case Type::Boolean:
-            return static_cast<unsigned_integer_t>(data_.b_) ;
-        case Type::UnsignedInteger:
-            return static_cast<unsigned_integer_t>(data_.u_) ;
-        case Type::SignedInteger:
-            return static_cast<unsigned_integer_t>(data_.i_) ;
-        case Type::Float:
-            return static_cast<unsigned_integer_t>(data_.d_) ;
-        default:
-            return 0;
-        }
+    template<typename T>
+    std::enable_if_t<std::is_same<T, bool>::value, bool> as() const {
+        return static_cast<T>(toBoolean()) ;
     }
 
-    bool toBoolean() const {
-        switch (tag_)
-        {
-        case Type::String:
-            return !(data_.s_.empty()) ;
-        case Type::Boolean:
-            return data_.b_ ;
-        case Type::UnsignedInteger:
-            return static_cast<bool>(data_.u_) ;
-        case Type::SignedInteger:
-            return static_cast<bool>(data_.u_) ;
-        case Type::Float:
-            return static_cast<bool>(data_.d_ != 0.0) ;
-        default:
-            return false;
-        }
-    }
-
-    Object toObject() const {
-        switch (tag_)
-        {
-        case Type::Object:
-            return data_.o_ ;
-
-        default:
-            return Object();
-        }
+    template<typename T>
+    std::enable_if_t<std::is_same<T, std::string>::value, std::string> as() const {
+        return static_cast<T>(toString()) ;
     }
 
     // Return the keys of an Object otherwise an empty list
-    std::vector<std::string> keys() const {
-        std::vector<std::string> res ;
-
-        if ( !isObject() ) return res ;
-
-        for ( const auto &p: data_.o_ )
-            res.push_back(p.first) ;
-        return res ;
-    }
+    std::vector<std::string> keys() const;
 
     // length of object or array or string, zero otherwise
-    size_t length() const {
-        if ( isObject() )
-            return data_.o_.size() ;
-        else if ( isArray() ) {
-            return data_.a_.size() ;
-        } else if ( tag_ == Type::String )
-            return data_.s_.length() ;
-        else return 0 ;
+    size_t length() const;
+
+    // Searches a member value given the key path. The path is of the form <member1>[.<member2>. ... <memberN>]
+    // If this is not an object or the key is not found it returns false and <val> is untouched
+
+    template<class T>
+    bool lookup(const std::string &key_path, T &val) const {
+        Variant v ;
+        bool r = lookup(key_path, v) ;
+        if ( r ) val = v.as<T>() ;
+        return r ;
     }
 
-    // Returns a member value given the key. The key is of the form <member1>[.<member2>. ... <memberN>]
-    // If this is not an object or the key is not found it returns false
-
-    bool lookup(const std::string &key, Variant &val) const {
-        if ( key.empty() ) return false ;
-
-        const Variant *current = this ;
-        if ( !current->isObject() ) return false ;
-
-        size_t start = 0, end = 0;
-
-        while ( end != std::string::npos) {
-            end = key.find('.', start) ;
-            std::string subkey = key.substr(start, end == std::string::npos ? std::string::npos : end - start) ;
-
-            try {
-                const Variant &v =
-                        (*current).fetchConstKey(subkey) ;
-
-                if ( end != std::string::npos ) {
-                    current = &v ;
-                    start = end+1 ;
-                }
-                else {
-                    val = v ;
-                    return true ;
-                }
-
-            } catch ( std::exception & ) {
-                return false ;
-            }
-
-        }
-
-        return false ;
-
-    }
+    bool lookup(const std::string &key_path, Variant &val) const;
 
     // get value for key path and return default value if not found
+
+    template<class T>
+    T get(const std::string &key_path, const T &default_val) const {
+        Variant v ;
+        bool r = lookup(key_path, v) ;
+        return (r) ? v.as<T>() : default_val ;
+    }
+
     Variant value(const std::string &key, const Variant &defaultValue) const {
         Variant val ;
         if ( !lookup(key, val) ) return defaultValue ;
@@ -454,15 +272,12 @@ public:
 
     const Variant &at(const std::string &key) const {
         return fetchConstKey(key) ;
-
     }
 
     // same as above but it returns a non-const reference or throws exception if not found or item is not an object
     Variant &at(const std::string &key)  {
         return fetchKey(key) ;
     }
-
-
 
     // return an element of an array
     const Variant &at(uint idx) const { return fetchIndex(idx) ; }
@@ -487,69 +302,7 @@ public:
     Type type() const { return tag_ ; }
 
     // JSON encoder
-    void toJSON(std::ostream &strm) const {
-
-        switch ( tag_ ) {
-        case Type::Object: {
-            strm << "{" ;
-            auto it = data_.o_.cbegin() ;
-            if ( it != data_.o_.cend() ) {
-                strm << json_escape_string(it->first) << ": " ;
-                it->second.toJSON(strm) ;
-                ++it ;
-            }
-            while ( it != data_.o_.cend() ) {
-                strm << ", " ;
-                strm << json_escape_string(it->first) << ": " ;
-                it->second.toJSON(strm) ;
-                ++it ;
-            }
-            strm << "}" ;
-            break ;
-        }
-        case Type::Array: {
-            strm << "[" ;
-            auto it = data_.a_.cbegin() ;
-            if ( it != data_.a_.cend() ) {
-                it->toJSON(strm) ;
-                ++it ;
-            }
-            while ( it != data_.a_.cend() ) {
-                strm << ", " ;
-                it->toJSON(strm) ;
-                ++it ;
-            }
-
-            strm << "]" ;
-            break ;
-        }
-        case Type::String:
-        {
-            strm << json_escape_string(data_.s_) ;
-            break ;
-        }
-        case Type::Boolean: {
-            strm << ( data_.b_ ? "true" : "false") ;
-            break ;
-        }
-        case Type::Null: {
-            strm << "null" ;
-            break ;
-        }
-        case Type::Float: {
-            strm << data_.d_ ;
-            break ;
-        }
-        case Type::UnsignedInteger: {
-            strm << data_.u_ ;
-            break ;
-        }
-        case Type::SignedInteger: {
-            strm << data_.i_ ;
-            break ;
-        }
-        }
-    }
+    void toJSON(std::ostream &strm) const;
 
     // export as JSON string
 
@@ -559,25 +312,18 @@ public:
         return strm.str() ;
     }
 
-
     // import from JSON stream
 
-    static Variant fromJSON(std::istream &strm) {
-        JSONReader reader(strm) ;
-
-        try {
-            return parseJSONValue(reader) ;
-        }
-        catch ( cvx::JSONParseException &e ) {
-            std::cerr << e.what() << ")" ;
-            return Variant() ;
-        }
-    }
+    static Variant fromJSON(std::istream &strm);
 
     static Variant fromJSON(const std::string &src) {
         std::istringstream strm(src) ;
         return fromJSON(strm) ;
     }
+
+    // reads from a config file which is an extended version of json
+    static Variant fromConfigFile(const std::string &path, const std::string &inc_path = {}) ;
+    static Variant fromConfigString(const std::string &src, const std::string &inc_path = {}) ;
 
     // iterates dictionaries or arrays
 
@@ -699,225 +445,22 @@ public:
 
 private:
 
-    static Variant parseJSONValue(JSONReader &reader) {
+    static Variant parseJSONValue(JSONReader &reader);
+    static Variant parseJSONObject(JSONReader &reader);
+    static Variant parseJSONArray(JSONReader &reader);
+    static std::string json_escape_string(const std::string &str);
 
-        JSONToken tk = reader.peek() ;
-        if ( tk == JSONToken::BEGIN_OBJECT ) {
-            return parseJSONObject(reader) ;
-        }
-        else if ( tk == JSONToken::BEGIN_ARRAY ) {
-            return parseJSONArray(reader) ;
-        }  else if ( tk == JSONToken::STRING ) {
-            return Variant(reader.nextString()) ;
+    const Variant &fetchConstKey(const std::string &key) const;
 
-        } else if ( tk == JSONToken::BOOLEAN ) {
-            return Variant(reader.nextBoolean()) ;
-        } else if ( tk == JSONToken::JSON_NULL ) {
-            return Variant::null() ;
-        } else if ( tk == JSONToken::NUMBER ) {
-            return Variant(reader.nextDouble()) ;
-        } else return nullptr ;
+    Variant &fetchKey(const std::string &key, bool safe = true );
 
-    }
+    const Variant &fetchIndex(uint idx) const;
 
-    static Variant parseJSONObject(JSONReader &reader) {
+    Variant &fetchIndex(uint idx, bool safe = true);
 
-        Variant::Object result ;
+    void destroy();
 
-        reader.beginObject() ;
-        std::string key ;
-        while ( reader.hasNext() ) {
-            key = reader.nextName() ;
-            Variant value = parseJSONValue(reader) ;
-            result.emplace(key, value) ;
-        }
-        reader.endObject() ;
-
-        return result ;
-
-    }
-
-    static Variant parseJSONArray(JSONReader &reader) {
-
-        Variant::Array result ;
-
-        reader.beginArray() ;
-
-        while ( reader.hasNext() ) {
-            result.emplace_back(parseJSONValue(reader)) ;
-        }
-
-        reader.endArray() ;
-        return result ;
-
-    }
-
-    // Original: https://gist.github.com/kevinkreiser/bee394c60c615e0acdad
-
-    static std::string json_escape_string(const std::string &str) {
-        std::stringstream strm ;
-        strm << '"';
-
-        for (const auto& c : str) {
-            switch (c) {
-            case '\\': strm << "\\\\"; break;
-            case '"': strm << "\\\""; break;
-            case '/': strm << "\\/"; break;
-            case '\b': strm << "\\b"; break;
-            case '\f': strm << "\\f"; break;
-            case '\n': strm << "\\n"; break;
-            case '\r': strm << "\\r"; break;
-            case '\t': strm << "\\t"; break;
-            default:
-                if(c >= 0 && c < 32) {
-                    //format changes for json hex
-                    strm.setf(std::ios::hex, std::ios::basefield);
-                    strm.setf(std::ios::uppercase);
-                    strm.fill('0');
-                    //output hex
-                    strm << "\\u" << std::setw(4) << static_cast<int>(c);
-                }
-                else
-                    strm << c;
-                break;
-            }
-        }
-        strm << '"';
-
-        return strm.str() ;
-    }
-
-
-    const Variant &fetchConstKey(const std::string &key) const {
-            if (!isObject() ) throw std::runtime_error("Trying to index an object which is not dictionary") ;
-
-            auto it = data_.o_.find(key) ;
-            if ( it == data_.o_.end() ) {
-                std::ostringstream strm ;
-                strm << "key '" << key << "' not found" ;
-                throw std::out_of_range( strm.str());
-            }
-            else return it->second ; // return reference
-    }
-
-    Variant &fetchKey(const std::string &key, bool safe = true ) {
-        if ( safe ) {
-            if (!isObject() ) throw std::runtime_error("Trying to index an object which is not dictionary") ;
-
-            auto it = data_.o_.find(key) ;
-            if ( it == data_.o_.end() ) {
-                std::ostringstream strm ;
-                strm << "key '" << key << "' not found" ;
-                throw std::out_of_range( strm.str());
-            }
-            else return it->second ; // return reference
-        } else {
-            if ( isNull() || isUndefined() ) {
-                *this = std::move(Object());
-                return data_.o_[key] ;
-            } else if ( isObject() ) {
-               return data_.o_[key] ;
-            }
-            else throw std::runtime_error("Trying to index an object which is not dictionary") ;
-        }
-    }
-
-    const Variant &fetchIndex(uint idx) const {
-        if (!isArray()) throw std::runtime_error("Trying to index an object which is not array") ;
-
-        if ( idx < data_.a_.size() ) {
-            const Variant &v = (data_.a_)[idx] ;
-            return v ; // reference to item
-        }
-        else {
-            std::ostringstream strm ;
-            strm << "index '" <<idx << "' not in array of size " << data_.a_.size() ;
-            throw std::out_of_range( strm.str() ) ;
-        }
-    }
-
-    Variant &fetchIndex(uint idx, bool safe = true)  {
-        if ( safe ) {
-            if (!isArray()) throw std::runtime_error("Trying to index an object which is not array") ;
-
-            if ( idx < data_.a_.size() ) {
-                Variant &v = (data_.a_)[idx] ;
-                return v ; // reference to item
-            }
-            else {
-                std::ostringstream strm ;
-                strm << "index '" <<idx << "' not in array of size " << data_.a_.size() ;
-                throw std::out_of_range( strm.str() ) ;
-            }
-        } else {
-            if ( isNull() || isUndefined() ) {
-                *this = std::move(Array()) ;
-                data_.a_.insert(data_.a_.end(), idx - data_.a_.size()+1, Variant()) ;
-                return  (data_.a_)[idx] ;
-            } else if ( isArray() ) {
-                if ( idx < data_.a_.size() ) {
-                    Variant &v = (data_.a_)[idx] ;
-                    return v ; // reference to item
-                } else {
-                    data_.a_.insert(data_.a_.end(), idx - data_.a_.size()+1, Variant()) ;
-                    return  (data_.a_)[idx] ;
-                }
-            }
-            else
-                throw std::runtime_error("Trying to index an object which is not dictionary") ;
-        }
-    }
-
-    void destroy() {
-        switch (tag_) {
-        case Type::Object:
-            data_.o_.~Object() ;
-            break ;
-        case Type::Array:
-            data_.a_.~Array() ;
-            break ;
-        case Type::String:
-            data_.s_.~string_t() ;
-            break ;
-        case Type::Function:
-            data_.f_.~Function() ;
-            break ;
-        }
-    }
-
-    void create(const Variant &other) {
-        tag_ = other.tag_ ;
-        switch (tag_)
-        {
-        case Type::Object:
-            new ( &data_.o_ ) Object(other.data_.o_) ;
-            break;
-        case Type::Array:
-            new ( &data_.a_ ) Array(other.data_.a_) ;
-            break;
-        case Type::String:
-            new ( &data_.s_ ) string_t(other.data_.s_) ;
-            break;
-        case Type::Function:
-            new ( &data_.f_ ) Function(other.data_.f_) ;
-            break;
-        case Type::Boolean:
-            data_.b_ = other.data_.b_ ;
-            break;
-        case Type::UnsignedInteger:
-            data_.u_ = other.data_.u_ ;
-            break;
-        case Type::SignedInteger:
-            data_.i_ = other.data_.i_ ;
-            break;
-        case Type::Float:
-            data_.d_ = other.data_.d_ ;
-            break;
-        default:
-            break;
-        }
-
-    }
+    void create(const Variant &other);
 
 private:
 

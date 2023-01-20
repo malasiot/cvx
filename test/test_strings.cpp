@@ -2,7 +2,7 @@
 #include <cvx/misc/format.hpp>
 #include <cvx/misc/variant.hpp>
 #include <cvx/misc/timer.hpp>
-#include <cvx/misc/config.hpp>
+
 
 #include <iostream>
 #include <iterator>
@@ -30,6 +30,8 @@ application:
     pos = { x = 350; y = 250; };
   };
 
+             @include "/tmp/test.cfg"
+
   //list = ( ( "abc", 123, true ), 1.234, ( /* an empty list */ ) );
 
   books = [ { title  = "Treasure Island";
@@ -44,6 +46,7 @@ application:
 
   misc:
   {
+            @include "test.cfg";
     pi = 3.141592654;
     bigint = 9223372036;
     columns = [ "Last Name", "First Name", "MI" ];
@@ -55,14 +58,20 @@ application:
 )";
 
 
-    Config cofg ;
-    cofg.loadString(cfgs) ;
+    Variant v = Variant::fromConfigString(cfgs, "/tmp") ;
+
+    cout << v["version"].as<int>() << endl ;
 
     string title ;
 
-    Config f = cofg["application"] ;
+    v.lookup("application.window.title", title) ;
 
-   bool r= f.value("window.title", title) ;
+    cout << title << endl ;
+    Variant f = v["application"] ;
+
+    string ss = f.get("window.titlea", std::string{"ss"}) ;
+
+   cout << ss << endl ;
 
    Profiler p("code runs in: ") ;
     std::this_thread::sleep_for(15ms);
