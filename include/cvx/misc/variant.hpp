@@ -408,14 +408,13 @@ public:
     }
 
     // Returns a member value given the key. The key is of the form <member1>[.<member2>. ... <memberN>]
-    // If this is not an object or the key is not found it returns the default value
+    // If this is not an object or the key is not found it returns false
 
-    const Variant &value(const std::string &key, const Variant &defaultValue) const {
-
-        if ( key.empty() ) return defaultValue ;
+    bool lookup(const std::string &key, Variant &val) const {
+        if ( key.empty() ) return false ;
 
         const Variant *current = this ;
-        if ( !current->isObject() ) return defaultValue ;
+        if ( !current->isObject() ) return false ;
 
         size_t start = 0, end = 0;
 
@@ -424,21 +423,31 @@ public:
             std::string subkey = key.substr(start, end == std::string::npos ? std::string::npos : end - start) ;
 
             try {
-                const Variant &val = current->fetchKey(subkey) ;
+                val = current->fetchKey(subkey) ;
 
                 if ( end != std::string::npos ) {
                     current = &val ;
                     start = end+1 ;
                 }
-                else return val ;
+                else {
+                    return true ;
+                }
 
             } catch ( std::exception & ) {
-                return defaultValue ;
+                return false ;
             }
 
         }
 
-        return defaultValue ;
+        return false ;
+
+    }
+
+    // get value for key path and return default value if not found
+    Variant value(const std::string &key, const Variant &defaultValue) const {
+        Variant val ;
+        if ( !lookup(key, val) ) return defaultValue ;
+        else return val ;
     }
 
     const Variant &at(const std::string &key) const {

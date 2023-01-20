@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <cctype>
+#include <iostream>
 
 using namespace std ;
 
@@ -89,10 +90,12 @@ void JSONTokenizer::skipSpace() {
                 } else if ( c == '*' ) {
                     ++pos_ ;
                     pc = *pos_++ ;
-                    while ( pos_ && *pos_ != '/' && pc != '*' )
+                    while ( pos_ && !(*pos_ == '/' && pc == '*') ) {
                         pc = *pos_++ ;
+                    }
                 }
             } else if ( c == ';' ) ++pos_ ;
+            else return ;
         }
         else return ;
     }
@@ -319,7 +322,7 @@ void JSONTokenizer::parseNumber() {
 
     try {
         size_t idx ;
-        int64_t number = stoi(num_str, &idx) ;
+        int64_t number = stol(num_str, &idx) ;
         if ( idx == num_str.length() ) {
             token_number_literal_.is_integer_ = true ;
             token_number_literal_.value_.int_value_ = number ;
@@ -341,6 +344,12 @@ static bool is_number_prefix(char c) {
 }
 
 Token JSONTokenizer::nextToken() {
+
+    if ( !tstack_.empty() ) {
+        Token s = tstack_.top() ;
+        tstack_.pop() ;
+        return s ;
+    }
 
     static const char *msg_unknown_token = "unknown token" ;
     skipSpace() ;
@@ -379,45 +388,6 @@ Token JSONTokenizer::nextToken() {
         } else
             throwException(msg_unknown_token);
         break ;
-    case 't':
-        if ( expect("true") ) {
-            token_boolean_literal_ = true ;
-            return TOKEN_BOOLEAN;
-        } else {
-            if ( extended_ ) {
-                parseIdentifier() ;
-                return TOKEN_IDENTIFIER ;
-            }
-            else
-                throwException(msg_unknown_token) ;
-        }
-        break ;
-
-    case 'f':
-        if ( expect("false") ) {
-            token_boolean_literal_ = false ;
-            return TOKEN_BOOLEAN;
-        } else {
-            if ( extended_ ) {
-                parseIdentifier() ;
-                return TOKEN_IDENTIFIER ;
-            }
-            else
-                throwException(msg_unknown_token) ;
-        }
-        break ;
-    case 'n':
-        if ( expect("null") ) {
-            return TOKEN_JSON_NULL;
-        } else {
-            if ( extended_ ) {
-                parseIdentifier() ;
-                return TOKEN_IDENTIFIER ;
-            }
-            else
-                throwException(msg_unknown_token) ;
-        }
-        break ;
     case ':':
         ++pos_ ;
         return TOKEN_COLON ;
@@ -425,9 +395,22 @@ Token JSONTokenizer::nextToken() {
         ++pos_ ;
         return TOKEN_COMMA ;
     default:
-        if ( std::isalpha(*pos_) && extended_ ) {
+        if ( std::isalpha(*pos_) ) {
             parseIdentifier();
-            return TOKEN_IDENTIFIER ;
+
+            if ( token_string_literal_ == "true" ) {
+                token_boolean_literal_ = true ;
+                return TOKEN_BOOLEAN ;
+            } else if ( token_string_literal_ == "false" ) {
+                token_boolean_literal_ = false ;
+                return TOKEN_BOOLEAN ;
+            } else if ( token_string_literal_ == "null" && !extended_ ) {
+                return TOKEN_JSON_NULL ;
+            } else if ( extended_ ) {
+                return TOKEN_IDENTIFIER ;
+            } else
+                throwException(msg_unknown_token) ;
+
         } else if ( is_number_prefix(*pos_) ) {
             parseNumber() ;
             return TOKEN_NUMBER ;

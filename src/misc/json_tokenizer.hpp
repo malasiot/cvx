@@ -4,6 +4,7 @@
 #include <string>
 #include <istream>
 #include <iterator>
+#include <stack>
 
 namespace cvx {
 namespace detail {
@@ -36,6 +37,9 @@ public:
     std::string token_string_literal_ ;
 
     Token nextToken() ;
+    void pushBack(Token tk) {
+        tstack_.push(tk);
+    }
     void expectToken(Token tk, const char *msg) ;
 
     void throwException(const std::string msg) ;
@@ -78,6 +82,7 @@ private:
     std::istream &src_ ;
     Position pos_ ;
     bool extended_ ;
+    std::stack<Token> tstack_ ;
 
     void skipSpace() ;
     bool expect(char c) ;

@@ -16,19 +16,50 @@ int main(int argc, char *argv[]) {
 
     string cfgs =
 R"(
-{ value = 2,
- @include "test.cfg" // include file
-            /*
-"hg": {
-    "data_folder": ""
-}
-            *
-}
+# Example application configuration file
+
+version = "1.0";
+
+application:
+{
+  window:
+  {
+    title = "My Application"
+"hhh"
+    size = { w = 640; h = 480; };
+    pos = { x = 350; y = 250; };
+  };
+
+  //list = ( ( "abc", 123, true ), 1.234, ( /* an empty list */ ) );
+
+  books = [ { title  = "Treasure Island";
+
+              author = "Robert Louis Stevenson";
+              price  = 29.95;
+              qty    = 5; },
+            { title  = "Snow Crash";
+              author = "Neal Stephenson";
+              price  = 9.99;
+              qty    = 8; } ];
+
+  misc:
+  {
+    pi = 3.141592654;
+    bigint = 9223372036;
+    columns = [ "Last Name", "First Name", "MI" ];
+#    bitmask = 0x1FC3;	// hex
+#    umask = 0027;	// octal. Range limited to that of "int"
+  };
+
+};
 )";
 
-    istringstream strm(cfgs) ;
 
-    Config cofg(strm) ;
+    Config cofg ;
+    cofg.loadString(cfgs) ;
+
+    string title ;
+   bool r= cofg.value("application.window.title", title) ;
 
    Profiler p("code runs in: ") ;
     std::this_thread::sleep_for(15ms);
