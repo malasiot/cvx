@@ -51,6 +51,7 @@ void Config::loadString(const std::string &src, const std::string &inc_path) {
     try {
         parse(ctx, container_) ;
         container_.toJSON(std::cout);
+        cout << endl ;
     } catch ( JSONTokenizerParseException &e ) {
         string msg = "Error while parsing from string\n" ;
         msg += e.what() ;
@@ -66,15 +67,22 @@ bool Config::hasKey(const std::string &path) {
 bool Config::value(const char *path, std::string &value) const {
     Variant val ;
     if ( !container_.lookup(path, val) ) return false ;
-    if ( !val.isString() ) throw ConfigTypeException(path) ;
     value = val.toString() ;
     return true ;
+}
+
+Config Config::group(const char *path) const {
+    Variant val ;
+    if ( !container_.lookup(path, val) || !val.isObject() )
+        throw ConfigKeyException(path) ;
+    else {
+        return val ;
+    }
 }
 
 bool Config::value(const char *path, bool &value) const {
     Variant val ;
     if ( !container_.lookup(path, val) ) return false ;
-    if ( !val.isBoolean() ) throw ConfigTypeException(path) ;
     value = val.toBoolean() ;
     return true ;
 }
@@ -82,9 +90,7 @@ bool Config::value(const char *path, bool &value) const {
 bool Config::value(const char *path, unsigned int &value) const {
     Variant val ;
     if ( !container_.lookup(path, val) ) return false ;
-    if ( !val.isNumberInteger() ) throw ConfigTypeException(path) ;
     uint64_t v = val.toUnsignedInteger() ;
-    if ( v > std::numeric_limits<unsigned int>::max() ) throw ConfigOverflowException(path) ;
     value = static_cast<unsigned int>(v) ;
     return true ;
 }
@@ -92,10 +98,39 @@ bool Config::value(const char *path, unsigned int &value) const {
 bool Config::value(const char *path, int &value) const {
     Variant val ;
     if ( !container_.lookup(path, val) ) return false ;
-    if ( !val.isNumberInteger() ) throw ConfigTypeException(path) ;
     int64_t v = val.toSignedInteger() ;
-    if ( v > std::numeric_limits<int>::max() ) throw ConfigOverflowException(path) ;
     value = static_cast<int>(v) ;
+    return true ;
+}
+
+bool Config::value(const char *path, unsigned long long &value) const {
+    Variant val ;
+    if ( !container_.lookup(path, val) ) return false ;
+    uint64_t v = val.toUnsignedInteger() ;
+    value = static_cast<unsigned long long>(v) ;
+    return true ;
+}
+
+bool Config::value(const char *path, long long &value) const {
+    Variant val ;
+    if ( !container_.lookup(path, val) ) return false ;
+    int64_t v = val.toSignedInteger() ;
+    value = static_cast<long long>(v) ;
+    return true ;
+}
+
+bool Config::value(const char *path, float &value) const {
+    Variant val ;
+    if ( !container_.lookup(path, val) ) return false ;
+    double v = val.toFloat() ;
+    value = static_cast<float>(v) ;
+    return true ;
+}
+
+bool Config::value(const char *path, double &value) const {
+    Variant val ;
+    if ( !container_.lookup(path, val) ) return false ;
+    value = val.toFloat() ;
     return true ;
 }
 

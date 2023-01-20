@@ -423,13 +423,15 @@ public:
             std::string subkey = key.substr(start, end == std::string::npos ? std::string::npos : end - start) ;
 
             try {
-                val = current->fetchKey(subkey) ;
+                const Variant &v =
+                        (*current).fetchConstKey(subkey) ;
 
                 if ( end != std::string::npos ) {
-                    current = &val ;
+                    current = &v ;
                     start = end+1 ;
                 }
                 else {
+                    val = v ;
                     return true ;
                 }
 
@@ -451,7 +453,7 @@ public:
     }
 
     const Variant &at(const std::string &key) const {
-        return fetchKey(key) ;
+        return fetchConstKey(key) ;
 
     }
 
@@ -467,7 +469,7 @@ public:
 
     // overloaded indexing operators
     const Variant &operator [] (const std::string &key) const {
-        return fetchKey(key) ;
+        return fetchConstKey(key) ;
     }
 
     Variant &operator [] (const std::string &key) {
@@ -786,7 +788,7 @@ private:
     }
 
 
-    const Variant &fetchKey(const std::string &key) const {
+    const Variant &fetchConstKey(const std::string &key) const {
             if (!isObject() ) throw std::runtime_error("Trying to index an object which is not dictionary") ;
 
             auto it = data_.o_.find(key) ;

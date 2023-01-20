@@ -59,7 +59,10 @@ application:
     cofg.loadString(cfgs) ;
 
     string title ;
-   bool r= cofg.value("application.window.title", title) ;
+
+    Config f = cofg["application"] ;
+
+   bool r= f.value("window.title", title) ;
 
    Profiler p("code runs in: ") ;
     std::this_thread::sleep_for(15ms);

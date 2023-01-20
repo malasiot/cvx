@@ -27,6 +27,7 @@ public:
     bool value(const char *path, int &value) const;
     bool value (const char *path, unsigned int &value) const;
     bool value (const char *path, long long &value) const;
+    bool value (const char *path, unsigned long long &value) const;
     bool value (const char *path, float &value) const;
     bool value (const char *path, double &value) const;
     bool value (const char *path, std::string &value) const;
@@ -34,7 +35,7 @@ public:
     ConfigList value(const char *path) ;
 
     template <class T>
-    bool value(const std::string &key, T &v) {
+    bool value(const std::string &key, T &v) const {
         return value(key.c_str(), v) ;
     }
 
@@ -71,8 +72,8 @@ public:
     ConfigTypeException(const std::string &msg): std::runtime_error("Wrong type for key: " + msg) {}
 };
 
-class ConfigOverflowException: public std::runtime_error {
+class ConfigKeyException: public std::runtime_error {
 public:
-    ConfigOverflowException(const std::string &msg): std::runtime_error("Value overflow for key: " + msg) {}
+    ConfigKeyException(const std::string &msg): std::runtime_error("Invalid key: " + msg) {}
 };
 }
