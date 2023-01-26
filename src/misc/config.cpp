@@ -31,7 +31,6 @@ Variant ConfigParser::loadFile(const std::string &fpath, const std::string &inc_
 
     try {
         parse(ctx, container) ;
-        container.toJSON(std::cout);
         return container ;
     } catch ( JSONTokenizerParseException &e ) {
         string msg = "Error while parsing: " + fpath + "\n" ;
@@ -54,8 +53,6 @@ Variant ConfigParser::loadString(const std::string &src, const std::string &inc_
 
     try {
         parse(ctx, container) ;
-        container.toJSON(std::cout);
-        cout << endl ;
         return container ;
     } catch ( JSONTokenizerParseException &e ) {
         string msg = "Error while parsing from string\n" ;

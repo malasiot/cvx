@@ -94,7 +94,7 @@ void JSONTokenizer::skipSpace() {
                         pc = *pos_++ ;
                     }
                 }
-            } else if ( c == ';' ) ++pos_ ;
+            } else if ( c == ';' || c == ',' ) ++pos_ ;
             else return ;
         }
         else return ;

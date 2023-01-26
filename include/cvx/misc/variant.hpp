@@ -217,12 +217,12 @@ public:
     }
 
     template<typename T>
-    std::enable_if_t<std::is_signed<T>::value, T> as() const {
+    std::enable_if_t<std::is_integral<T>::value && std::is_signed<T>::value, T> as() const {
         return static_cast<T>(toSignedInteger()) ;
     }
 
     template<typename T>
-    std::enable_if_t<std::is_unsigned<T>::value, T> as() const {
+    std::enable_if_t<std::is_integral<T>::value && std::is_unsigned<T>::value, T> as() const {
         return static_cast<T>(toUnsignedInteger()) ;
     }
 
