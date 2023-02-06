@@ -1,5 +1,5 @@
 #include <cvx/misc/xml_sax_parser.hpp>
-
+#include <cvx/misc/json_reader.hpp>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -14,11 +14,11 @@ using namespace cvx ;
 static string trim(const string &src) {
     std::string::const_iterator it = src.begin();
     while (it != src.end() && isspace(*it))
-       it++;
+        it++;
 
     std::string::const_reverse_iterator rit = src.rbegin();
     while (rit.base() != it && isspace(*rit))
-       rit++;
+        rit++;
 
     return std::string(it, rit.base());
 }
@@ -50,9 +50,9 @@ public:
                 val = stof(t) ;
                 t.clear() ;
                 switch (m) {
-                    case 0: coord.lon_ = val ; m = 1 ; break ;
-                    case 1: coord.lat_ = val ; m = 2 ; break ;
-                    case 2: coord.ele_ = val ; m = 0 ; break ;
+                case 0: coord.lon_ = val ; m = 1 ; break ;
+                case 1: coord.lat_ = val ; m = 2 ; break ;
+                case 2: coord.ele_ = val ; m = 0 ; break ;
                 }
                 if ( isspace(c) ) {
                     coords.push_back(coord) ;
@@ -153,8 +153,8 @@ public:
             style_trait_ = style_->fill_style_ ;
         } else if ( qname == "hotSpot" ) {
             if ( style_ && style_->icon_style_ && style_trait_ == style_->icon_style_ ){
-                 style_->icon_style_->hs_x_ = stof(trim(attrs.get("x", "0"))) ;
-                 style_->icon_style_->hs_y_ = stof(trim(attrs.get("y", "0"))) ;
+                style_->icon_style_->hs_x_ = stof(trim(attrs.get("x", "0"))) ;
+                style_->icon_style_->hs_y_ = stof(trim(attrs.get("y", "0"))) ;
             }
         } else if ( qname == "heading" ) {
             if ( style_ && style_->icon_style_ && style_trait_ == style_->icon_style_ ){
@@ -170,7 +170,7 @@ public:
 
     virtual void endElement(const std::string &qname) {
         if ( qname == "Document" ) {
-             //Document is the root, nothing to do.
+            //Document is the root, nothing to do.
         } else if ( qname == "Folder" || qname == "Placemark" ) {
             features_.pop() ;
             if ( !features_.empty() ) feature_ = features_.top() ;
@@ -210,11 +210,11 @@ public:
             }
         } else if ( qname == "href" ) {
             if ( style_ && style_->icon_style_ && style_trait_ == style_->icon_style_ ){
-                 style_->icon_style_->href_ = text_ ;
+                style_->icon_style_->href_ = text_ ;
             }
         } else if ( qname == "color" ) {
             if ( style_ && style_trait_ ) {
-                 style_trait_->color_ = parseKmlColor(text_) ;
+                style_trait_->color_ = parseKmlColor(text_) ;
             }
         }  else if ( qname == "Style" ) {
             style_.reset() ;
@@ -265,10 +265,73 @@ private:
     bool in_inner_boundary_ ;
 };
 
+
+const char *str = R"(
+{
+"materials" : [
+       {
+           "name" : "Human_cmu:Body:Defaultskin",
+           "diffuse_color" : [0.59033,0.44,0.338],
+           "diffuse_map_intensity" : 1,
+           "specular_color" : [0.3,0.3,0.3],
+           "specular_map_intensity" : 1,
+           "shininess" : 0.96,
+           "opacity" : 1,
+           "translucency" : 0,
+           "emissive_color" : [0,0,0],
+           "ambient_color" : [0.11,0.11,0.11],
+           "transparency_map_intensity" : 1,
+           "shadeless" : false,
+           "wireframe" : false,
+           "transparent" : false,
+           "alphaToCoverage" : true,
+           "backfaceCull" : true,
+           "depthless" : false,
+           "castShadows" : true,
+           "receiveShadows" : true,
+           "sssEnabled" : true,
+           "sssRScale" : 4,
+           "sssGScale" : 2,
+           "sssBScale" : 1
+       }
+}
+)" ;
 int main(int argc, char *argv[]) {
 
+    istringstream ss(str) ;
+    JSONReader reader(ss) ;
+
+    reader.beginObject() ;
+    while ( reader.hasNext() ) {
+        string name = reader.nextName() ;
+        if ( name == "materials") {
+            reader.beginArray() ;
+            while ( reader.hasNext() ) {
+                reader.beginObject() ;
+                while ( reader.hasNext() ) {
+                    string name = reader.nextName() ;
+                    if ( name == "name")
+                        reader.nextString() ;
+                    else if ( name == "shininess" )
+                        reader.nextDouble() ;
+                    else if ( name == "opacity" )
+                        reader.nextDouble() ;
+                    else if ( name == "diffuse_texture" )
+                        reader.nextString() ;
+                    else reader.skipValue() ;
+                }
+                reader.endObject();
+
+                reader.endArray() ;
+            }
+        }
+
+
+    }
+    reader.endObject() ;
+
     ifstream strm("/home/malasiot/Downloads/berlin.kml") ;
-  //  ifstream strm("/home/malasiot/Downloads/polygon-point.kml") ;
+    //  ifstream strm("/home/malasiot/Downloads/polygon-point.kml") ;
     KmlParser parser(strm) ;
     parser.parse() ;
     cout << "ok here" ;

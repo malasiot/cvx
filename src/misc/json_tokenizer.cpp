@@ -395,7 +395,7 @@ Token JSONTokenizer::nextToken() {
         ++pos_ ;
         return TOKEN_COMMA ;
     default:
-        if ( std::isalpha(*pos_) ) {
+        if ( std::isalpha(*pos_) )
             parseIdentifier();
 
             if ( token_string_literal_ == "true" ) {
