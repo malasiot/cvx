@@ -94,7 +94,7 @@ void JSONTokenizer::skipSpace() {
                         pc = *pos_++ ;
                     }
                 }
-            } else if ( c == ';' || c == ',' ) ++pos_ ;
+            } else if ( c == ';' ) ++pos_ ;
             else return ;
         }
         else return ;
@@ -179,10 +179,11 @@ void JSONTokenizer::parseIdentifier()   {
             res += c ;
             ++pos_ ;
         }
-        else if ( std::isspace(c) || c == '=' || c == ':' )
-            break ;
-        else
-            throwException(msg_invalid_char);
+     //   else if ( std::isspace(c) || c == '=' || c == ':' )
+    //        break ;
+    //    else
+    //        throwException(msg_invalid_char);
+        else break ;
     }
 }
 
@@ -395,7 +396,7 @@ Token JSONTokenizer::nextToken() {
         ++pos_ ;
         return TOKEN_COMMA ;
     default:
-        if ( std::isalpha(*pos_) )
+        if ( std::isalpha(*pos_) ) {
             parseIdentifier();
 
             if ( token_string_literal_ == "true" ) {

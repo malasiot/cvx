@@ -66,13 +66,17 @@ bool ConfigParser::parseNameValue(ParseContext &ctx, Variant &v) {
     using namespace detail ;
 
     Token tk = ctx.tokenizer_->nextToken() ;
+    if ( tk == TOKEN_COMMA )
+        tk = ctx.tokenizer_->nextToken() ;
 
     if ( tk == TOKEN_IDENTIFIER ) {
         string name = ctx.tokenizer_->token_string_literal_ ;
         tk = ctx.tokenizer_->nextToken() ;
+
         if ( tk == TOKEN_EQUAL || tk == TOKEN_COLON ) {
             Variant val = parseValue(ctx) ;
             v[name] = val ;
+
             return true ;
         }
         else ctx.tokenizer_->throwException("unexpected token") ;
@@ -140,15 +144,17 @@ Variant ConfigParser::parseValue(ConfigParser::ParseContext &ctx) {
     } else if ( tk == TOKEN_OPEN_BRACKET ) {
         Variant v = Variant::Array() ;
         Token tk = TOKEN_EMPTY ;
+        ctx.skip_comma_ = false ;
         do {
             Variant item = parseValue(ctx) ;
             v.append(item) ;
             tk = ctx.tokenizer_->nextToken() ;
             if ( tk == TOKEN_COMMA ) continue ;
-            if ( tk != TOKEN_CLOSE_BRACKET )
-                ctx.tokenizer_->throwException("unexpected token");
+            else if ( tk == TOKEN_CLOSE_BRACKET ) break ;
+            else ctx.tokenizer_->pushBack(tk) ;
 
         } while ( tk != TOKEN_CLOSE_BRACKET ) ;
+        ctx.skip_comma_ = true ;
         return v ;
     }
 

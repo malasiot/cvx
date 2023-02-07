@@ -294,10 +294,11 @@ const char *str = R"(
            "sssGScale" : 2,
            "sssBScale" : 1
        }
+    ]
 }
 )" ;
-int main(int argc, char *argv[]) {
 
+void testJSON() {
     istringstream ss(str) ;
     JSONReader reader(ss) ;
 
@@ -310,6 +311,7 @@ int main(int argc, char *argv[]) {
                 reader.beginObject() ;
                 while ( reader.hasNext() ) {
                     string name = reader.nextName() ;
+                    cout << name << endl ;
                     if ( name == "name")
                         reader.nextString() ;
                     else if ( name == "shininess" )
@@ -329,6 +331,10 @@ int main(int argc, char *argv[]) {
 
     }
     reader.endObject() ;
+}
+int main(int argc, char *argv[]) {
+
+     testJSON() ;
 
     ifstream strm("/home/malasiot/Downloads/berlin.kml") ;
     //  ifstream strm("/home/malasiot/Downloads/polygon-point.kml") ;

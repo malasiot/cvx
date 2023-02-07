@@ -5,7 +5,9 @@
 #include <istream>
 #include <iterator>
 #include <stack>
+#include <iostream>
 
+using namespace std ;
 namespace cvx {
 namespace detail {
 

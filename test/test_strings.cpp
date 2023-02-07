@@ -26,11 +26,11 @@ application:
   {
     title = "My Application"
 "hhh"
-    size = { w = 640; h = 480; };
+    size = { w = 640, h = 480; };
     pos = { x = 350; y = 250; };
   };
 
-             @include "/tmp/test.cfg"
+          //   @include "/tmp/test.cfg"
 
   //list = ( ( "abc", 123, true ), 1.234, ( /* an empty list */ ) );
 
@@ -38,7 +38,9 @@ application:
 
               author = "Robert Louis Stevenson";
               price  = 29.95;
-              qty    = 5; },
+              qty    = 5;
+    },
+
             { title  = "Snow Crash";
               author = "Neal Stephenson";
               price  = 9.99;

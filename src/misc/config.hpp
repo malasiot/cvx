@@ -26,6 +26,7 @@ private:
         std::unique_ptr<detail::JSONTokenizer> tokenizer_ ;
         Variant var_ ;
         std::string inc_path_, path_ ;
+        bool skip_comma_ = true ;
     };
 
     static void parse(ParseContext &ctx, Variant &v) ;
