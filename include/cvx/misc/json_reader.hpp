@@ -67,6 +67,7 @@ private:
 
     JSONToken current_token_ ;
     std::stack<State> state_stack_ ;
+    bool skipping_ = false ;
 
     void advance() ;
     JSONToken nextValue(int tk);

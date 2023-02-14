@@ -3,6 +3,8 @@
 
 #include <map>
 #include <vector>
+#include <cstdint>
+#include <cstddef>
 
 namespace cvx {
 

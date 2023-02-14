@@ -268,33 +268,20 @@ private:
 
 const char *str = R"(
 {
-"materials" : [
-       {
-           "name" : "Human_cmu:Body:Defaultskin",
-           "diffuse_color" : [0.59033,0.44,0.338],
-           "diffuse_map_intensity" : 1,
-           "specular_color" : [0.3,0.3,0.3],
-           "specular_map_intensity" : 1,
-           "shininess" : 0.96,
-           "opacity" : 1,
-           "translucency" : 0,
-           "emissive_color" : [0,0,0],
-           "ambient_color" : [0.11,0.11,0.11],
-           "transparency_map_intensity" : 1,
-           "shadeless" : false,
-           "wireframe" : false,
-           "transparent" : false,
-           "alphaToCoverage" : true,
-           "backfaceCull" : true,
-           "depthless" : false,
-           "castShadows" : true,
-           "receiveShadows" : true,
-           "sssEnabled" : true,
-           "sssRScale" : 4,
-           "sssGScale" : 2,
-           "sssBScale" : 1
-       }
-    ]
+  "geometries" : [
+        {
+            "license" : {
+                "author" : "Manuel Bastioni",
+                "license" : "AGPL3 (http://www.makehuman.org/doc/node/makehuman_mesh_license.html",
+            "homepage" : "http://www.makehuman.org/"
+            },
+            "name" : "Human_cmu:Body",
+            "uuid" : "674cd4d5-f29b-4f86-8b49-742b6660037d",
+            "offset" : [0,0.81831,0],
+            "scale" : 0.1,
+            "issubdivided" : false,
+            "material" : "Human_cmu:Body:Defaultskin"
+    }]
 }
 )" ;
 
@@ -303,34 +290,33 @@ void testJSON() {
     JSONReader reader(ss) ;
 
     reader.beginObject() ;
-    while ( reader.hasNext() ) {
-        string name = reader.nextName() ;
-        if ( name == "materials") {
-            reader.beginArray() ;
-            while ( reader.hasNext() ) {
-                reader.beginObject() ;
-                while ( reader.hasNext() ) {
-                    string name = reader.nextName() ;
-                    cout << name << endl ;
-                    if ( name == "name")
-                        reader.nextString() ;
-                    else if ( name == "shininess" )
-                        reader.nextDouble() ;
-                    else if ( name == "opacity" )
-                        reader.nextDouble() ;
-                    else if ( name == "diffuse_texture" )
-                        reader.nextString() ;
-                    else reader.skipValue() ;
-                }
-                reader.endObject();
 
-                reader.endArray() ;
-            }
+    while ( reader.hasNext() ) {
+        reader.nextName() ;
+    reader.beginArray() ;
+
+    while ( reader.hasNext() ) {
+
+        string geomName ;
+
+        reader.beginObject() ;
+
+        while ( reader.hasNext() ) {
+            string name = reader.nextName() ;
+            if ( name == "name" )
+                geomName = reader.nextString() ;
+            else
+                reader.skipValue() ;
         }
 
 
+
+        reader.endObject() ;
     }
-    reader.endObject() ;
+
+
+    reader.endArray() ;
+    }
 }
 int main(int argc, char *argv[]) {
 

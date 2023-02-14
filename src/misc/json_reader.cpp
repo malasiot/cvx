@@ -137,14 +137,10 @@ void JSONReader::skipValue() {
     }
 
     int count = 0;
+    skipping_ = true ;
     while (1) {
       auto token = peek() ;
       advance();
-      if ( count == 0 &&
-           token == JSONToken::NUMBER || token == JSONToken::STRING
-           || token == JSONToken::BOOLEAN || token == JSONToken::JSON_NULL )
-        break;
-
       if ( token == JSONToken::BEGIN_ARRAY || token == JSONToken::BEGIN_OBJECT) {
            count++;
       } else if ( token == JSONToken::END_ARRAY || token == JSONToken::END_OBJECT) {
@@ -152,6 +148,7 @@ void JSONReader::skipValue() {
       }
       if ( count == 0 ) break ;
     }
+    skipping_ = false ;
 }
 
 JSONToken JSONReader::nextValue(int tk) {
