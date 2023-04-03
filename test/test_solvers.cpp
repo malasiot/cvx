@@ -27,7 +27,7 @@ class Rosenbrock {
 
 int main(int argc, char *argv[]) {
 
-    GradientDescentSolver<float, Rosenbrock> solver ;
+    LBFGSSolver<float, Rosenbrock> solver ;
 
     Rosenbrock f;
         // choose a starting point
@@ -35,7 +35,9 @@ int main(int argc, char *argv[]) {
     x << 0, 0;
 
     solver.params_.max_iter_ = 1000 ;
-    solver.minimize(f, x);
+    solver.minimize(f, x, [](const VectorXf &x, const VectorXf &g, float f, uint iter) {
+        cout << iter << ' ' << f << endl ;
+    });
         // print argmin
     std::cout << "argmin      " << x.transpose() << std::endl;
     std::cout << "f in argmin " << f.value(x) << std::endl;

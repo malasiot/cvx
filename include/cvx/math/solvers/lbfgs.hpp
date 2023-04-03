@@ -37,8 +37,10 @@ public:
 
     typedef Eigen::Matrix<T, Eigen::Dynamic, 1> Vector;
     typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+    using ProgressFunc = std::function<void (const Vector &x, const Vector &g, T f, uint iter)> ;
 
-    void minimize(ObjFunc &obj_func, Vector &x0) {
+
+    void minimize(ObjFunc &obj_func, Vector &x0, ProgressFunc prog = nullptr) {
            const size_t m = params_.M_ ;
            const size_t d = x0.rows();
            Matrix sVector = Matrix::Zero(d, m);
@@ -55,6 +57,11 @@ public:
            T grad_norm = 0 ;
 
            do {
+               if ( prog ) {
+                  T f = obj_func.value(x0) ;
+                  prog(x0, grad, f, iter) ;
+
+               }
                const T relative_epsilon = static_cast<T>(0.0001) * std::max(static_cast<T>(1.0), x0.norm());
 
                if (grad.norm() < relative_epsilon)

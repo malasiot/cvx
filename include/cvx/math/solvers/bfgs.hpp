@@ -35,9 +35,10 @@ public:
 
     typedef Eigen::Matrix<T, Eigen::Dynamic, 1> Vector;
     typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+    using ProgressFunc = std::function<void (const Vector &x, const Vector &g, T f, uint iter)> ;
 
 
-    void minimize(ObjFunc &obj_func, Vector &x0) {
+    void minimize(ObjFunc &obj_func, Vector &x0, ProgressFunc prog = nullptr) {
 
         const size_t d = x0.rows();
         size_t iter = 0;
@@ -51,6 +52,11 @@ public:
         obj_func.gradient(x0, grad);
 
         do {
+            if ( prog ) {
+               T f = obj_func.value(x0) ;
+               prog(x0, grad, f, iter) ;
+
+            }
             Vector search_dir = -1 * H * grad;
 
             // check "positive definite"

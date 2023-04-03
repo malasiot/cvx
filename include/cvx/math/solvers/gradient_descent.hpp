@@ -2,7 +2,7 @@
 #define CVX_GRADIENT_DESCENT_SOLVER_HPP
 
 #include <cvx/math/solvers/line_search.hpp>
-
+#include <functional>
 #include <Eigen/Core>
 
 // Gradient descent optimizer
@@ -20,6 +20,7 @@ template<typename T, typename ObjFunc, typename LS = MoreThuente<T, ObjFunc, 1> 
 class GradientDescentSolver {
 public:
 
+
     struct Parameters {
         T g_tol_, x_tol_ ;
         uint max_iter_ ;
@@ -36,8 +37,9 @@ public:
 
     typedef Eigen::Matrix<T, Eigen::Dynamic, 1> Vector;
     typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+    using ProgressFunc = std::function<void (const Vector &x, const Vector &g, T f, uint iter)> ;
 
-    void minimize(ObjFunc &obj_func, Vector &x0) {
+    void minimize(ObjFunc &obj_func, Vector &x0, ProgressFunc prog = nullptr) {
 
         const size_t d = x0.rows();
         size_t iter = 0;
@@ -47,7 +49,14 @@ public:
         Vector x_old = x0;
 
         do {
+
             obj_func.gradient(x0, grad);
+
+            if ( prog ) {
+               T f = obj_func.value(x0) ;
+               prog(x0, grad, f, iter) ;
+
+            }
 
             Vector search_dir = -grad;
 
