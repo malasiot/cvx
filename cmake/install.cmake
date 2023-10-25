@@ -15,9 +15,18 @@ install(EXPORT ${PROJECT_NAME}-export
   DESTINATION ${INSTALL_CMAKE_DIR}
   FILE ${PROJECT_NAME}Targets.cmake)
 
+include(CMakePackageConfigHelpers)
+# generate the config file that includes the exports
+configure_package_config_file(${CMAKE_SOURCE_DIR}/cmake/Config.cmake.in
+  "${PROJECT_CMAKE_FILES}/${PROJECT_NAME}Config.cmake"
+  INSTALL_DESTINATION ${INSTALL_CMAKE_DIR}
+  NO_SET_AND_CHECK_MACRO
+  NO_CHECK_REQUIRED_COMPONENTS_MACRO
+  )
+
 # Create the <package>Config.cmake.in
-configure_file(${CMAKE_SOURCE_DIR}/cmake/Config.cmake.in
-  "${PROJECT_CMAKE_FILES}/${PROJECT_NAME}Config.cmake" @ONLY)
+#configure_file(${CMAKE_SOURCE_DIR}/cmake/Config.cmake.in
+#  "${PROJECT_CMAKE_FILES}/${PROJECT_NAME}Config.cmake" @ONLY)
 
 # Create the <package>ConfigVersion.cmake.in
 configure_file(${CMAKE_SOURCE_DIR}/cmake/ConfigVersion.cmake.in

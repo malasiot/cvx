@@ -37,7 +37,6 @@ set ( LIB_SOURCES
     geometry/util.cpp
     geometry/viewpoint_sampler.cpp
 
-    viz/gnuplot.cpp
 
     imgproc/rgbd.cpp
     imgproc/concomp.cpp
