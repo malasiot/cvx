@@ -43,9 +43,11 @@ static void test_simple(int argc, const char *argv[]) {
     std::vector<int> items ;
     int pos ;
     bool print_help = false ;
+    string data_folder ;
     ArgumentParser args ;
     args.description("test_argparse [options] output (input)+ \nList information about the FILEs (the current directory by default).\nSort entries alphabetically if none of -cftuvSUX nor --sort is specified.") ;
 
+    args.option("-d|--data <folder>", data_folder, "data folder").required() ;
     args.option("-h|--help", print_help, "print this help message") ;
     args.option("-f|--flag [<v>]", f, "first flag").required().implicit("2.0") ;
     args.option("-b|--bbox <minx>:<miny>:<maxx>:<maxy>", bbox, "bounding box") ;
@@ -156,6 +158,6 @@ to read about a specific subcommand or concept.")") ;
 }
 
 int main(int argc, const char *argv[]) {
-//    test_simple(argc, argv) ;
+    test_simple(argc, argv) ;
     test_git(argc, argv) ;
 }

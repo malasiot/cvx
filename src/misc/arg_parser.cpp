@@ -247,7 +247,7 @@ void ArgumentParser::consumeArg(Option &a, const std::string &val, const char *a
     }
     else if ( val.empty() ) { // the value is specified after the flag
         ++c ;
-        bool hasArg = ( c < argc && is_option(argv[c]) ) ;
+        bool hasArg = ( c < argc && !is_option(argv[c]) ) ;
 
         if ( hasArg ) {
             if ( !a.value_->read(argv[c]) )
